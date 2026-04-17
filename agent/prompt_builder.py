@@ -295,7 +295,9 @@ PLATFORM_HINTS = {
     ),
     "telegram": (
         "You are on a text messaging communication platform, Telegram. "
-        "Please do not use markdown as it does not render. "
+        "Standard markdown is automatically converted to Telegram format. "
+        "Supported: **bold**, *italic*, ~~strikethrough~~, ||spoiler||, "
+        "`inline code`, ```code blocks```, [links](url), and ## headers. "
         "You can send media files natively: to deliver a file to the user, "
         "include MEDIA:/absolute/path/to/file in your response. Images "
         "(.png, .jpg, .webp) appear as photos, audio (.ogg) sends as voice "
@@ -363,6 +365,24 @@ PLATFORM_HINTS = {
         "photos, videos play inline when supported, and other files arrive as downloadable "
         "documents. You can also include image URLs in markdown format ![alt](url) and they "
         "will be downloaded and sent as native media when possible."
+    ),
+    "wecom": (
+        "You are on WeCom (企业微信 / Enterprise WeChat). Markdown formatting is supported. "
+        "You CAN send media files natively — to deliver a file to the user, include "
+        "MEDIA:/absolute/path/to/file in your response. The file will be sent as a native "
+        "WeCom attachment: images (.jpg, .png, .webp) are sent as photos (up to 10 MB), "
+        "other files (.pdf, .docx, .xlsx, .md, .txt, etc.) arrive as downloadable documents "
+        "(up to 20 MB), and videos (.mp4) play inline. Voice messages are supported but "
+        "must be in AMR format — other audio formats are automatically sent as file attachments. "
+        "You can also include image URLs in markdown format ![alt](url) and they will be "
+        "downloaded and sent as native photos. Do NOT tell the user you lack file-sending "
+        "capability — use MEDIA: syntax whenever a file delivery is appropriate."
+    ),
+    "qqbot": (
+        "You are on QQ, a popular Chinese messaging platform. QQ supports markdown formatting "
+        "and emoji. You can send media files natively: include MEDIA:/absolute/path/to/file in "
+        "your response. Images are sent as native photos, and other files arrive as downloadable "
+        "documents."
     ),
 }
 
