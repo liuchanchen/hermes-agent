@@ -65,7 +65,15 @@ _HOME_TARGET_ENV_VARS = {
     "wecom": "WECOM_HOME_CHANNEL",
     "weixin": "WEIXIN_HOME_CHANNEL",
     "bluebubbles": "BLUEBUBBLES_HOME_CHANNEL",
-    "qqbot": "QQ_HOME_CHANNEL",
+    "qqbot": "QQBOT_HOME_CHANNEL",
+}
+
+# Legacy env var names kept for back-compat.  Each entry is the current
+# primary env var → the previous name.  _get_home_target_chat_id falls
+# back to the legacy name if the primary is unset, so users who set the
+# old name before the rename keep working until they migrate.
+_LEGACY_HOME_TARGET_ENV_VARS = {
+    "QQBOT_HOME_CHANNEL": "QQ_HOME_CHANNEL",
 }
 
 from cron.jobs import get_due_jobs, mark_job_run, save_job_output, advance_next_run
@@ -100,7 +108,12 @@ def _get_home_target_chat_id(platform_name: str) -> str:
     env_var = _HOME_TARGET_ENV_VARS.get(platform_name.lower())
     if not env_var:
         return ""
-    return os.getenv(env_var, "")
+    value = os.getenv(env_var, "")
+    if not value:
+        legacy = _LEGACY_HOME_TARGET_ENV_VARS.get(env_var)
+        if legacy:
+            value = os.getenv(legacy, "")
+    return value
 
 
 def _resolve_single_delivery_target(job: dict, deliver_value: str) -> Optional[dict]:
@@ -667,6 +680,11 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
 
     logger.info("Running job '%s' (ID: %s)", job_name, job_id)
     logger.info("Prompt: %s", prompt[:100])
+
+    # Mark this as a cron session so the approval system can apply cron_mode.
+    # This env var is process-wide and persists for the lifetime of the
+    # scheduler process — every job this process runs is a cron job.
+    os.environ["HERMES_CRON_SESSION"] = "1"
 
     try:
         # Inject origin context so the agent's send_message tool knows the chat.
