@@ -7,3 +7,11 @@ User wants detailed comparison doc between 乐道L90 (Onvo L90) and 零跑D19 (L
 用户纠正了我的错误：之前写的乐道L90价格(21.99-26.99万)是错误的。正确价格是26.58-29.98万（2025款，6款配置）。用户要求多数据源交叉验证，不要写不确定的数据。
 §
 autohome车型ID：乐道L90=8045，零跑D19=8273。autohome数据可能有误，零跑D19转弯半径3.6m用户存疑（可能是三电机版本特有，非全系统一）。
+§
+懂车帝乐道L90监控：
+- dongchedi_watch 是 Python 脚本：/home/jianliu/work/hermes-agent/tools/dongchedi_tool.py
+- 运行方式：cd /home/jianliu/work/hermes-agent && source venv/bin/activate && python tools/dongchedi_tool.py --list-url "..." --max-details 30 --headed
+- 使用 crawl4ai 库进行爬取，需要浏览器自动化
+- 定时任务ID: 7c1e45b92026，每晚22:00执行，deliver已设为origin
+- 数据库：~/.hermes/dongchedi_l90.db (SQLite)
+- 历史输出：~/.hermes/cron/output/dongchedi_l90_YYYYMMDD.json
