@@ -1,50 +1,59 @@
 ---
 name: dongchedi-l90-watch
-description: "监控懂车帝乐道L90二手车，检测价格/里程变化。工具: dongchedi_watch。反爬严重，需headless=false手动验证。"
-version: 3.4.0
-platforms: [linux, darwin]
+description: "监控懂车帝乐道L90二手车，检测价格/里程变化。脚本: dongchedi_l90_watch.py + xvfb-run"
+version: 4.1.0
+platforms: [linux]
 ---
 
 # 懂车帝L90监控
 
-**必须使用 `dongchedi_watch` 工具。禁止使用浏览器或爬虫替代。**
+**正确方法：用 `xvfb-run` 运行 Python 脚本（不要用 browser 工具）**
 
-## 已知反爬问题
-懂车帝反爬：
-- headless=true：不会报错/超时，但返回空数据（matched_count=0），需改用 headless=false
-- headless=false：正常返回完整数据，无需手动验证码（cookies已缓存）
-- 验证后cookies有效期有限，需定期重新验证
-
-## 工具调用
-1. 先试 headless=true（快速）
-2. 如果 matched_count=0 或明显缺数据，用 headless=false
-3. headless=false 模式有缓存cookies，正常无需手动验证
-
-## 当前状态
-- 定时任务ID: 7c1e45b92026，22:00每日执行
-- 定时任务可能漏跑（如系统时间已过但 next_run 未更新），可用 cronjob run 手动补跑
-
-# 懂车帝L90监控
-
-**必须使用 `dongchedi_watch` 工具。禁止使用浏览器或爬虫替代。**
-
-## 工具调用
-
-直接调用以下工具（无需确认）：
-
-```json
-{
-  "list_url": "https://www.dongchedi.com/usedcar/20,!1-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-918-25234-310000-1-x-x-x-x-x",
-  "max_details": 30,
-  "headless": false
-}
+## 依赖安装（首次）
+```bash
+cd /home/jianliu/work/hermes-agent && source venv/bin/activate
+uv pip install crawl4ai
+playwright install chromium
 ```
 
-## 当前在售车源（2026-04-24，共8台）
-全部为六座版2025款，均为买断：
+## 运行命令
+```bash
+xvfb-run -a python tools/dongchedi_l90_watch.py \
+  --list-url "https://www.dongchedi.com/usedcar/20,!1-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-918-25234-310000-1-x-x-x-x-x" \
+  --db /home/jianliu/.hermes/dongchedi_l90.db \
+  --max-details 30 \
+  --profile-dir /tmp/dongchedi_profile
+```
+
+## 关键要点
+
+### xvfb-run 是必须的
+- 脚本内部即使 `headless=True` 也会启动非 headless Chrome（crawl4ai 的 BrowserConfig 默认 headed）
+- WSL 无 X server，不加 xvfb-run 会报错 "TargetClosedError: BrowserType.launch_persistent_context: Target page, context or browser has been closed" + "looks like you launched a headed browser without having a XServer running"
+- `xvfb-run -a` 自动分配虚拟显示（`:99` 等）
+
+### 数据库注意事项
+- 旧 DB (`~/.hermes/dongchedi_l90.db`) 的 schema 可能不兼容（缺 `platform` 列）
+- 用新 DB 或空字符串 `--db ""` 创建新库
+- 推荐 DB 路径：`/home/jianliu/.hermes/dongchedi_l90.db`
+
+## 定时任务配置
+- Job ID: 7c1e45b92026
+- Schedule: 每天 22:00 (`0 22 * * *`)
+- **注意**：cron job 默认 toolset 只有 `hermes-cli`，无法直接调用工具。需用 Python 脚本方式或确保 job 有 `browser` toolset
+- deliver 必须设为 `"origin"` 才能发送结果
+
+## 已知问题
+
+1. **browser 工具无法访问懂车帝** — `browser_navigate` 返回 `ERR_ABORTED`，即使 baidu.com 正常。**不要用 browser 工具**
+2. **dongchedi_watch 不是工具** — 是 Python 脚本，不是 MCP 工具或 pip 包
+3. **旧数据库 schema 不兼容** — `no such column: platform` → 用新 DB
+
+## 当前在售（2026-04-24，共9台）
 
 | 价格 | 里程 | 上牌 | 城市 | 车型 | 地址 |
 |------|------|------|------|------|------|
+| 21.80万 | — | 2025-08 | 太原 | 六座版Max | 晋源区万国精品二手车市场 |
 | 20.80万 | — | 2025-08 | 合肥 | 六座版Max | 上海路与大连路交口上上名车展厅 |
 | 21.28万 | 2.0万km | 2025-07 | 上海 | 六座版Pro | 嘉定区南翔镇武威路2885弄B2诚车惠新能源 |
 | 22.18万 | — | 2025-07 | 北京 | 六座版Pro | 丰台区西三环居然之家地下B3 |
@@ -54,28 +63,4 @@ platforms: [linux, darwin]
 | 24.38万 | — | 2025-09 | 佛山 | 六座版Ultra | 南海区海八西路时代骏雄二手车众远蔚来 |
 | 24.50万 | — | 2025-09 | 宁波 | 六座版Max | 海曙区环城西路455号建材馆B1-036凯汇 |
 
-**价格区间**：20.80–24.50万；**历史下架**：南京20.58万 Max（2025-08上牌）
-
-工具返回JSON。提取并展示：
-- `matched_count` — 本次扫描车源数
-- `new_count` / `removed_count` / `changed_count` — 变化数量
-- `items[]` — 每条车源：
-  - **price_wan** — 价格（万）
-  - **mileage_km** — 里程（km）
-  - **city** — 城市
-  - **seller_type** — 卖家类型（个人/商家）
-  - **seller_name** — 卖家名称/店铺名
-  - **seller_address** — 商家地址
-  - **url** — 车辆链接
-
-格式示例：
-```
-懂车帝乐道L90在售 (5台, 新3台, 下架2台)
-23.80万 | 1.6万km | 温州 | 商家 | 温州XX二手车 | 浙江省温州市XX路XX号
-24.50万 | 2万km | 宁波 | 个人 | 李先生 | —
-21.28万 | 0.93万km | 上海 | 商家 | 上海XX新能源 | 上海市嘉定区XX路XX号
-```
-
-## 验证码处理
-
-懂车帝可能弹验证码。**首次运行用 headless=false**，手动在浏览器验证。之后可 headless=true。
+**价格区间**：20.80–24.50万 | 全部电池买断 | 全部商家
