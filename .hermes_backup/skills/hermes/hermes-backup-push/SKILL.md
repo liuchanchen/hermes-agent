@@ -36,8 +36,32 @@ cp -r ~/.hermes/cron/output .hermes_backup/cron/output
 cp ~/.hermes/cron/.tick.lock .hermes_backup/cron/.tick.lock 2>/dev/null
 
 mkdir -p .hermes_backup/databases
-sqlite3 ~/.hermes/state.db ".backup .hermes_backup/databases/state.db"
-cp ~/.hermes/dongchedi_l90.db .hermes_backup/databases/dongchedi_l90.db
+
+# state.db（会话/消息历史，~1.7MB）- sqlite3 .backup 优先，fallback 到 Python backup API
+python3 - <<'EOF'
+import sqlite3, shutil, os, sys
+
+src = os.path.expanduser("~/.hermes/state.db")
+dst = "/home/jianliu/work/hermes-agent/.hermes_backup/databases/state.db"
+
+try:
+    import subprocess
+    r = subprocess.run(["sqlite3", src, ".backup", dst], capture_output=True)
+    if r.returncode == 0:
+        print("state.db: sqlite3 .backup ok")
+    else:
+        raise Exception("sqlite3 CLI failed")
+except Exception:
+    conn = sqlite3.connect(src)
+    bak = sqlite3.connect(dst)
+    conn.execute("PRAGMA wal_checkpoint(PASSIVE)")
+    conn.backup(bak)
+    bak.close()
+    conn.close()
+    print("state.db: python3 backup api ok")
+EOF
+
+cp ~/.hermes/dongchedi_l90.db .hermes_backup/databases/dongchedi_l90.db 2>/dev/null
 cp ~/.hermes/whatsapp/state.db .hermes_backup/databases/whatsapp_state.db 2>/dev/null
 cp ~/.hermes/whatsapp/dongchedi_l90.db .hermes_backup/databases/whatsapp_dongchedi.db 2>/dev/null
 
@@ -91,7 +115,7 @@ curl -s "https://api.github.com/repos/liuchanchen/hermes-agent/contents/.hermes_
 
 | DB | 备份方法 | 原因 |
 |----|----------|------|
-| state.db | `sqlite3 .backup` | 对活跃 DB 做原子快照，WAL 数据也会 flush |
+| state.db | `PRAGMA wal_checkpoint + shutil.copy2`（Python） | sqlite3 CLI 不可用时，用此替代；iterdump() 对 FTS5 表会报 "table already exists" 错误，不能用 |
 | dongchedi_l90.db | `cp` | 静态 DB，直接复制 |
 | whatsapp_state.db | `cp` | 静态 DB，直接复制 |
 | whatsapp_dongchedi.db | `cp` | 静态 DB，直接复制 |
@@ -99,7 +123,8 @@ curl -s "https://api.github.com/repos/liuchanchen/hermes-agent/contents/.hermes_
 ## 注意事项
 
 1. **先 backup 再 push** — 不能只 push，必须先确保本地 `.hermes_backup/` 是最新的
-2. **state.db MD5 与源不匹配是正常的** — `sqlite3 .backup` 做的是时间点快照，不是实时镜像
+2. **sqlite3 CLI 可能不存在** — 先检查 `which sqlite3`，若不存在则用 Python 替代（见数据库备份表）
+3. **state.db MD5 与源不匹配是正常的** — `PRAGMA wal_checkpoint` + copy 做的是时间点快照，不是实时镜像
 3. **whatsapp db 备份失败不算错误** — whatsapp 目录可能不存在
 4. **.gitignore 不会影响 .hermes_backup** — `hermes-*/*` 模式只匹配 `hermes-` 开头的目录，`.hermes_backup` 不受影响
 5. **cron output 历史文件会被完整保存** — 每次 push 都会把新的 output 文件一起提交

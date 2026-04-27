@@ -27,12 +27,43 @@ cp ~/.hermes/cron/jobs.json .hermes_backup/cron/jobs.json
 cp -r ~/.hermes/cron/output .hermes_backup/cron/output
 cp ~/.hermes/cron/.tick.lock .hermes_backup/cron/.tick.lock 2>/dev/null
 
-# 4. databases（所有 SQLite 数据库，使用 .backup 保存干净快照）
+# 4. databases（所有 SQLite 数据库）
 mkdir -p .hermes_backup/databases
-# state.db（会话/消息历史，1.6MB）- sqlite3 .backup 原子快照
-sqlite3 ~/.hermes/state.db ".backup .hermes_backup/databases/state.db"
+
+# state.db（会话/消息历史，1.6MB）
+# 注意：cron 环境中 PATH 可能不含 sqlite3 CLI，优先用 sqlite3 .backup
+# 若 .backup 失败（exit!=0），fallback 到 python3 wal_checkpoint + shutil.copy2
+python3 - <<'EOF'
+import sqlite3, shutil, os, sys
+
+src = os.path.expanduser("~/.hermes/state.db")
+dst = "/home/jianliu/work/hermes-agent/.hermes_backup/databases/state.db"
+
+try:
+    # 方式1：sqlite3 CLI .backup（原子快照，包含 WAL）
+    import subprocess
+    r = subprocess.run(["sqlite3", src, ".backup", dst], capture_output=True)
+    if r.returncode == 0:
+        print("state.db: sqlite3 .backup ok")
+    else:
+        raise Exception("sqlite3 CLI failed")
+except Exception:
+    # 方式2：Python sqlite3 backup API（wal_checkpoint + copy）
+    try:
+        conn = sqlite3.connect(src)
+        bak = sqlite3.connect(dst)
+        conn.execute("PRAGMA wal_checkpoint(PASSIVE)")
+        conn.backup(bak)
+        bak.close()
+        conn.close()
+        print("state.db: python3 backup api ok")
+    except Exception as e:
+        print("state.db backup FAILED:", e, file=sys.stderr)
+        sys.exit(1)
+EOF
+
 # dongchedi_l90.db（懂车帝二手车监控，24KB）
-cp ~/.hermes/dongchedi_l90.db .hermes_backup/databases/dongchedi_l90.db
+cp ~/.hermes/dongchedi_l90.db .hermes_backup/databases/dongchedi_l90.db 2>/dev/null
 # whatsapp state.db（128KB）
 cp ~/.hermes/whatsapp/state.db .hermes_backup/databases/whatsapp_state.db 2>/dev/null
 # whatsapp dongchedi db（20KB）
@@ -53,6 +84,7 @@ import subprocess
 result = subprocess.run(["cat", os.path.expanduser("~/.hermes/cron/jobs.json")], capture_output=True, text=True)
 manifest.setdefault("verification", {})["cron_jobs"] = len(json.loads(result.stdout))
 manifest["verification"]["databases"] = ["state.db", "dongchedi_l90.db", "whatsapp_state.db", "whatsapp_dongchedi.db"]
+manifest.setdefault("verification", {})["databases"] = ["state.db", "dongchedi_l90.db", "whatsapp_state.db", "whatsapp_dongchedi.db"]
 with open(".hermes_backup/MANIFEST.json", "w") as f:
     json.dump(manifest, f, indent=2)
 print("MANIFEST written:", json.dumps(manifest, indent=2))
@@ -108,7 +140,7 @@ cat .hermes_backup/MANIFEST.json
 
 | 数据库 | 源路径 | 大小 | 说明 |
 |--------|--------|------|------|
-| state.db | ~/.hermes/state.db | ~1.8MB | 会话/消息历史（sqlite3 .backup 快照） |
+| state.db | ~/.hermes/state.db | ~1.8MB | 会话/消息历史（wal_checkpoint + shutil.copy2 快照；iterdump 对 FTS5 表报错） |
 | dongchedi_l90.db | ~/.hermes/dongchedi_l90.db | 24KB | 懂车帝二手车监控 |
 | whatsapp_state.db | ~/.hermes/whatsapp/state.db | 128KB | WhatsApp gateway 状态 |
 | whatsapp_dongchedi.db | ~/.hermes/whatsapp/dongchedi_l90.db | 20KB | WhatsApp 懂车帝监控 |
