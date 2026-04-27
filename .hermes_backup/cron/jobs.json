@@ -20,15 +20,15 @@
       "schedule_display": "0 22 * * *",
       "repeat": {
         "times": 999,
-        "completed": 9
+        "completed": 10
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-21T11:25:30.331382+08:00",
-      "next_run_at": "2026-04-26T22:00:00+08:00",
-      "last_run_at": "2026-04-25T22:02:10.905753+08:00",
+      "next_run_at": "2026-04-27T22:00:00+08:00",
+      "last_run_at": "2026-04-26T22:02:12.646647+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -60,18 +60,18 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": 999,
-        "completed": 4
+        "completed": 5
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-23T23:08:50.970385+08:00",
-      "next_run_at": "2026-04-27T08:00:00+08:00",
-      "last_run_at": "2026-04-26T08:01:11.499296+08:00",
+      "next_run_at": "2026-04-28T08:00:00+08:00",
+      "last_run_at": "2026-04-27T08:01:33.389583+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": "delivery error: Weixin send failed: Timeout context manager should be used inside a task",
+      "last_delivery_error": null,
       "deliver": "origin",
       "origin": {
         "platform": "weixin",
@@ -101,21 +101,21 @@
       "schedule_display": "0 9 * * *",
       "repeat": {
         "times": 999,
-        "completed": 0
+        "completed": 1
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-26T17:30:29.608686+08:00",
-      "next_run_at": "2026-04-27T09:00:00+08:00",
-      "last_run_at": null,
-      "last_status": null,
+      "next_run_at": "2026-04-28T09:00:00+08:00",
+      "last_run_at": "2026-04-26T17:32:38.432562+08:00",
+      "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
       "deliver": "origin",
       "origin": null
     }
   ],
-  "updated_at": "2026-04-26T17:31:29.592565+08:00"
+  "updated_at": "2026-04-27T09:00:35.172560+08:00"
 }
