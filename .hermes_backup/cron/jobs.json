@@ -20,15 +20,15 @@
       "schedule_display": "0 22 * * *",
       "repeat": {
         "times": 999,
-        "completed": 10
+        "completed": 12
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-21T11:25:30.331382+08:00",
-      "next_run_at": "2026-04-27T22:00:00+08:00",
-      "last_run_at": "2026-04-26T22:02:12.646647+08:00",
+      "next_run_at": "2026-04-28T22:00:00+08:00",
+      "last_run_at": "2026-04-27T22:51:42.933824+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -60,15 +60,15 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": 999,
-        "completed": 5
+        "completed": 6
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-23T23:08:50.970385+08:00",
-      "next_run_at": "2026-04-28T08:00:00+08:00",
-      "last_run_at": "2026-04-27T08:01:33.389583+08:00",
+      "next_run_at": "2026-04-29T08:00:00+08:00",
+      "last_run_at": "2026-04-28T08:00:35.623296+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -101,15 +101,85 @@
       "schedule_display": "0 9 * * *",
       "repeat": {
         "times": 999,
-        "completed": 1
+        "completed": 2
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-26T17:30:29.608686+08:00",
-      "next_run_at": "2026-04-28T09:00:00+08:00",
-      "last_run_at": "2026-04-26T17:32:38.432562+08:00",
+      "next_run_at": "2026-04-29T09:00:00+08:00",
+      "last_run_at": "2026-04-27T09:01:02.535459+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "origin",
+      "origin": null
+    },
+    {
+      "id": "4f84b0c63dc2",
+      "name": "\u6bcf\u5468\u4e8c\u5165\u804c\u63d0\u9192",
+      "prompt": "\u6bcf\u5468\u4e8c\u4e0a\u534810\u70b9\uff0c\u68c0\u67e5\u5165\u804c\u65f6\u95f4\u8868\uff0c\u53d1\u9001\u5f85\u5165\u804c\u5019\u9009\u4eba\u63d0\u9192\u3002\n\n## \u6b65\u9aa4\n\n1. \u8bfb\u53d6\u5165\u804c\u65f6\u95f4\u8868\uff1a\n   `/mnt/c/Users/liuch/My Documents/warpdriveai/\u5236\u5ea6/\u62db\u8058/\u5165\u804c\u65f6\u95f4\u8868.md`\n\n2. \u8bfb\u53d6\u6240\u6709\u5019\u9009\u4eba\u6863\u6848\uff08`/mnt/c/Users/liuch/My Documents/warpdriveai/\u5236\u5ea6/\u62db\u8058/\u5019\u9009\u4eba\u6863\u6848/*.md`\uff09\uff0c\u8865\u5145\u5019\u9009\u4eba\u4fe1\u606f\n\n3. \u627e\u51fa\u6240\u6709\u72b6\u6001\u4e3a\"\u5df2\u5b89\u6392\"\u4e14\u5165\u804c\u65e5\u671f\u5728\u4eca\u5929\u4e4b\u540e\u7684\u5019\u9009\u4eba\n\n4. \u6574\u7406\u63d0\u9192\u5185\u5bb9\u5e76\u53d1\u9001\uff0c\u683c\u5f0f\u5982\u4e0b\uff1a\n\n   ```\n   \ud83d\udccb \u5165\u804c\u63d0\u9192 \u2014 \u5f85\u5165\u804c\u5019\u9009\u4eba\n\n   \u5019\u9009\u4eba\uff1a[\u59d3\u540d]\n   \u5165\u804c\u65e5\u671f\uff1a[YYYY-MM-DD]\n   \u8ddd\u5165\u804c\uff1a[X] \u5929\n\n   \u6ce8\u610f\u4e8b\u9879\uff1a\n   - [ ] Offer \u5df2\u53d1\u9001\uff1f\n   - [ ] \u80cc\u8c03\u5df2\u5b8c\u6210\uff1f\n   - [ ] \u5165\u804c\u6750\u6599\u51c6\u5907\u9f50\u5168\uff1f\n   - [ ] \u5de5\u4f4d/\u8bbe\u5907\u5df2\u51c6\u5907\uff1f\n   ```\n\n5. \u5982\u679c\u5f53\u5929\u6ca1\u6709\u5f85\u5165\u804c\u5019\u9009\u4eba\uff0c\u53d1\u9001\"\u672c\u5468\u65e0\u5f85\u5165\u804c\u5019\u9009\u4eba\"\u63d0\u793a\n\n6. \u901a\u8fc7 send_message \u53d1\u9001\u5230 origin\n\n## \u6ce8\u610f\u4e8b\u9879\n- \u53ea\u63d0\u9192\u672a\u67657\u5929\u5185\u5165\u804c\u7684\u5019\u9009\u4eba\uff08\u592a\u8fdc\u7684\u53ef\u4ee5\u5ffd\u7565\uff09\n- \u5982\u679c\u6240\u6709\u5f85\u5165\u804c\u5019\u9009\u4eba\u90fd\u5df2\u8d85\u8fc7\u5165\u804c\u65e5\uff0c\u63d0\u793a\u5df2\u8fc7\u671f\u5019\u9009\u4eba",
+      "skills": [
+        "interview"
+      ],
+      "skill": "interview",
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 10 * * 2",
+        "display": "0 10 * * 2"
+      },
+      "schedule_display": "0 10 * * 2",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-04-27T19:19:45.178002+08:00",
+      "next_run_at": "2026-04-28T10:00:00+08:00",
+      "last_run_at": null,
+      "last_status": null,
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "origin",
+      "origin": null
+    },
+    {
+      "id": "abbcf2686299",
+      "name": "\u6bcf\u65e5\u9762\u8bd5\u63d0\u9192",
+      "prompt": "\u6bcf\u5929\u665a\u4e0a9\u70b9\uff0c\u68c0\u67e5\u9762\u8bd5\u65f6\u95f4\u8868\uff0c\u53d1\u9001\u672a\u67657\u5929\u5185\u7684\u9762\u8bd5\u5b89\u6392\u63d0\u9192\u3002\n\n## \u6b65\u9aa4\n\n1. \u8bfb\u53d6\u9762\u8bd5\u65f6\u95f4\u8868\uff1a\n   `/mnt/c/Users/liuch/My Documents/warpdriveai/\u5236\u5ea6/\u62db\u8058/\u9762\u8bd5\u65f6\u95f4\u8868.md`\n\n2. \u8bfb\u53d6\u6240\u6709\u5019\u9009\u4eba\u6863\u6848\uff08`/mnt/c/Users/liuch/My Documents/warpdriveai/\u5236\u5ea6/\u62db\u8058/\u5019\u9009\u4eba\u6863\u6848/*.md`\uff09\uff0c\u8865\u5145\u5019\u9009\u4eba\u5e94\u8058\u5c97\u4f4d\u7b49\u4fe1\u606f\n\n3. \u8bc6\u522b\u6240\u6709\"\u72b6\u6001\"\u975e\"\u5df2\u5b8c\u6210\"\u7684\u9762\u8bd5\u5b89\u6392\uff0c\u4e14\u65e5\u671f\u5728\u4eca\u5929\uff08YYYY-MM-DD\uff09\u4e4b\u540e\n\n4. \u6309\u65e5\u671f\u5206\u7ec4\u6574\u7406\uff0c\u6309\u65e5\u671f\u5347\u5e8f\u6392\u5217\n\n5. \u53d1\u9001\u63d0\u9192\uff0c\u683c\u5f0f\uff1a\n\n   ```\n   \ud83d\udcc5 \u9762\u8bd5\u63d0\u9192 \u2014 \u672a\u67657\u5929\u5b89\u6392\n\n   ### YYYY-MM-DD (X\u5929\u540e)\n   - **[\u5019\u9009\u4eba\u59d3\u540d]** | [\u8f6e\u6b21] | [\u65f6\u95f4] | [\u5f62\u5f0f] | \u9762\u8bd5\u5b98\uff1a[\u9762\u8bd5\u5b98]\n     \u5907\u6ce8\uff1a[\u5907\u6ce8]\n   ```\n\n   \u5982\u679c\u4eca\u5929\u6709\u9762\u8bd5\uff1a\n   ```\n   ### \u4eca\u5929\n   - **[\u5019\u9009\u4eba\u59d3\u540d]** | [\u8f6e\u6b21] | [\u65f6\u95f4] | [\u5f62\u5f0f] | \u9762\u8bd5\u5b98\uff1a[\u9762\u8bd5\u5b98]\n     \u5907\u6ce8\uff1a[\u5907\u6ce8]\n   ```\n\n6. \u5982\u679c\u6ca1\u6709\u672a\u67657\u5929\u5185\u7684\u9762\u8bd5\u5b89\u6392\uff0c\u53d1\u9001\"\u672a\u67657\u5929\u5185\u65e0\u9762\u8bd5\u5b89\u6392\"\n\n7. \u901a\u8fc7 send_message \u53d1\u9001\u5230 origin\n\n## \u6ce8\u610f\u4e8b\u9879\n- \u4eca\u5929\u662f 2026-04-27\uff0c\u7b5b\u9009\u672a\u67657\u5929\uff1a4/27 - 5/3\n- \u5982\u679c\u9762\u8bd5\u5df2\u8fc7\u671f\uff08\u65e5\u671f\u5728\u4eca\u5929\u4e4b\u524d\u4e14\u72b6\u6001\u975e\u5df2\u5b8c\u6210\uff09\uff0c\u6807\u6ce8\"\u26a0\ufe0f \u5df2\u8fc7\u671f\"\n- \u4eca\u5929\u65e5\u671f\u7528 `date \"+%Y-%m-%d\"` \u786e\u8ba4",
+      "skills": [
+        "interview"
+      ],
+      "skill": "interview",
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 21 * * *",
+        "display": "0 21 * * *"
+      },
+      "schedule_display": "0 21 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 1
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-04-27T19:22:17.374140+08:00",
+      "next_run_at": "2026-04-28T21:00:00+08:00",
+      "last_run_at": "2026-04-27T21:00:45.722864+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -117,5 +187,5 @@
       "origin": null
     }
   ],
-  "updated_at": "2026-04-27T09:00:35.172560+08:00"
+  "updated_at": "2026-04-28T09:00:37.445653+08:00"
 }
