@@ -49,7 +49,7 @@ session_cron_<job_id>_<YYYYMMDD_HHMMSS>.json
 ```
 可以用 `ls -la ~/.hermes/sessions/ | grep cron_<job_id>` 快速找到。
 
-### 4. 定时任务没有运行
+### 5. 定时任务没有运行
 **检查命令**：
 ```bash
 cronjob(action='list')
@@ -59,6 +59,25 @@ cronjob(action='list')
 - `enabled: true`
 - `state: "scheduled"`
 - `next_run_at` 时间正确
+
+### 5b. 任务执行成功但微信推送失败（last_status: ok, last_delivery_error 有值）
+
+**症状**：任务执行了，但微信没收到推送。日志有：
+```
+Timeout context manager should be used inside a task
+Weixin send failed: Timeout context manager should be used inside a task
+```
+
+**原因**：`aiohttp 3.13.x` 的 `ClientSession.__aenter__` 在进入时调用 `asyncio.timeout`（`BaseTimerContext`），要求当前线程有运行中的 asyncio task。但 cron delivery 通过 `asyncio.run_coroutine_threadsafe` 调用 live adapter 时，协程虽然被调度成 task，却没有 "running task" context（task 运行在 ThreadPoolExecutor 线程，而非主线程）。
+
+**特征**：`last_status: ok`（任务执行成功）+ `last_delivery_error` 有值（推送失败）。
+
+**临时修复**：把 `deliver` 改为 `"local"`，阻止微信推送：
+```python
+cronjob(action='update', job_id='xxx', deliver='local')
+```
+
+**长期修复**：需修改 Hermes Agent 代码，让 WeChat 推送不走 `run_coroutine_threadsafe` 路径，而是用独立事件循环或修复 aiohttp 调用方式。
 
 ### 5. 手动触发测试
 ```python
