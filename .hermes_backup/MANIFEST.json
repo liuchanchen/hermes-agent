@@ -1,9 +1,22 @@
 {
-  "backup_timestamp": "2026-04-28T09:01:04.845379",
+  "backup_timestamp": "2026-04-29T09:01:08.736486",
+  "source_hermes": "/home/jianliu/.hermes",
+  "backup_target": "/home/jianliu/work/hermes-agent/.hermes_backup",
   "includes": [
     "memories",
     "skills",
     "cron",
     "databases"
-  ]
+  ],
+  "verification": {
+    "memories_count": 2,
+    "skills_count": 518,
+    "cron_jobs": 2,
+    "databases": [
+      "state.db",
+      "dongchedi_l90.db",
+      "whatsapp_state.db",
+      "whatsapp_dongchedi.db"
+    ]
+  }
 }

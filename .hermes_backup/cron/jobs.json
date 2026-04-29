@@ -8,7 +8,7 @@
         "dongchedi-l90-watch"
       ],
       "skill": "dongchedi-l90-watch",
-      "model": "data/code/my_models/Minimax2.7",
+      "model": "deepseekv4-flash",
       "provider": "custom",
       "base_url": null,
       "script": null,
@@ -20,18 +20,18 @@
       "schedule_display": "0 22 * * *",
       "repeat": {
         "times": 999,
-        "completed": 12
+        "completed": 15
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-21T11:25:30.331382+08:00",
-      "next_run_at": "2026-04-28T22:00:00+08:00",
-      "last_run_at": "2026-04-27T22:51:42.933824+08:00",
+      "next_run_at": "2026-04-29T22:00:00+08:00",
+      "last_run_at": "2026-04-28T22:08:05.940703+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": null,
+      "last_delivery_error": "delivery error: Weixin send failed: Timeout context manager should be used inside a task",
       "deliver": "origin",
       "origin": {
         "platform": "weixin",
@@ -48,7 +48,7 @@
         "wallstreetcn-news"
       ],
       "skill": "wallstreetcn-news",
-      "model": "data/code/my_models/Minimax2.7",
+      "model": "deepseekv4-flash",
       "provider": "custom",
       "base_url": null,
       "script": null,
@@ -60,15 +60,15 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": 999,
-        "completed": 6
+        "completed": 7
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-23T23:08:50.970385+08:00",
-      "next_run_at": "2026-04-29T08:00:00+08:00",
-      "last_run_at": "2026-04-28T08:00:35.623296+08:00",
+      "next_run_at": "2026-04-30T08:00:00+08:00",
+      "last_run_at": "2026-04-29T08:02:13.789557+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -89,7 +89,7 @@
         "hermes-backup-push"
       ],
       "skill": "hermes-backup",
-      "model": "data/code/my_models/Minimax2.7",
+      "model": "deepseekv4-flash",
       "provider": "custom",
       "base_url": null,
       "script": null,
@@ -101,15 +101,15 @@
       "schedule_display": "0 9 * * *",
       "repeat": {
         "times": 999,
-        "completed": 2
+        "completed": 3
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-26T17:30:29.608686+08:00",
-      "next_run_at": "2026-04-29T09:00:00+08:00",
-      "last_run_at": "2026-04-27T09:01:02.535459+08:00",
+      "next_run_at": "2026-04-30T09:00:00+08:00",
+      "last_run_at": "2026-04-28T09:01:37.667671+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -136,16 +136,16 @@
       "schedule_display": "0 10 * * 2",
       "repeat": {
         "times": null,
-        "completed": 0
+        "completed": 1
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-27T19:19:45.178002+08:00",
-      "next_run_at": "2026-04-28T10:00:00+08:00",
-      "last_run_at": null,
-      "last_status": null,
+      "next_run_at": "2026-05-05T10:00:00+08:00",
+      "last_run_at": "2026-04-28T10:00:51.351803+08:00",
+      "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
       "deliver": "origin",
@@ -171,15 +171,15 @@
       "schedule_display": "0 21 * * *",
       "repeat": {
         "times": null,
-        "completed": 1
+        "completed": 2
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-27T19:22:17.374140+08:00",
-      "next_run_at": "2026-04-28T21:00:00+08:00",
-      "last_run_at": "2026-04-27T21:00:45.722864+08:00",
+      "next_run_at": "2026-04-29T21:00:00+08:00",
+      "last_run_at": "2026-04-28T21:02:30.091895+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -187,5 +187,5 @@
       "origin": null
     }
   ],
-  "updated_at": "2026-04-28T09:00:37.445653+08:00"
+  "updated_at": "2026-04-29T09:00:15.642891+08:00"
 }

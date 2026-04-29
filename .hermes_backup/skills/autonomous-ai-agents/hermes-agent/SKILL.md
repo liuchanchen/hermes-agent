@@ -329,7 +329,7 @@ Edit with `hermes config edit` or `hermes config set section.key value`.
 | Section | Key options |
 |---------|-------------|
 | `model` | `default`, `provider`, `base_url`, `api_key`, `context_length` |
-| `agent` | `max_turns` (90), `tool_use_enforcement` |
+| `agent` | `max_turns` (90), `tool_use_enforcement`, `reasoning_effort` |
 | `terminal` | `backend` (local/docker/ssh/modal), `cwd`, `timeout` (180) |
 | `compression` | `enabled`, `threshold` (0.50), `target_ratio` (0.20) |
 | `display` | `skin`, `tool_progress`, `show_reasoning`, `show_cost` |
@@ -340,6 +340,20 @@ Edit with `hermes config edit` or `hermes config set section.key value`.
 | `delegation` | `model`, `provider`, `base_url`, `api_key`, `max_iterations` (50), `reasoning_effort` |
 | `smart_model_routing` | `enabled`, `cheap_model` |
 | `checkpoints` | `enabled`, `max_snapshots` (50) |
+
+#### Reasoning Effort
+
+Controls how deeply the agent "thinks" before responding (OpenRouter reasoning tokens / thinking mode).
+
+Valid levels: `none` | `minimal` | `low` | `medium` | `high` | **`xhigh`** (maximum).
+
+**`agent.reasoning_effort`** — main agent's thinking depth (default: `medium`).
+**`delegation.reasoning_effort`** — subagent thinking depth (default: inherits from agent config; set explicitly to override).
+
+💡 **Common pitfalls:**
+- There is **no `max` level** — `xhigh` is the highest available value. Setting `reasoning_effort: max` silently falls back to default (`medium`).
+- `display.show_reasoning: true` is separate — it controls whether the reasoning text is visible in output, not the thinking depth itself.
+- Changes take effect **after restart** (CLI: exit & re-enter; gateway: `hermes gateway restart`).
 
 Full config reference: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
 
@@ -560,6 +574,7 @@ Common gateway problems:
 - **Gateway dies on SSH logout**: Enable linger: `sudo loginctl enable-linger $USER`
 - **Gateway dies on WSL2 close**: WSL2 requires `systemd=true` in `/etc/wsl.conf` for systemd services to work. Without it, gateway falls back to `nohup` (dies when session closes).
 - **Gateway crash loop**: Reset the failed state: `systemctl --user reset-failed hermes-gateway`
+- **`hermes gateway restart` fails with "User systemd not reachable"**: The shell session lacks a connection to the user D-Bus socket. Check if the service is already running with `sudo systemctl status user@1000.service`. If it's active but unreachable from your shell, use `XDG_RUNTIME_DIR=/run/user/1000 systemctl --user restart hermes-gateway` to bypass the missing socket detection. Alternatively, kill the service and run in the foreground: `hermes gateway run` (stays up until terminal closes).
 
 ### Platform-specific issues
 - **Discord bot silent**: Must enable **Message Content Intent** in Bot → Privileged Gateway Intents.
