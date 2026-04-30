@@ -354,6 +354,7 @@ Valid levels: `none` | `minimal` | `low` | `medium` | `high` | **`xhigh`** (maxi
 - There is **no `max` level** — `xhigh` is the highest available value. Setting `reasoning_effort: max` silently falls back to default (`medium`).
 - `display.show_reasoning: true` is separate — it controls whether the reasoning text is visible in output, not the thinking depth itself.
 - Changes take effect **after restart** (CLI: exit & re-enter; gateway: `hermes gateway restart`).
+- ⚠️ **Custom providers ignore `reasoning_effort`** — The `chat_completions` transport only sends `extra_body["reasoning"]` parameters when `supports_reasoning` is True (OpenRouter, Nous Portal, GitHub Models, AI Gateway). For custom providers (`is_custom_provider=True`), the code only handles **disabling** think mode (when `effort=none`). Setting `reasoning_effort: high`/`xhigh` on a custom provider will have **no effect** — the API call won't include `thinking` or `chat_template_kwargs` in `extra_body`. If your custom API requires specific extra parameters (e.g. `{"chat_template_kwargs": {"thinking": true, "reasoning_effort": "max"}}`), you'll need to modify the transport in `agent/transports/chat_completions.py` or inject them via `extra_body_additions`.
 
 Full config reference: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
 

@@ -94,7 +94,15 @@ cronjob(action='list')
 
 ### 5b. 任务执行成功但微信推送失败（last_status: ok, last_delivery_error 有值）
 
-**症状**：任务执行了，但微信没收到推送。日志有：
+**通用排查**：
+1. 用户的最后状态检查：`cronjob(action='list')` → 看 `last_status` 和 `last_delivery_error`
+2. 查看 cron 输出（不会被 delivery 失败影响）：`ls -la ~/.hermes/cron/output/<job_id>/ && cat ~/.hermes/cron/output/<job_id>/<timestamp>`
+3. 查看完整 session 日志：`ls -la ~/.hermes/sessions/ | grep cron_<job_id>` → grep session JSON
+4. 查看 agent.log：`grep "delivery\|weixin\|send failed\|ret=\|error" ~/.hermes/logs/agent.log | tail -20`
+
+#### 类型 A：aiohttp Timeout
+
+**日志特征**：
 ```
 Timeout context manager should be used inside a task
 Weixin send failed: Timeout context manager should be used inside a task
@@ -102,14 +110,35 @@ Weixin send failed: Timeout context manager should be used inside a task
 
 **原因**：`aiohttp 3.13.x` 的 `ClientSession.__aenter__` 在进入时调用 `asyncio.timeout`（`BaseTimerContext`），要求当前线程有运行中的 asyncio task。但 cron delivery 通过 `asyncio.run_coroutine_threadsafe` 调用 live adapter 时，协程虽然被调度成 task，却没有 "running task" context（task 运行在 ThreadPoolExecutor 线程，而非主线程）。
 
-**特征**：`last_status: ok`（任务执行成功）+ `last_delivery_error` 有值（推送失败）。
-
 **临时修复**：把 `deliver` 改为 `"local"`，阻止微信推送：
 ```python
 cronjob(action='update', job_id='xxx', deliver='local')
 ```
 
 **长期修复**：需修改 Hermes Agent 代码，让 WeChat 推送不走 `run_coroutine_threadsafe` 路径，而是用独立事件循环或修复 aiohttp 调用方式。
+
+#### 类型 B：iLink ret=-2 unknown error
+
+**日志特征**：
+```
+WARNING [Weixin] ret=-2 unknown error; retrying without context_token
+WARNING [Weixin] send chunk failed attempt=2/3, retrying in 2.00s: iLink sendmessage error: ret=-2 errcode=None errmsg=unknown error
+ERROR   [Weixin] send failed: iLink sendmessage error: ret=-2 errcode=None errmsg=unknown error
+```
+
+**原因**：微信桥接接口（iLink）的临时性通信错误。前几次 retry 会尝试 `send with context_token` → 失败后 fallback 到 `send without context_token` → 同样失败。属于微信桥端的瞬时故障（连接抖动、超时或 token 过期），非 agent 本身问题。
+
+**特征**：
+- `last_status: ok`（任务执行成功）
+- `last_delivery_error` 里有 `ret=-2`
+- 通常是**偶发性的**，后续自动恢复
+- 数据仍然可以通过 cron output 查看：`cat ~/.hermes/cron/output/<job_id>/<timestamp>.md`
+
+**处理方法**：
+1. **不要手动重启 gateway** — 发送失败不会影响后续消息，gateway 连接通常会自动恢复
+2. **检查 gateway 是否在线**：看 agent.log 确认 `✓ weixin connected`
+3. **数据恢复**：通过 cron output 读取已生成的报告，在用户询问时直接提供内容
+4. **如果频繁出现**（连续 3+ 天），考虑：更换交付方式（如 deliver='local' + 定时推摘要），或排查 iLink 稳定性
 
 ### 5. 手动触发测试
 ```python
