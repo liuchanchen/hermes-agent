@@ -311,13 +311,103 @@ ssh -t jianliu@10.10.70.88 "
 | 查看磁盘 | `ssh jianliu@10.10.70.88 "df -h /"` |
 | 网络测试 | `ssh jianliu@10.10.70.88 "iperf3 -c <server>"` |
 
+## Docker GPU 容器配置（nvidia-container-toolkit）
+
+在 GPU 服务器上运行 `docker run --gpus all` 需要安装 **nvidia-container-toolkit**。Docker 29+ 默认使用 CDI (Container Device Interface) 发现 GPU，必须通过此工具包生成 CDI 规范。
+
+### 常见错误
+
+```
+docker: Error response from daemon: failed to discover GPU vendor from CDI: no known GPU vendor found
+```
+
+**原因：** `nvidia-container-toolkit` 未安装，CDI 配置不存在，Docker 无法通过 CDI 找到 GPU。
+
+### 诊断步骤
+
+```bash
+# 1. 检查是否已安装
+dpkg -l | grep nvidia-container
+# 如果无输出 → 未安装
+
+# 2. 检查 CDI 目录是否存在
+ls /etc/cdi/ 2>/dev/null || echo 'No CDI config'
+
+# 3. 检查 nvidia-ctk 命令
+which nvidia-ctk 2>/dev/null || echo 'nvidia-ctk not installed'
+
+# 4. 检查 Docker 运行时列表
+echo 'PASSWORD' | sudo -S docker info 2>&1 | grep -A5 'Runtimes'
+# 如果只显示 runc 不显示 nvidia → 未配置
+```
+
+### 安装与配置
+
+```bash
+# 1. 安装 nvidia-container-toolkit
+echo 'PASSWORD' | sudo -S apt-get install -y nvidia-container-toolkit
+
+# 2. 配置 Docker 运行时（生成 CDI specs + 注册 nvidia runtime）
+echo 'PASSWORD' | sudo -S nvidia-ctk runtime configure --runtime=docker
+
+# 3. 重启 Docker daemon
+echo 'PASSWORD' | sudo -S systemctl restart docker
+
+# 4. 验证——应列出 nvidia CDI specs
+echo 'PASSWORD' | sudo -S nvidia-ctk cdi list
+```
+
+### 验证 GPU 容器可用
+
+```bash
+# 运行测试容器（使用 CDI device 语法——Docker 29.4 推荐方式）
+echo 'PASSWORD' | sudo -S docker run --rm --device='nvidia.com/gpu=all' nvidia/cuda:13.0-base-ubuntu22.04 nvidia-smi
+
+# 检查 /etc/cdi/ 目录
+ls /etc/cdi/nvidia.yaml 2>/dev/null && echo 'CDI config OK'
+```
+
+### 常见 CDI 错误排查
+
+**错误：** `docker: Error response from daemon: AMD CDI spec not found`
+
+**原因：** Docker 29.4 的 CDI 实现在使用 `--gpus all` 时有兼容性缺陷。即使 CDI 配置完全正确（`nvidia-ctk cdi list` 能列出所有 GPU），`--gpus all` 仍可能失败。
+
+**修复：** 用 `--device='nvidia.com/gpu=all'` 替代 `--gpus all`：
+```bash
+# ❌ 可能在 Docker 29.4 上失败
+docker run --rm --gpus all nvidia/cuda:13.0-base-ubuntu22.04 nvidia-smi
+
+# ✅ 总是有效
+docker run --rm --device='nvidia.com/gpu=all' nvidia/cuda:13.0-base-ubuntu22.04 nvidia-smi
+```
+
+**错误：** `docker: Error response from daemon: failed to discover GPU vendor from CDI: no known GPU vendor found`
+
+**原因：** `nvidia-container-toolkit` 未安装，CDI 配置不存在。
+
+**修复：** 安装并配置（见上一节）。
+
+**错误：** `docker: Error response from daemon: unknown or invalid runtime name: nvidia`
+
+**原因：** Docker daemon 未重启导致新配置未加载。`nvidia-ctk runtime configure` 在 `/etc/docker/daemon.json` 中添加了 nvidia runtime，但 Docker 需要重启才能生效。如果无法重启 Docker（如影响其他运行中的容器），仍可使用 `--device='nvidia.com/gpu=all'` CDI 语法来绕过。
+
+### 注意事项
+
+- `nvidia-ctk` 是 `nvidia-container-toolkit` 包的一部分，安装后自动可用
+- 旧版 Docker（< 29）可能使用 `--runtime=nvidia`，但 Docker 29+ 统一使用 CDI
+- **Docker 29.4 的已知问题：** `--gpus all` 可能失败。推荐使用 `--device='nvidia.com/gpu=all'`，这是标准的 CDI 语法，在所有支持 CDI 的 Docker 版本上都能工作
+- 如果已安装但还不工作，检查 `/etc/docker/daemon.json` 是否包含 `"runtimes": {"nvidia": ...}` 配置
+- 此操作不需要安装完整的 NVIDIA 驱动（驱动已通过 `nvidia-driver-580-server-open` 安装）
+
 ## 注意事项
 
-- `-t` 参数对于需要 PTY 的命令（watch、top、sudo 交互）是必须的，否则会报 "Pseudo-terminal will not be allocated"
+**注意:** `-t` 参数对于需要 PTY 的命令（watch、top、sudo 交互）是必须的，否则会报 "Pseudo-terminal will not be allocated"
 - sudo 密码通过管道传入时要注意特殊字符转义（如 `!` 在 bash 中有特殊含义，需要用单引号包裹）
 - NVIDIA 仓库在中国区域会自动重定向到 `developer.download.nvidia.cn`（镜像加速）
 - 不要在 cron job 或非交互式脚本中硬编码密码 — 优先设置 SSH key 免密登录
 - nccl-tests 编译时 `make -j8` 利用 8 核并行编译，约 30-60 秒完成
+- Docker 29+ 使用 CDI (Container Device Interface)。**不要使用 `--gpus all`**（会导致 `AMD CDI spec not found` 错误），应使用 **`--device='nvidia.com/gpu=all'`**。如果 `nvidia-ctk cdi list` 能列出 GPU 但 `--gpus all` 失败，这是 Docker 29.4 的一个已知 CDI 兼容性问题。
 
 ## nccl-tests 输出列布局（解析脚本时必读）
 

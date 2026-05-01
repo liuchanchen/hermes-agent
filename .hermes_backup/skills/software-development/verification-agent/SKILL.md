@@ -77,7 +77,30 @@ if self.quiet_mode:
 
 **这不是验证循环没有运行，只是日志被过滤了。** 验证循环仍然在执行，`_call_llm_simple()` 仍然调用 LLM 做评估，`_refine_response()` 仍然改进输出——只是你看不到它们的痕迹。
 
-**如何确认：** 可以临时在 `gateway/run.py` 的 `agent.run_conversation()` 返回后，检查返回的 `final_response` 是否与原始响应不同（如果 verifier 做了 refine）。或者临时注释掉 quiet_mode 中的 'run_agent' logger 级别设置，重启 gateway 后再观察日志。
+**如何确认：**
+- 方法 A（推荐）：临时将验证循环的 `logger.info()` 改为 `logger.error()`（ERROR 级别不会被 quiet_mode 抑制），重启 gateway 后再观察 `agent.log`。这是最轻量的诊断方式。
+- 方法 B：在 `gateway/run.py` 中 `agent.run_conversation()` 返回后，对比返回的 `final_response` 与 refine 前的原始响应是否不同。
+- 方法 C：临时注释掉 `run_agent.py` __init__ 中 quiet_mode 对 `'run_agent'` logger 的级别设置，重启 gateway。
+
+**修复方案（已验证有效）：**
+由于 `quiet_mode=True` 将 `run_agent` logger 级别提升到了 `ERROR`，所有验证循环的 `logger.info()` 和 `logger.warning()` 调用都会被丢弃。解决方案是将验证相关的日志全部提升到 `logger.error()` 级别，并加上 `[VERIFY]` 前缀方便 grep 过滤。
+
+```python
+# Before (被 quiet_mode 静默):
+logger.info("Verifier passed round %d/%d", ...)
+
+# After (穿透 quiet_mode):
+logger.error("[VERIFY] Passed round %d/%d", ...)
+```
+
+受影响的调用点（在 `run_agent.py` 的验证循环中）：
+- 验证循环入口日志
+- 每轮 passed/failed 结果
+- refine 无变化停止
+- 轮次耗尽
+- `_call_llm_simple`, `_verify_response`, `_refine_response` 的异常捕获
+
+补丁位置：`~/.hermes/patches/001-verify-agent.patch`
 
 ---
 

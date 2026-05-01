@@ -147,7 +147,142 @@ cronjob(action='run', job_id='xxx')
 
 **注意**：`cronjob(action='run', ...)` 不会创建新的 cron session，而是在**当前会话**中同步执行。真正的 cron session 文件名格式为 `session_cron_<job_id>_<timestamp>.json`，如果看不到新的这类文件，说明 run 在当前会话中执行了。
 
-## 查看 cron 输出
+## 6. 建立自动健康检查 & 自愈机制
+
+当用户提出"检查cron是否正常运行"或"自动修复失败的cron"时，使用此模式。
+
+### 架构
+
+```
+cron_health_collector.py (Python helper, 纯文件系统操作)
+        ↓
+Cron Job Agent (Hermes cron job, 每天18:00)
+   ├── cronjob(action='list') → 检查 last_status + last_delivery_error
+   ├── terminal + send_message → 修复失败的任务
+   └── 生成健康报告发给用户
+```
+
+### 创建步骤
+
+#### A. 创建数据收集脚本 `~/.hermes/scripts/cron_health_collector.py`
+
+一个纯 Python 脚本（不依赖 Hermes 工具），检查以下数据源并输出 JSON：
+1. `~/.hermes/cron/output/<job_id>/` — 每个 job 最新的输出文件和生成时间
+2. `~/.hermes/logs/agent.log` — grep `delivery error|send failed|last_delivery_error` 获取最近推送错误
+
+参考代码（`~/.hermes/scripts/cron_health_collector.py`）：
+
+```python
+#!/usr/bin/env python3
+import json, os, re, glob, subprocess
+from datetime import datetime, timezone
+CRON_OUTPUT_BASE = os.path.expanduser("~/.hermes/cron/output")
+AGENT_LOG = os.path.expanduser("~/.hermes/logs/agent.log")
+def collect():
+    report = {"checked_at": datetime.now(timezone.utc).isoformat(), "jobs": {}, "recent_delivery_errors": []}
+    if os.path.isdir(CRON_OUTPUT_BASE):
+        for job_dir in sorted(os.listdir(CRON_OUTPUT_BASE)):
+            job_path = os.path.join(CRON_OUTPUT_BASE, job_dir)
+            if not os.path.isdir(job_path): continue
+            all_files = sorted(glob.glob(os.path.join(job_path, "*.md")) + glob.glob(os.path.join(job_path, "*.json")), reverse=True)
+            info = {"job_id": job_dir, "total_outputs": len(all_files), "latest": None}
+            if all_files:
+                info["latest"] = os.path.basename(all_files[0])
+                m = re.match(r'(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})', info["latest"])
+                if m: info["latest_timestamp"] = f"{m.group(1)}T{m.group(2).replace('-', ':')}"
+                try:
+                    with open(all_files[0], 'r', encoding='utf-8', errors='replace') as f:
+                        info["preview"] = f.read(2000)
+                except: info["preview"] = None
+            report["jobs"][job_dir] = info
+    if os.path.isfile(AGENT_LOG):
+        try:
+            r = subprocess.run(["grep", "-E", "delivery error|send failed|last_delivery_error|delivery_error", AGENT_LOG], capture_output=True, text=True, timeout=10)
+            report["recent_delivery_errors"] = [l.strip() for l in r.stdout.split("\n") if l.strip()][-30:]
+        except: pass
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+if __name__ == "__main__": collect()
+```
+
+#### B. 创建健康检查 Cron Job
+
+```python
+cronjob(action='create',
+    name='Cron 健康检查 & 自动恢复',
+    schedule='0 18 * * *',  # 每天下午6点
+    deliver='origin',
+    prompt='''你是 Cron 健康检查 & 自动恢复 agent。
+
+## 步骤
+
+### 1. 收集状态
+先运行数据收集器：
+```bash
+cd /home/jianliu/work/hermes-agent && python ~/.hermes/scripts/cron_health_collector.py
+```
+然后 cronjob(action='list') 获取每个 job 的 last_status 和 last_delivery_error。
+
+### 2. 逐个诊断修复
+
+- **执行失败** (last_status != 'ok') → cronjob(action='run', job_id='xxx') 重新执行
+- **推送失败** (last_status='ok' 但 last_delivery_error 非空):
+  1. 从 ~/.hermes/cron/output/<job_id>/ 找到最新输出文件
+  2. terminal('cat <file_path>') 读取内容
+  3. send_message(target='weixin', message='...') 重新发送
+- **正常** → 跳过
+
+### 3. 输出报告
+
+```markdown
+🔍 Cron 健康检查报告
+━━━━━━━━━━━━━━━━━━━
+📅 检查时间：...
+✅ 正常运行的 job：...
+🔄 已自动恢复：...
+❌ 仍失败：...
+📊 汇总：x个正常，x个恢复，x个仍失败
+```''')
+```
+
+### 恢复逻辑详解
+
+| 故障类型 | last_status | last_delivery_error | 恢复操作 |
+|----------|-------------|---------------------|----------|
+| 执行失败 | error | — | cronjob(action='run') 重跑 |
+| 推送失败 | ok | 有值 | 读 cached output → send_message |
+| 同时失败 | error | 有值 | 先重跑，推送会自动恢复 |
+| 正常 | ok | 空 | 无需操作 |
+
+### 注意事项
+- enabled_toolsets 必须包含 `terminal`、`web`、`search` 才能运行 python 脚本和发送消息
+- 内容太长时需要截断再发微信（微信消息有长度限制）
+- 这个 cron job 本身不需要复杂的 model，可以留空使用默认
+
+### 已部署实例参考
+
+**Job ID:** `5aea5a03c148`
+**Schedule:** `0 18 * * *` (每天北京时间 18:00)
+**Script:** `~/.hermes/scripts/cron_health_collector.py`
+**Run:** `cd /home/jianliu/work/hermes-agent && python ~/.hermes/scripts/cron_health_collector.py`
+
+`last_delivery_error` 常见错误模式：
+- `ret=-2` = iLink 瞬时连接抖动（偶发，自动恢复）
+- `ret=-1` = 超时或 token 过期（需要重启 gateway）
+- `no such column` = 输出 DB schema 不兼容（需要重建 DB 或修改脚本）
+
+### 手动恢复流程（当健康检查 cron 未及时运行时）
+
+1. 获取状态：
+```bash
+cd /home/jianliu/work/hermes-agent && python ~/.hermes/scripts/cron_health_collector.py
+cronjob(action='list')
+```
+
+2. 对每个有 `last_delivery_error` 的 job，读取缓存输出并重新发送：
+```bash
+cat ~/.hermes/cron/output/<job_id>/<latest>.md
+# 然后用 send_message 重新发送
+```
 ```bash
 ls -la ~/.hermes/cron/output/<job_id>/
 cat ~/.hermes/cron/output/<job_id>/<timestamp>.md
