@@ -20,18 +20,18 @@
       "schedule_display": "0 22 * * *",
       "repeat": {
         "times": 999,
-        "completed": 16
+        "completed": 18
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-21T11:25:30.331382+08:00",
-      "next_run_at": "2026-04-30T22:00:00+08:00",
-      "last_run_at": "2026-04-29T22:02:25.315893+08:00",
+      "next_run_at": "2026-05-01T22:00:00+08:00",
+      "last_run_at": "2026-04-30T22:03:22.656548+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage error: ret=-2 errcode=None errmsg=unknown error",
+      "last_delivery_error": null,
       "deliver": "origin",
       "origin": {
         "platform": "weixin",
@@ -60,18 +60,18 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": 999,
-        "completed": 8
+        "completed": 10
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-23T23:08:50.970385+08:00",
-      "next_run_at": "2026-05-01T08:00:00+08:00",
-      "last_run_at": "2026-04-30T08:03:44.216186+08:00",
+      "next_run_at": "2026-05-02T08:00:00+08:00",
+      "last_run_at": "2026-05-01T08:02:49.813444+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage error: ret=-2 errcode=None errmsg=unknown error",
+      "last_delivery_error": null,
       "deliver": "origin",
       "origin": {
         "platform": "weixin",
@@ -101,15 +101,15 @@
       "schedule_display": "0 9 * * *",
       "repeat": {
         "times": 999,
-        "completed": 4
+        "completed": 5
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-26T17:30:29.608686+08:00",
-      "next_run_at": "2026-05-01T09:00:00+08:00",
-      "last_run_at": "2026-04-29T09:02:33.080021+08:00",
+      "next_run_at": "2026-05-02T09:00:00+08:00",
+      "last_run_at": "2026-04-30T09:04:06.678810+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -171,15 +171,15 @@
       "schedule_display": "0 21 * * *",
       "repeat": {
         "times": null,
-        "completed": 3
+        "completed": 4
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-27T19:22:17.374140+08:00",
-      "next_run_at": "2026-04-30T21:00:00+08:00",
-      "last_run_at": "2026-04-29T21:01:09.161511+08:00",
+      "next_run_at": "2026-05-01T21:00:00+08:00",
+      "last_run_at": "2026-04-30T21:03:34.305038+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -187,34 +187,34 @@
       "origin": null
     },
     {
-      "id": "ce1799cc62bf",
-      "name": "\u63d0\u9192\u8ba9\u8c22\u6b63\u52a0IP",
-      "prompt": "\u63d0\u9192\u7528\u6237\uff1a\u8bf7\u8ba9\u8c22\u6b63\u52a0 IP \u5730\u5740\u3002\n\n\u53ea\u53d1\u9001\u4e00\u53e5\u8bdd\u5373\u53ef\uff1a\"\u23f0 \u63d0\u9192\uff1a\u8be5\u8ba9\u8c22\u6b63\u52a0 IP \u4e86\uff01\"",
+      "id": "13fbed6a9ac6",
+      "name": "Cron \u5065\u5eb7\u68c0\u67e5 & \u81ea\u52a8\u6062\u590d",
+      "prompt": "\u4f60\u662f Cron \u5065\u5eb7\u68c0\u67e5 & \u81ea\u52a8\u6062\u590d agent\u3002\u4e0a\u9762 script \u7684\u8f93\u51fa\u5df2\u6ce8\u5165\u4e3a context\uff0c\u5217\u51fa\u4e86\u9700\u8981\u5904\u7406\u7684\u95ee\u9898\u3002\u8bf7\u4e25\u683c\u6309\u4ee5\u4e0b\u89c4\u5219\u6267\u884c\uff1a\n\n## \u89c4\u5219\n\n### \u5bf9\u4e8e NEED-RERUN \u7684\u4efb\u52a1\n\u8c03\u7528 cronjob(action='run', job_id='<id>') \u91cd\u65b0\u6267\u884c\uff0c\u5b8c\u6210\u540e\u8bb0\u5f55\u3002\n\n### \u5bf9\u4e8e NEED-RESEND \u7684\u4efb\u52a1\n\u5982\u679c\u4e0a\u9762 context \u4e2d\u6709 WITH_CONTENT\uff0c\u610f\u5473\u7740 output \u5df2\u63d0\u4f9b\uff0c\u76f4\u63a5\u7528 send_message(target='weixin', message='<output>') \u53d1\u9001\u5230\u5fae\u4fe1\u3002\n\u5982\u679c\u4e0a\u9762 context \u4e2d output \u88ab\u622a\u65ad\u4e86\uff0c\u5148 terminal('cat ~/.hermes/cron/output/<jid>/<filename>.md') \u83b7\u53d6\u5b8c\u6574\u5185\u5bb9\u518d\u53d1\u9001\u3002\n\u5982\u679c NO_CONTENT\uff0c\u8df3\u8fc7\uff08\u6ca1\u6709\u5185\u5bb9\u53ef\u53d1\uff09\u3002\n\n### \u5bf9\u4e8e HEALTHY \u7684\u4efb\u52a1\n\u4e0d\u505a\u4efb\u4f55\u64cd\u4f5c\u3002\n\n## \u62a5\u544a\u683c\u5f0f\n\n\u8f93\u51fa\u7b80\u77ed\u62a5\u544a\u4f5c\u4e3a final response\uff1a\n\n```\n\ud83d\udd0d Cron \u5065\u5eb7\u68c0\u67e5\u62a5\u544a\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n\u2705 \u6b63\u5e38\uff1ax\u4e2a\n\ud83d\udd04 \u5df2\u81ea\u52a8\u6062\u590d\uff1ax\u4e2a\uff08\u5217\u660e\uff09\n\u274c \u4ecd\u5931\u8d25\uff1ax\u4e2a\uff08\u5217\u660e\uff09\n```\n\n\u26a0\ufe0f \u4e0d\u8981\u7528 [SILENT]\uff0c\u5fc5\u987b\u8f93\u51fa\u62a5\u544a\u3002\n",
       "skills": [],
       "skill": null,
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": null,
+      "script": "cron_health_collector.py",
       "context_from": null,
       "schedule": {
         "kind": "cron",
-        "expr": "30 10 * * 4",
-        "display": "30 10 * * 4"
+        "expr": "0 8,18 * * *",
+        "display": "0 8,18 * * *"
       },
-      "schedule_display": "30 10 * * 4",
+      "schedule_display": "0 8,18 * * *",
       "repeat": {
-        "times": 1,
-        "completed": 0
+        "times": 999,
+        "completed": 3
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
-      "created_at": "2026-04-29T23:11:44.742834+08:00",
-      "next_run_at": "2026-04-30T10:30:00+08:00",
-      "last_run_at": null,
-      "last_status": null,
+      "created_at": "2026-04-30T10:00:25.900478+08:00",
+      "next_run_at": "2026-05-01T18:00:00+08:00",
+      "last_run_at": "2026-05-01T08:00:53.016558+08:00",
+      "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
       "deliver": "origin",
@@ -228,5 +228,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-04-30T09:00:58.214387+08:00"
+  "updated_at": "2026-05-01T09:00:52.044315+08:00"
 }

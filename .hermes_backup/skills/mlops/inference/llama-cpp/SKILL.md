@@ -22,6 +22,10 @@ Use this skill for local GGUF inference, quant selection, or Hugging Face repo d
 - Search the Hub for models that already support llama.cpp
 - Enumerate available `.gguf` files and sizes for a repo
 - Decide between Q4/Q5/Q6/IQ variants for the user's RAM or VRAM
+- **Build llama.cpp from source** with GPU (CUDA/ROCm/Metal) support
+- **Convert a Hugging Face model** to GGUF format
+- **Assess whether a model architecture is supported** by llama.cpp, and what it would take to add support
+- **Handle network-restricted environments** (China/air-gapped) — use mirrors for git clone and pip
 
 ## Model Discovery workflow
 
@@ -65,10 +69,96 @@ winget install llama.cpp
 ```
 
 ```bash
+# Linux / general — from source
 git clone https://github.com/ggml-org/llama.cpp
 cd llama.cpp
 cmake -B build
 cmake --build build --config Release
+```
+
+### Build from source with GPU support
+
+```bash
+# Prerequisites
+# - CUDA Toolkit (nvcc + cuBLAS) or ROCm
+# - cmake, make, gcc/g++
+
+# CUDA build
+git clone https://github.com/ggml-org/llama.cpp
+cd llama.cpp
+mkdir -p build && cd build
+cmake .. -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
+# Binaries in build/bin/: llama-cli, llama-server
+
+# If cmake fails with "Target 'ggml-cuda' links to target 'CUDA::cublas' but the
+# target was not found":
+#   1. Install cuda-toolkit-<ver> via apt (e.g. cuda-toolkit-13-0) for full CUDA
+#   2. OR use conda/PyTorch's bundled cuBLAS:
+#      export CMAKE_PREFIX_PATH=$CONDA_PREFIX/lib/python3.x/site-packages/nvidia/cu13:$CMAKE_PREFIX_PATH
+#      cmake .. -DGGML_CUDA=ON -DCUDAToolkit_ROOT=/usr/local/cuda
+#   3. OR install cublas via the NVIDIA repo: sudo apt install cuda-toolkit-13-0
+
+# ROCm / AMD GPU build
+cmake .. -DGGML_HIPBLAS=ON -DCMAKE_BUILD_TYPE=Release
+
+# Metal / Apple Silicon build
+cmake .. -DGGML_METAL=ON -DCMAKE_BUILD_TYPE=Release
+
+# Verify
+./build/bin/llama-cli -h
+
+# Verify GPU detection
+./build/bin/llama-cli -h 2>&1 | grep -i "device\|gpu\|cuda"
+```
+
+### China network — use mirrors
+
+When GitHub is unreachable (common in China/air-gapped environments), try these mirrors in order:
+
+```bash
+# Git clone via proxy (when github.com is unreachable)
+# Try these in order, some may be blocked or slow depending on ISP:
+
+# 1. gitclone.com — works for many but can be slow
+git clone --depth 1 https://gitclone.com/github.com/ggml-org/llama.cpp.git
+
+# 2. githubfast.com — faster but may timeout on large repos
+git clone --depth 1 https://githubfast.com/ggml-org/llama.cpp.git
+
+# 3. Gitee mirror (check if it exists first)
+curl -s --connect-timeout 5 https://gitee.com/mirrors/llama.cpp | grep -q 'repo' && \
+  git clone --depth 1 https://gitee.com/mirrors/llama.cpp.git
+
+# 4. If all git clones fail, fall back to tarball download
+curl -sL --connect-timeout 30 \
+  -o /tmp/llamacpp.tar.gz \
+  'https://githubfast.com/ggml-org/llama.cpp/archive/refs/heads/master.tar.gz' && \
+  mkdir -p ~/work/llama.cpp && \
+  tar -xzf /tmp/llamacpp.tar.gz -C ~/work/llama.cpp --strip-components=1
+
+# 5. Last resort: download tarball on a machine with GitHub access and scp/rsync over
+#    On accessible machine:
+#    wget https://github.com/ggml-org/llama.cpp/archive/refs/heads/master.tar.gz
+#    scp master.tar.gz user@server:~/work/
+#    On server: tar -xzf ~/work/master.tar.gz -C ~/work/llama.cpp --strip-components=1
+
+# Diagnosis: check which mirrors are reachable
+for url in \
+  "https://github.com" \
+  "https://gitclone.com" \
+  "https://githubfast.com" \
+  "https://gitee.com" \
+  "https://hf-mirror.com"; do
+  code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 "$url" 2>/dev/null || echo '000')
+  echo "$code $url"
+done
+
+# pip with Tsinghua mirror
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --default-timeout=60 <package>
+
+# Enable mirror permanently
+pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 ### Run directly from the Hugging Face Hub
@@ -226,6 +316,164 @@ Source URLs:
 - <local-app URL>
 - <tree API URL>
 ```
+
+## Converting Hugging Face models to GGUF
+
+### Basic conversion workflow
+
+```bash
+# Prerequisites
+conda activate my_env  # or source venv/bin/activate
+pip install -r requirements.txt
+pip install -e gguf-py   # install the gguf Python package
+
+# Convert a supported HF model
+python convert_hf_to_gguf.py /path/to/hf/model/dir \
+    --outtype f16 \
+    --outfile model-f16.gguf
+
+# Quantize to Q4_K_M
+./build/bin/llama-quantize \
+    model-f16.gguf \
+    model-Q4_K_M.gguf \
+    Q4_K_M
+```
+
+### Dependencies
+
+```bash
+# Core deps
+pip install torch safetensors sentencepiece numpy
+
+# All llama.cpp Python script deps
+pip install -r requirements.txt
+
+# gguf Python package (needed by convert script)
+pip install -e gguf-py
+
+# China mirror
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --default-timeout=60 \
+    torch safetensors sentencepiece
+```
+
+### Checking if a model is supported
+
+```bash
+# 1. Try conversion — the script prints the error if unsupported
+python convert_hf_to_gguf.py /path/to/model
+
+# 2. Check registered architectures in the convert script
+grep -n '@ModelBase.register' convert_hf_to_gguf.py | grep -i '<partial model name>'
+
+# 3. Check the C++ side for architecture support
+grep -n 'DEEPSEEK\|LLM_ARCH' src/llama-arch.h
+
+# 4. Check the gguf-py constants for architecture enum
+grep -n 'DEEPSEEK\|deepseek' gguf-py/gguf/constants.py
+
+# 5. Search upstream commits for pending support
+git log --all --oneline --grep='<model name>' | head -10
+git fetch upstream && git branch -r | grep -i '<model name>'
+```
+
+### Assessing feasibility for an unsupported model
+
+When `convert_hf_to_gguf.py` says "Model X is not supported", assess what's needed:
+
+1. **Check the model config** (`config.json`):
+   ```bash
+   python3 -c "import json; c=json.load(open('config.json')); print('Arch:', c.get('architectures'), 'Type:', c.get('model_type'))"
+   ```
+   - If `model_type` matches a known architecture (e.g. `deepseek_v4` vs existing `deepseek_v2`), it may be a derivative
+
+2. **Check weight key naming** — compare with existing supported models:
+   ```bash
+   python3 -c "
+   import safetensors, os
+   model_dir = '.'
+   files = sorted([f for f in os.listdir(model_dir) if f.endswith('.safetensors')])
+   with safetensors.safe_open(os.path.join(model_dir, files[0]), framework='pt') as f:
+       for k in sorted(f.keys())[:20]: print(k)
+   "
+   ```
+   - **MLA attention**: keys like `wq_a`, `wq_b`, `wkv`, `wo_a`, `wo_b` indicate Multi-head Latent Attention. Already supported by DeepSeekV2 class.
+   - **Standard attention**: keys like `q_proj`, `k_proj`, `v_proj`, `o_proj` — widely supported.
+   - **MoE FFN**: keys like `experts.N.w1/w2/w3` + `gate.weight` — supported by DeepSeekV2 and Mixtral classes.
+
+3. **Check quantization format**:
+   ```bash
+   python3 -c "
+   import json
+   c = json.load(open('config.json'))
+   qc = c.get('quantization_config', {})
+   print('Quant method:', qc.get('quant_method'))
+   print('Weight dtype:', qc.get('fmt'))
+   print('Weight block size:', qc.get('weight_block_size'))
+   "
+   ```
+   - **FP8** (`e4m3` / `fp8`): llama.cpp supports dequantization from FP8 in the convert script.
+   - **FP4** (`fp4` / `nvfp4`): llama.cpp has experimental NVFP4 support (`_is_nvfp4` flag). May need converter work.
+   - **INT4/INT8/AWQ/GPTQ**: llama.cpp's `convert_hf_to_gguf.py` has `dequant_simple()` for block-wise dequant.
+   - **BF16/FP16 weights**: straightforward, no special handling needed.
+
+4. **Check for architectural features that may not be supported**:
+   - MLA (Multi-head Latent Attention) — DeepSeekV2 already supports this
+   - MTP (Multi-Token Prediction) — skip via `skip_mtp = True`
+   - Hash layers / indexer / compressor — these are DeepSeekV4-specific and likely NOT supported
+   - Expert FP4 dtype — llama.cpp's NVFP4 support may be incomplete
+   - SwiGLU limit / routed scaling — might need C++ side changes
+
+5. **Estimate if adding support is feasible**:
+   - **Quick win (1-2 hours)**: Model is architecturally identical to a supported model, just needs `@ModelBase.register("NewName")` added to the existing class.
+   - **Moderate work (1-2 days)**: New architecture but uses known building blocks (MLA + MoE). Needs new Python class + C++ model code.
+   - **Major work (1+ weeks)**: Novel architecture with custom ops (new attention mechanism, exotic quantization). Needs both converter and C++ inference code.
+
+### Quick architecture registration (when model is a derivative)
+
+If the model is structurally identical to a supported one but uses a different `model_type` name:
+
+```bash
+# Backup and edit convert_hf_to_gguf.py
+cp convert_hf_to_gguf.py convert_hf_to_gguf.py.bak
+# Find the parent class registration and add the new model name
+# e.g. for DeepSeekV4 that's structurally similar to DeepSeekV2:
+# @ModelBase.register(
+#     "DeepseekV2ForCausalLM",
+#     "DeepseekV3ForCausalLM",
+#     "DeepseekV4ForCausalLM",   <-- add this line
+# )
+```
+
+Then also check whether the C++ side (`src/llama-*.h`, `src/llama-model-*.cpp`) needs an architecture entry. If it uses `LLM_ARCH_DEEPSEEK2` internally via the Python class setting `model_arch = gguf.MODEL_ARCH.DEEPSEEK2`, no C++ changes are needed.
+
+### Known model support caveats (as of 2026-04)
+
+| Model | `model_type` | Support status | Risk factors |
+|-------|-------------|----------------|--------------|
+| DeepSeekV2/V3 | `deepseek_v2`, `deepseek_v3` | ✅ Supported | — |
+| **DeepSeekV4** | **`deepseek_v4`** | ❌ **Not yet** | FP4 weights, MTP heads, hash layers, compressor, indexer — all new. Would need significant C++ work. |
+| Qwen3 | `qwen3` | Depends on variant | Check if MLA or standard attention |
+
+### Troubleshooting conversion
+
+**"Model X is not supported"**:
+- The architecture is not registered in `convert_hf_to_gguf.py`
+- Follow the assessment flow above to decide if it's a quick registration or a major porting effort
+
+**"safetensors not found"**:
+```bash
+pip install safetensors
+```
+
+**"ModuleNotFoundError: No module named 'transformers'"**:
+```bash
+pip install transformers
+```
+
+**"Error loading model config" + Transformers doesn't recognize model_type**:
+- The HF `transformers` library doesn't know about this model yet
+- The convert script falls back to `config.json` for its own parsing
+- If the script still fails, you may need to bypass `AutoConfig` loading
 
 ## References
 
