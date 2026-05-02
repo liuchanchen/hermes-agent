@@ -20,18 +20,18 @@
       "schedule_display": "0 22 * * *",
       "repeat": {
         "times": 999,
-        "completed": 18
+        "completed": 19
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-21T11:25:30.331382+08:00",
-      "next_run_at": "2026-05-01T22:00:00+08:00",
-      "last_run_at": "2026-04-30T22:03:22.656548+08:00",
+      "next_run_at": "2026-05-02T22:00:00+08:00",
+      "last_run_at": "2026-05-01T22:02:43.380766+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": null,
+      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage error: ret=-2 errcode=None errmsg=unknown error",
       "deliver": "origin",
       "origin": {
         "platform": "weixin",
@@ -60,15 +60,15 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": 999,
-        "completed": 10
+        "completed": 11
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-23T23:08:50.970385+08:00",
-      "next_run_at": "2026-05-02T08:00:00+08:00",
-      "last_run_at": "2026-05-01T08:02:49.813444+08:00",
+      "next_run_at": "2026-05-03T08:00:00+08:00",
+      "last_run_at": "2026-05-02T08:03:10.197762+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -101,15 +101,15 @@
       "schedule_display": "0 9 * * *",
       "repeat": {
         "times": 999,
-        "completed": 5
+        "completed": 6
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-26T17:30:29.608686+08:00",
-      "next_run_at": "2026-05-02T09:00:00+08:00",
-      "last_run_at": "2026-04-30T09:04:06.678810+08:00",
+      "next_run_at": "2026-05-03T09:00:00+08:00",
+      "last_run_at": "2026-05-01T09:02:39.522978+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -171,18 +171,18 @@
       "schedule_display": "0 21 * * *",
       "repeat": {
         "times": null,
-        "completed": 4
+        "completed": 5
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-27T19:22:17.374140+08:00",
-      "next_run_at": "2026-05-01T21:00:00+08:00",
-      "last_run_at": "2026-04-30T21:03:34.305038+08:00",
+      "next_run_at": "2026-05-02T21:00:00+08:00",
+      "last_run_at": "2026-05-01T21:02:06.560300+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": null,
+      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage error: ret=-2 errcode=None errmsg=unknown error",
       "deliver": "origin",
       "origin": null
     },
@@ -205,15 +205,15 @@
       "schedule_display": "0 8,18 * * *",
       "repeat": {
         "times": 999,
-        "completed": 3
+        "completed": 5
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-30T10:00:25.900478+08:00",
-      "next_run_at": "2026-05-01T18:00:00+08:00",
-      "last_run_at": "2026-05-01T08:00:53.016558+08:00",
+      "next_run_at": "2026-05-02T18:00:00+08:00",
+      "last_run_at": "2026-05-02T08:02:39.070780+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -226,7 +226,51 @@
       },
       "enabled_toolsets": null,
       "workdir": null
+    },
+    {
+      "id": "1b38a660ab9a",
+      "name": "\u6bcf\u65e5\u505a\u68a6\u7cbe\u70bc",
+      "prompt": "\u6267\u884c\u505a\u68a6\u7cbe\u70bc\u6d41\u6c34\u7ebf\uff1a\u8fd0\u884c ~/.hermes/scripts/dream_cycle.py\uff0c\u626b\u63cf\u65b0 session\uff0c\u63d0\u53d6\u91cd\u8981\u4fe1\u606f\uff0c\u5408\u5e76\u5230 MEMORY.md/USER.md\uff0c\u89e3\u51b3\u77db\u76fe\uff0c\u6e05\u7406\u8fc7\u65f6\u6761\u76ee\u3002\u9759\u9ed8\u6267\u884c\uff0c\u53ea\u8f93\u51fa\u7ed3\u679c\u6458\u8981\u3002\n\n\u811a\u672c\u7edd\u5bf9\u8def\u5f84\uff1a/home/jianliu/.hermes/scripts/dream_cycle.py\n\u8fd0\u884c\u65b9\u5f0f\uff1apython3 /home/jianliu/.hermes/scripts/dream_cycle.py\n\n\u4e0d\u52a0\u8f7d\u4efb\u4f55 skill\u3002",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 3 * * *",
+        "display": "0 3 * * *"
+      },
+      "schedule_display": "0 3 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 2
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-01T22:06:04.249578+08:00",
+      "next_run_at": "2026-05-03T03:00:00+08:00",
+      "last_run_at": "2026-05-02T08:12:47.975052+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "weixin",
+        "chat_id": "o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat",
+        "chat_name": null,
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal",
+        "file"
+      ],
+      "workdir": null
     }
   ],
-  "updated_at": "2026-05-01T09:00:52.044315+08:00"
+  "updated_at": "2026-05-02T09:00:49.762167+08:00"
 }
