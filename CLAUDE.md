@@ -25,7 +25,7 @@ uv pip install -e "./tinker-atropos"
 
 ## Running Tests
 
-**Always use `scripts/run_tests.sh`** — never call pytest directly. The wrapper enforces CI-parity (credential vars unset, TZ=UTC, LANG=C.UTF-8, 4 xdist workers). Running pytest directly on a dev machine with API keys set causes local-vs-CI drift that has caused multiple false positives.
+**Always use `scripts/run_tests.sh`** — never call pytest directly. The wrapper enforces CI-parity (credential vars unset, TZ=UTC, LANG=C.UTF-8, 4 xdist workers). Running pytest directly on a dev machine with API keys set causes local-vs-CI drift.
 
 ```bash
 scripts/run_tests.sh                      # full suite
@@ -34,13 +34,19 @@ scripts/run_tests.sh tests/tools/test_x.py::test_y  # one test
 scripts/run_tests.sh -v --tb=long         # pass through pytest flags
 ```
 
+## Code Style
+
+- **PEP 8** with practical exceptions (no strict line-length enforcement)
+- Comments only for non-obvious intent, trade-offs, or API quirks — don't narrate obvious code
+- Catch specific exceptions; use `logger.warning()`/`logger.error()` with `exc_info=True` for unexpected errors
+
 ## Architecture
 
 ### Entry Points (3 binaries)
 
 | Binary | Entry | Purpose |
 |--------|-------|---------|
-| `hermes` | `hermes_cli.main:main` | Interactive CLI TUI |
+| `hermes` | `hermes_cli.main:main` | Interactive CLI TUI (classic prompt_toolkit or modern Ink/React) |
 | `hermes-agent` | `run_agent:main` | Standalone agent runner |
 | `hermes-acp` | `acp_adapter.entry:main` | VS Code/Zed/JetBrains integration |
 
@@ -49,7 +55,7 @@ scripts/run_tests.sh -v --tb=long         # pass through pytest flags
 ```
 tools/registry.py  (no deps — imported by all tool files)
        ↑
-tools/*.py  (each calls registry.register() at import time)
+tools/*.py  (each calls registry.register() at import time; auto-discovered)
        ↑
 model_tools.py  (imports tools/registry, exposes get_tool_definitions, handle_function_call)
        ↑
@@ -64,13 +70,26 @@ Agent-level tools (todo, memory) are intercepted in `run_agent.py` before dispat
 
 ### Tool System (`tools/`)
 
-Every tool file calls `registry.register()` at module level. Auto-discovery means no manual import list is needed. Each tool specifies: schema, handler, toolset, check_fn (env var/API key availability), and requires_env. All handlers MUST return a JSON string.
+Every tool file calls `registry.register()` at module level. **Auto-discovery** — no manual import list is needed in `model_tools.py`. Each tool specifies: schema, handler, toolset, check_fn (env var/API key availability), and requires_env. All handlers MUST return a JSON string.
 
 ### CLI Architecture (`hermes_cli/`)
 
 - All slash commands are defined in a single `COMMAND_REGISTRY` list of `CommandDef` objects in `hermes_cli/commands.py`. This feeds CLI dispatch, autocomplete, Telegram bot menu, Slack subcommands, and gateway help all from one source.
 - Adding an alias to a `CommandDef`'s `aliases` tuple automatically propagates to all consumers.
 - The skin engine (`hermes_cli/skin_engine.py`) provides data-driven CLI theming — new skins are YAML data, no code changes.
+
+### TUI Architecture (`ui-tui/` + `tui_gateway/`)
+
+The TUI (`hermes --tui` or `HERMES_TUI=1`) is a full Ink/React terminal UI. TypeScript owns the screen; Python owns sessions, tools, and model calls. They communicate via newline-delimited JSON-RPC over stdio:
+
+```
+hermes --tui
+  └─ Node (Ink)  ──stdio JSON-RPC──  Python (tui_gateway)
+       │                                  └─ AIAgent + tools + sessions
+       └─ renders transcript, composer, prompts, activity
+```
+
+Built-in TUI commands (`/help`, `/quit`, `/clear`, etc.) are handled locally in TypeScript. Everything else goes to the Python `_SlashWorker` subprocess.
 
 ### Gateway (`gateway/`)
 
@@ -114,6 +133,13 @@ Optional extensions discoverable at runtime. Plugins can contribute skills via t
 
 `_last_resolved_tool_names` in `model_tools.py` is process-global. `_run_single_child()` in `delegate_tool.py` saves and restores it around subagent execution. New code that reads this global will see a stale value during child agent runs.
 
+### Cross-Platform Compatibility
+
+- **`termios` and `fcntl` are Unix-only** — always catch both `ImportError` and `NotImplementedError`
+- **File encoding** — Windows may save `.env` in `cp1252`; always handle `UnicodeDecodeError`
+- **Process management** — `os.setsid()`, `os.killpg()`, signal handling differ on Windows; use `platform.system() != "Windows"` checks
+- **Path separators** — use `pathlib.Path` instead of string concatenation
+
 ## Config System
 
 Config lives in `~/.hermes/config.yaml` and `~/.hermes/.env` (API keys). See `hermes_cli/config.py` for `DEFAULT_CONFIG` and `OPTIONAL_ENV_VARS`.
@@ -137,3 +163,13 @@ All commands are in `hermes_cli/commands.py`. To add a new command:
 ## Skills System
 
 Skills live in `~/.hermes/skills/`. Skill slash commands are scanned at startup and injected as **user messages** (not system prompt) to preserve prompt caching — see `agent/skill_commands.py`. The skills hub at `agentskills.io` is the open standard registry.
+
+**Should it be a Skill or a Tool?** Almost always a skill. Make it a tool only when it requires end-to-end API key/auth integration, custom binary/streaming data handling, or precise execution that can't be handled via terminal/CLI commands. See `CONTRIBUTING.md` for the full decision guide.
+
+## Commit Convention
+
+Use [Conventional Commits](https://www.conventionalcommits.org):
+```
+<type>(<scope>): <description>
+```
+Types: `fix`, `feat`, `docs`, `test`, `refactor`, `chore`. Scopes: `cli`, `gateway`, `tools`, `skills`, `agent`, `install`, `whatsapp`, `security`, etc.
