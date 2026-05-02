@@ -28,34 +28,32 @@ mkdir -p .hermes_backup/databases
 # state.db（会话/消息历史，1.6MB）
 # 注意：cron 环境中 PATH 可能不含 sqlite3 CLI，优先用 sqlite3 .backup
 # 若 .backup 失败（exit!=0），fallback 到 python3 wal_checkpoint + shutil.copy2
-python3 - <<'EOF'
-import sqlite3, shutil, os, sys
+# 先检测 sqlite3 CLI 是否可用，若不可用则用 Python backup API 兜底
+if command -v sqlite3 &>/dev/null; then
+  sqlite3 ~/.hermes/state.db ".backup '/home/jianliu/work/hermes-agent/.hermes_backup/databases/state.db'" && echo "state.db: sqlite3 .backup ok" || SQLITE_FAILED=true
+else
+  SQLITE_FAILED=true
+  echo "sqlite3 CLI not found, using Python fallback"
+fi
 
+if [ "$SQLITE_FAILED" = "true" ]; then
+  python3 - <<'EOF'
+import sqlite3, os
 src = os.path.expanduser("~/.hermes/state.db")
 dst = "/home/jianliu/work/hermes-agent/.hermes_backup/databases/state.db"
-
 try:
-    # 方式1：sqlite3 CLI .backup（原子快照，包含 WAL）
-    import subprocess
-    r = subprocess.run(["sqlite3", src, ".backup", dst], capture_output=True)
-    if r.returncode == 0:
-        print("state.db: sqlite3 .backup ok")
-    else:
-        raise Exception("sqlite3 CLI failed")
-except Exception:
-    # 方式2：Python sqlite3 backup API（wal_checkpoint + copy）
-    try:
-        conn = sqlite3.connect(src)
-        bak = sqlite3.connect(dst)
-        conn.execute("PRAGMA wal_checkpoint(PASSIVE)")
-        conn.backup(bak)
-        bak.close()
-        conn.close()
-        print("state.db: python3 backup api ok")
-    except Exception as e:
-        print("state.db backup FAILED:", e, file=sys.stderr)
-        sys.exit(1)
+    conn = sqlite3.connect(src)
+    bak = sqlite3.connect(dst)
+    conn.execute("PRAGMA wal_checkpoint(PASSIVE)")
+    conn.backup(bak)
+    bak.close()
+    conn.close()
+    print("state.db: python3 backup api ok")
+except Exception as e:
+    print("state.db backup FAILED:", e, file=__import__('sys').stderr)
+    __import__('sys').exit(1)
 EOF
+fi
 
 # dongchedi_l90.db（懂车帝二手车监控，24KB）
 cp ~/.hermes/dongchedi_l90.db .hermes_backup/databases/dongchedi_l90.db 2>/dev/null
@@ -64,26 +62,46 @@ cp ~/.hermes/whatsapp/state.db .hermes_backup/databases/whatsapp_state.db 2>/dev
 # whatsapp dongchedi db（20KB）
 cp ~/.hermes/whatsapp/dongchedi_l90.db .hermes_backup/databases/whatsapp_dongchedi.db 2>/dev/null
 
-# 5. 写 MANIFEST（自动记录备份时间和文件数）
-python3 - <<'EOF'
-import json, datetime, os
+# 5. 写 MANIFEST（自动记录备份时间和文件数、数据库大小、完整性元数据）
+python3 - <<'PYEOF'
+import json, datetime, os, subprocess
+
 manifest = {
     "backup_timestamp": datetime.datetime.now().isoformat(),
     "source_hermes": os.path.expanduser("~/.hermes"),
     "backup_target": os.path.dirname(os.path.abspath(__file__)) + "/.hermes_backup",
     "includes": ["memories", "skills", "cron", "databases"],
 }
+
+# File counts
 for key, path in [("memories_count", ".hermes_backup/memories"), ("skills_count", ".hermes_backup/skills")]:
-    manifest.setdefault("verification", {})[key] = int(os.popen("find " + path + " -type f 2>/dev/null | wc -l").read().strip())
-import subprocess
-result = subprocess.run(["cat", os.path.expanduser("~/.hermes/cron/jobs.json")], capture_output=True, text=True)
-manifest.setdefault("verification", {})["cron_jobs"] = len(json.loads(result.stdout))
-manifest["verification"]["databases"] = ["state.db", "dongchedi_l90.db", "whatsapp_state.db", "whatsapp_dongchedi.db"]
-manifest.setdefault("verification", {})["databases"] = ["state.db", "dongchedi_l90.db", "whatsapp_state.db", "whatsapp_dongchedi.db"]
+    r = subprocess.run(["find", path, "-type", "f"], capture_output=True, text=True)
+    c = len(r.stdout.strip().split("\n")) if r.stdout.strip() else 0
+    manifest.setdefault("verification", {})[key] = c
+
+# Cron jobs count + output files
+try:
+    with open(os.path.expanduser("~/.hermes/cron/jobs.json")) as f:
+        cron_data = json.load(f)
+    manifest["verification"]["cron_jobs"] = len(cron_data) if isinstance(cron_data, (list, dict)) else 0
+except:
+    manifest["verification"]["cron_jobs"] = 0
+
+r = subprocess.run(["find", ".hermes_backup/cron/output", "-type", "f"], capture_output=True, text=True)
+manifest["verification"]["cron_output_files"] = len(r.stdout.strip().split("\n")) if r.stdout.strip() else 0
+
+# Databases with sizes
+dbs = []
+for f in sorted(os.listdir(".hermes_backup/databases")):
+    if f.endswith(".db"):
+        sz = os.path.getsize(f".hermes_backup/databases/{f}")
+        dbs.append({"name": f, "size_bytes": sz})
+manifest["verification"]["databases"] = dbs
+
 with open(".hermes_backup/MANIFEST.json", "w") as f:
-    json.dump(manifest, f, indent=2)
+    json.dump(manifest, f, indent=2, ensure_ascii=False)
 print("MANIFEST written:", json.dumps(manifest, indent=2))
-EOF
+PYEOF
 ```
 
 ## 验证命令
