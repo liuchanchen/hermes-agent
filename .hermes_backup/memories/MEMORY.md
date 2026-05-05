@@ -2,26 +2,32 @@
 §
 User requires all model calls to use max thinking/reasoning effort globally. Set agent.reasoning_effort: xhigh and delegation.reasoning_effort: xhigh in config.yaml. Note: "xhigh" is the highest available effort level — "max" is not a valid config value.
 §
-Remote 10.10.70.88: jianliu, sudo password="!QAZ2wsx", Ubuntu 22.04, 8× RTX 5090 (CC 12.0), driver 580.126.09, CUDA 13.0, nvcc 13.0.88, NCCL 2.28.9-1+cuda13.0, nccl-tests @ ~/work/bandwidth_test/nccl-tests/build/. DeepSeek-V4-Flash @ ~/work/models/deepseekv4_flash/ (149G). vLLM script @ ~/work/vllm_server/run_vllm_deepseekv4.sh (expert-parallel). Docker 29.4 CDI quirk: --gpus all fails, use --device='nvidia.com/gpu=all'. nvidia-container-toolkit installed.
-§
-用户要求安装来自 https://clawhub.ai/wallstreetinsights/wallstreetcn-news 的 skill。
-§
-懂车帝反爬严重，使用 dongchedi_watch 工具时 headless=true 会返回空数据（matched_count=0），必须使用 headless=false 才能正常获取数据。
-§
-懂车帝爬虫任务执行时间长（约1.5小时），可能因验证码导致首次静默失败后重试成功。
-§
-用户要求创建一个技能，用于备份所有记忆、技能和cron任务到代码目录下的.hermes_backup文件夹，且需要自动验证并持续运行直到成功。
-§
-用户要求将备份所有数据库的功能添加到已有的技能中。
-§
 面试管理技能已创建，包含5个核心功能：简历归档、简历摘要、面试时间表、入职时间表、候选人档案。文件路径约定：简历目录为 /mnt/c/Users/liuch/My Documents/warpdriveai/制度/招聘/简历，下载目录为 /mnt/c/Users/liuch/Downloads，档案目录为 /mnt/c/Users/liuch/My Documents/warpdriveai/制度/招聘/候选人档案，时间表为 .../招聘/面试时间表.md，入职表为 .../招聘/入职时间表.md。
 §
-Hermes 中技能的 slash 命令由 frontmatter 中的 name 字段自动生成，trigger 字段仅用于文档说明，不实际注册命令。
+每日3点运行的Dream Cron（ID: 1b38a660ab9a）执行四阶段流水线：calibrate → collect → merge → index，用于扫描新会话、提取重要信息、合并到MEMORY.md和USER.md、解决冲突并清理过时内容。
 §
-用户要求每天晚上10点执行 /dongchedi-l90-watch 脚本，结果需要包含商家地址信息和车型信息，新增和下架的信息需要额外给出，最后给出车型的统计。
+中国纯电车落地价：指导价27万的在沪落地约26.5-27万。免购置税和车船税，国家补贴约1-2万，保险上牌杂费约5000-8000元。
 §
-在 WSL 环境下抓取懂车网数据时，使用 xvfb-run 解决无 X server 问题，这是一个需要试错和调整的非平凡方法。
+DeepSeek V4 Flash: vLLM 0.20.0 ignores all thinking params (chat_template_kwargs/reasoning_effort/extra_body.thinking). No thinking mode active. API: 192.168.12.12:19258, model /home/public/models/deepseekv4/, script ~/work/hermes-agent/run_vllm_deepseekv4.sh. Docker: --device='nvidia.com/gpu=all'.
 §
-用户新增了一个面试管理技能，简历主目录为 '/mnt/c/Users/liuch/My Documents/warpdriveai/制度/招聘/简历' 和 '/mnt/c/Users/liuch/Downloads/'，技能功能包括：检查简历是否在 Downloads 目录而非简历目录，根据候选人姓名移动简历，以及总结候选人优劣势。
+用户询问将微信 Token 备份到 GitHub 是否存在安全问题。
 §
-做梦机制已实现：~/.hermes/scripts/dream_cycle.py，四阶段流水线（calibrate→collect→merge→index）。cron job ID 1b38a660ab9a，每天3:00执行，deliver=origin（推微信）。LLM直接HTTP调用DeepSeek V4，max30次/run，有状态追踪和预算管理。
+有一个每日定时任务 'Daily Dream Refinement'，在每天 3:00 AM 运行，脚本为 ~/.hermes/scripts/dream_cycle.py，执行四阶段流水线（calibrate → collect → merge → index），用于扫描新会话、提取重要信息、合并到 MEMORY.md 和 USER.md、解决冲突并清理过时内容，结果仅本地保存。
+§
+用户调用了 codex-session 技能，要求遵循其指令，该技能用于显式调用 OpenAI Codex 并自动保持会话连续性。
+§
+Hermes 无法连接 ChatGPT 网页版，因为它没有公开的 API 接口。
+§
+Hermes 无法通过 ChatGPT 网页版（chatgpt.com）的 API 接口调用模型，因为网页版没有公开的 API 端点。
+§
+用户询问是否可以使用ChatGPT网页版来回答，Hermes明确告知不行，因为ChatGPT网页版没有公开的API接口，Hermes需要通过API端点调用模型。
+§
+Codex CLI 已升级到 0.128.0，模型为 gpt-5.5，会话续传功能正常，使用 ~/.codex/last_session_for_hermes 标记维持 active 状态。
+§
+用户要求使用 Codex 工具来调查中文提示未被翻译成英文的问题，而不是手动分析。
+§
+用户要求添加一个名为 claude-code-best 的技能，用于修改和检查内部代码。
+§
+当前 Verifier Agent 设计存在高优先级问题：不是可靠验证器（无工具/检索/执行能力，同模型）、强 fail-open 设计（空输出/缺少VERDICT/异常/空响应均通过）、prompt 注入漏洞（原始请求和响应直接拼接）、同模型 refine 可能使答案更差（无护栏）。
+§
+乐道L90各车型整备质量数据已从汽车之家获取，用户要求交叉验证。

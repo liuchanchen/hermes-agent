@@ -17,90 +17,90 @@ Hermes Agent 提供**两种**验证机制，适用于不同场景：
 
 ---
 
-## 方式一：内置验证循环（自动运行）
+## 方式一：内置文本质量检查（自动运行）
 
 ### 概述
 
 代码位于 `run_agent.py`（`_verify_response()`、`_refine_response()`、`_call_llm_simple()` 方法），在 `run_conversation()` 产生最终响应后**自动静默执行**，对用户透明。
 
+> ⚠️ **范围限制：** 这是一个 **保守的文本质量抛光层**，不是真正的验证门。检查器没有工具（不能查事实、不能执行代码、不能看图片），且使用与主 agent **相同的模型/供应商**。它不能可靠捕获幻觉、错误代码或缺失的工具调用结果。
+
 ### 运行条件
 
-验证循环在以下条件**同时满足**时触发：
+检查循环在以下条件**同时满足**时触发：
 
 1. `final_response` 不为空
 2. `interrupted` 为 `False`（本轮未被用户后续消息打断）
-3. `original_user_message` 是字符串类型（即纯文本请求，非多模态消息）
+3. `verification_user_message` 是字符串类型（即纯文本请求，非多模态消息）
 
-### 工作流程
+### 流程
 
 ```
-最终响应 → 调用 _verify_response()（verifier 只看原始请求+最终输出）
-  ├─ 通过 → 日志记录 "Verifier passed round N/5" → 返回
-  └─ 失败 → 有反馈 → _refine_response() 改进 → 下一轮（最多5轮）
-           无反馈 → 放过（verifier 返回空反馈）
+最终响应 → 调用 _verify_response()（JSON 格式裁决）
+  ├─ PASSED → 通过
+  ├─ UNVERIFIABLE → 通过（记录 warning，不阻塞）
+  ├─ FAILED → 有反馈 → _refine_response() 改进 → 下一轮（最多2轮）
+  └─ 无反馈/JSON解析失败 → 通过（记录 warning，不阻塞）
 ```
 
-- 最多 **5 轮**静默迭代
-- Verifier 通过同一 LLM（`_ensure_primary_openai_client`）进行评估，**不带工具**
-- Refine 同样使用同一 LLM，**不带工具**，只根据 feedback 改进文本
-- 如果 refine 输出与原响应相同 → 停止（防止死循环）
+- 最多 **2 轮**静默迭代（从5轮减少，因为同模型验证的价值递减）
+- 使用 **严格 JSON 格式** 裁决（`{"verdict": "PASSED|FAILED|UNVERIFIABLE", ...}`）
+- 有独立的 `verify_max_tokens` 参数（verifier=1024, refiner=2048）
+- Verifier/Refiner 独立于主 agent 的 `max_tokens`
+- Verifier prompt 包含**反注入防护**：声明 request/response 块为不可信数据
+- Verifier 新增 **`UNVERIFIABLE`** 裁决类别：对无法仅从文本验证的事实不判 fail
+- Refiner 包含**内容保持规则**：不编造事实、保留语言/格式、不破坏代码块
+- 空白标准化后再做 identical-output 比较（避免空白震荡误判）
 - 每轮 refine 后更新历史消息中的 assistant message
 
 ### 关键行为特征
 
 - **完全静默**：无控制台输出、无用户可见提示
-- **仅写日志**：通过 `logger.info()` 记录到 `agent.log`，关键词为 `"Verifier passed round"`、`"Verifier failed round"`、`"Verifier exhausted"`、`"Refine produced identical output"`
-- **错误安全**：任何异常（LLM 调用失败等）都会静默放过（返回 `(True, "")`)
+- **日志分级**：
+  - `ERROR` — 检查生命周期开始/结束、轮次耗尽、异常
+  - `WARNING` — 每轮通过/失败、JSON解析失败、无反馈、refine 无变化
+- **错误安全**：任何异常（LLM 调用失败等）都会静默放过（返回 `(True, "")`）
 - **空响应/空白响应直接通过**：`_verify_response()` 会先检查 `not response.strip() or response == "(empty)"`
+- **JSON 解析容错**：先尝试直接解析，失败后查找第一个 `{...}` 块
 
 ### 如何验证是否生效
 
 ```bash
 # 检查 agent.log 中是否有 verifier 日志
-grep 'Verifier\\|VERDICT' ~/.hermes/logs/agent.log
+grep '\[VERIFY\]' ~/.hermes/logs/agent.log
 
 # 预期输出示例：
-# Verifier passed round 1/5 (response len=1234)
+# [VERIFY] Starting text quality check (max_rounds=2, response_len=1234, model=...)
+# [VERIFY] Passed round 1/2 (response len=1234)
 ```
 
-**⚠️ 常见误判 1：本轮被用户后续消息打断**
-如果日志中没有任何 `Verifier` 记录，最常见原因是**本轮被用户后续消息打断了**（`interrupted=True`）。检查时序：如果用户在 agent 响应前发了新消息，则验证循环被跳过。这不是 bug，是设计行为。
+### 日志级别说明（quiet_mode 兼容）
 
-**⚠️ 常见误判 2：quiet_mode 下日志被静默抑制**
-Gateway 启动时默认使用 `quiet_mode=True`，这会在 `AIAgent.__init__()`（`run_agent.py` 第 1206-1213 行）执行以下操作：
-```python
-if self.quiet_mode:
-    for quiet_logger in ['tools', 'run_agent', ...]:
-        logging.getLogger(quiet_logger).setLevel(logging.ERROR)
-```
-这意味着 `run_agent` logger 的 `INFO` 和 `WARNING` 级别调用（包括 `"Verifier passed round"`、`"Verifier failed round"`、`"Turn ended"` 等）**全部被静默丢弃**，不会写入任何日志文件。
+Gateway 的 `quiet_mode=True` 会将 `run_agent` logger 的 WARNING 级别以下日志抑制。为平衡可观测性和日志洁净度：
 
-**这不是验证循环没有运行，只是日志被过滤了。** 验证循环仍然在执行，`_call_llm_simple()` 仍然调用 LLM 做评估，`_refine_response()` 仍然改进输出——只是你看不到它们的痕迹。
+- **启动/结束** (`ERROR`) — 穿透 quiet_mode，写入 agent.log
+- **每轮状态** (`WARNING`) — quiet_mode 下被抑制（正常运行时不可见），但关键生命周期可追踪
+- **异常** (`ERROR`) — 始终可见
+- **JSON 解析失败** (`WARNING`) — 被 quiet_mode 抑制，但通常无害（fail-open 通过）
 
-**如何确认：**
-- 方法 A（推荐）：临时将验证循环的 `logger.info()` 改为 `logger.error()`（ERROR 级别不会被 quiet_mode 抑制），重启 gateway 后再观察 `agent.log`。这是最轻量的诊断方式。
-- 方法 B：在 `gateway/run.py` 中 `agent.run_conversation()` 返回后，对比返回的 `final_response` 与 refine 前的原始响应是否不同。
-- 方法 C：临时注释掉 `run_agent.py` __init__ 中 quiet_mode 对 `'run_agent'` logger 的级别设置，重启 gateway。
-
-**修复方案（已验证有效）：**
-由于 `quiet_mode=True` 将 `run_agent` logger 级别提升到了 `ERROR`，所有验证循环的 `logger.info()` 和 `logger.warning()` 调用都会被丢弃。解决方案是将验证相关的日志全部提升到 `logger.error()` 级别，并加上 `[VERIFY]` 前缀方便 grep 过滤。
+如需完整观察检查循环行为，可临时在 `~/.hermes/run_agent.py` 的 `__init__` 中注释掉 `'run_agent'` 的 setLevel：
 
 ```python
-# Before (被 quiet_mode 静默):
-logger.info("Verifier passed round %d/%d", ...)
-
-# After (穿透 quiet_mode):
-logger.error("[VERIFY] Passed round %d/%d", ...)
+for quiet_logger in ['tools', ...]:  # 移除 'run_agent'
+    logging.getLogger(quiet_logger).setLevel(logging.ERROR)
 ```
 
-受影响的调用点（在 `run_agent.py` 的验证循环中）：
-- 验证循环入口日志
-- 每轮 passed/failed 结果
-- refine 无变化停止
-- 轮次耗尽
-- `_call_llm_simple`, `_verify_response`, `_refine_response` 的异常捕获
+### 已知局限
 
-补丁位置：`~/.hermes/patches/001-verify-agent.patch`
+1. **无法捕获事实性错误** — 无工具、无检索、无代码执行
+2. **同模型偏差** — verifier 使用与主 agent 相同的模型，会重复同样的错误
+3. **纯文本限制** — 无法看到图片、文件内容或其他多模态输入
+4. **Prompt 注入防护（有限）** — 反注入声明可以防止大多数意外情况，但对有意的 prompt 注入攻击不是绝对防护
+5. **非并行** — 最多 2 轮 refine 增加了延迟（每轮一次 LLM 调用）
+6. **语言匹配问题（已修复）** — 原 bug 中 `verification_user_message` 在翻译后错误地使用了英文版本，导致中文用户请求+中文回答时，验证器误判为语言不匹配并 FAILED。修复方式：`verification_user_message` 始终使用 `original_user_message`（原始语言），不随翻译改变。[`run_agent.py:10758`]
+7. **Refiner 输出泄漏（已修复）** — 原 bug 中 `_refine_response()` 直接返回 LLM 原始输出，可能包含分析文本（"I see the issue..."、"The improved version:"）、JSON 或双版本回答。修复方式：新增 `_sanitize_refined_response()` 方法，剥离标记分隔符、元注释行；净化结果为空时回退到 `current_response`。[`run_agent.py:10579+`]
+
+对于关键任务（代码生成、事实核查、数据分析、文件操作），应使用 **Subagent 验证模式**（见下文）。
 
 ---
 

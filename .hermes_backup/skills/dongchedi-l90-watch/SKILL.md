@@ -48,6 +48,7 @@ xvfb-run -a python tools/dongchedi_l90_watch.py \
 1. **browser 工具无法访问懂车帝** — `browser_navigate` 返回 `ERR_ABORTED`，即使 baidu.com 正常。**不要用 browser 工具**
 2. **dongchedi_watch 不是工具** — 是 Python 脚本，不是 MCP 工具或 pip 包
 3. **旧数据库 schema 不兼容** — `no such column: platform` → 用新 DB
+4. **列表页翻页可能遗漏车源** — 脚本默认只抓第一页，如果某台车排在第二页（价格排序或新上架排序不同），可能被漏掉。当用户反馈某台车不存在于数据库中时，应检查脚本分页逻辑，考虑增加第二页抓取。
 
 ## 输出格式标准
 
