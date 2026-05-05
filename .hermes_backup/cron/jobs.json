@@ -20,18 +20,18 @@
       "schedule_display": "0 22 * * *",
       "repeat": {
         "times": 999,
-        "completed": 19
+        "completed": 23
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-21T11:25:30.331382+08:00",
-      "next_run_at": "2026-05-02T22:00:00+08:00",
-      "last_run_at": "2026-05-01T22:02:43.380766+08:00",
+      "next_run_at": "2026-05-05T22:00:00+08:00",
+      "last_run_at": "2026-05-04T22:01:18.963847+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage error: ret=-2 errcode=None errmsg=unknown error",
+      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited: ret=-2 errcode=None errmsg=rate limited",
       "deliver": "origin",
       "origin": {
         "platform": "weixin",
@@ -60,15 +60,15 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": 999,
-        "completed": 11
+        "completed": 14
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-23T23:08:50.970385+08:00",
-      "next_run_at": "2026-05-03T08:00:00+08:00",
-      "last_run_at": "2026-05-02T08:03:10.197762+08:00",
+      "next_run_at": "2026-05-06T08:00:00+08:00",
+      "last_run_at": "2026-05-05T08:07:24.283511+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -101,18 +101,18 @@
       "schedule_display": "0 9 * * *",
       "repeat": {
         "times": 999,
-        "completed": 6
+        "completed": 9
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-26T17:30:29.608686+08:00",
-      "next_run_at": "2026-05-03T09:00:00+08:00",
-      "last_run_at": "2026-05-01T09:02:39.522978+08:00",
+      "next_run_at": "2026-05-06T09:00:00+08:00",
+      "last_run_at": "2026-05-04T09:01:30.296924+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": null,
+      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited: ret=-2 errcode=None errmsg=rate limited",
       "deliver": "origin",
       "origin": null
     },
@@ -154,7 +154,7 @@
     {
       "id": "abbcf2686299",
       "name": "\u6bcf\u65e5\u9762\u8bd5\u63d0\u9192",
-      "prompt": "\u6bcf\u5929\u665a\u4e0a9\u70b9\uff0c\u68c0\u67e5\u9762\u8bd5\u65f6\u95f4\u8868\uff0c\u53d1\u9001\u672a\u67657\u5929\u5185\u7684\u9762\u8bd5\u5b89\u6392\u63d0\u9192\u3002\n\n## \u6b65\u9aa4\n\n1. \u8bfb\u53d6\u9762\u8bd5\u65f6\u95f4\u8868\uff1a\n   `/mnt/c/Users/liuch/My Documents/warpdriveai/\u5236\u5ea6/\u62db\u8058/\u9762\u8bd5\u65f6\u95f4\u8868.md`\n\n2. \u8bfb\u53d6\u6240\u6709\u5019\u9009\u4eba\u6863\u6848\uff08`/mnt/c/Users/liuch/My Documents/warpdriveai/\u5236\u5ea6/\u62db\u8058/\u5019\u9009\u4eba\u6863\u6848/*.md`\uff09\uff0c\u8865\u5145\u5019\u9009\u4eba\u5e94\u8058\u5c97\u4f4d\u7b49\u4fe1\u606f\n\n3. \u8bc6\u522b\u6240\u6709\"\u72b6\u6001\"\u975e\"\u5df2\u5b8c\u6210\"\u7684\u9762\u8bd5\u5b89\u6392\uff0c\u4e14\u65e5\u671f\u5728\u4eca\u5929\uff08YYYY-MM-DD\uff09\u4e4b\u540e\n\n4. \u6309\u65e5\u671f\u5206\u7ec4\u6574\u7406\uff0c\u6309\u65e5\u671f\u5347\u5e8f\u6392\u5217\n\n5. \u53d1\u9001\u63d0\u9192\uff0c\u683c\u5f0f\uff1a\n\n   ```\n   \ud83d\udcc5 \u9762\u8bd5\u63d0\u9192 \u2014 \u672a\u67657\u5929\u5b89\u6392\n\n   ### YYYY-MM-DD (X\u5929\u540e)\n   - **[\u5019\u9009\u4eba\u59d3\u540d]** | [\u8f6e\u6b21] | [\u65f6\u95f4] | [\u5f62\u5f0f] | \u9762\u8bd5\u5b98\uff1a[\u9762\u8bd5\u5b98]\n     \u5907\u6ce8\uff1a[\u5907\u6ce8]\n   ```\n\n   \u5982\u679c\u4eca\u5929\u6709\u9762\u8bd5\uff1a\n   ```\n   ### \u4eca\u5929\n   - **[\u5019\u9009\u4eba\u59d3\u540d]** | [\u8f6e\u6b21] | [\u65f6\u95f4] | [\u5f62\u5f0f] | \u9762\u8bd5\u5b98\uff1a[\u9762\u8bd5\u5b98]\n     \u5907\u6ce8\uff1a[\u5907\u6ce8]\n   ```\n\n6. \u5982\u679c\u6ca1\u6709\u672a\u67657\u5929\u5185\u7684\u9762\u8bd5\u5b89\u6392\uff0c\u53d1\u9001\"\u672a\u67657\u5929\u5185\u65e0\u9762\u8bd5\u5b89\u6392\"\n\n7. \u901a\u8fc7 send_message \u53d1\u9001\u5230 origin\n\n## \u6ce8\u610f\u4e8b\u9879\n- \u4eca\u5929\u662f 2026-04-27\uff0c\u7b5b\u9009\u672a\u67657\u5929\uff1a4/27 - 5/3\n- \u5982\u679c\u9762\u8bd5\u5df2\u8fc7\u671f\uff08\u65e5\u671f\u5728\u4eca\u5929\u4e4b\u524d\u4e14\u72b6\u6001\u975e\u5df2\u5b8c\u6210\uff09\uff0c\u6807\u6ce8\"\u26a0\ufe0f \u5df2\u8fc7\u671f\"\n- \u4eca\u5929\u65e5\u671f\u7528 `date \"+%Y-%m-%d\"` \u786e\u8ba4",
+      "prompt": "\u6bcf\u5929\u665a\u4e0a9\u70b9\uff0c\u68c0\u67e5\u9762\u8bd5\u65f6\u95f4\u8868\uff0c\u53d1\u9001\u672a\u67657\u5929\u5185\u7684\u9762\u8bd5\u5b89\u6392\u63d0\u9192\u3002\n\n## \u6b65\u9aa4\n\n1. \u5148\u6267\u884c `date \"+%Y-%m-%d\"` \u786e\u8ba4\u4eca\u5929\u65e5\u671f\n\n2. \u8bfb\u53d6\u9762\u8bd5\u65f6\u95f4\u8868\uff1a\n   `/mnt/c/Users/liuch/My Documents/warpdriveai/\u5236\u5ea6/\u62db\u8058/\u9762\u8bd5\u65f6\u95f4\u8868.md`\n\n3. \u8bfb\u53d6\u6240\u6709\u5019\u9009\u4eba\u6863\u6848\uff08`/mnt/c/Users/liuch/My Documents/warpdriveai/\u5236\u5ea6/\u62db\u8058/\u5019\u9009\u4eba\u6863\u6848/*.md`\uff09\uff0c\u8865\u5145\u5019\u9009\u4eba\u5e94\u8058\u5c97\u4f4d\u7b49\u4fe1\u606f\n\n4. \u8bc6\u522b\u6240\u6709\"\u72b6\u6001\"\u975e\"\u5df2\u5b8c\u6210\"\u7684\u9762\u8bd5\u5b89\u6392\uff0c\u4e14\u65e5\u671f\u5728\u4eca\u5929\u4e4b\u540e7\u5929\u5185\n\n5. \u6309\u65e5\u671f\u5206\u7ec4\u6574\u7406\uff0c\u6309\u65e5\u671f\u5347\u5e8f\u6392\u5217\n\n6. \u53d1\u9001\u63d0\u9192\uff0c\u683c\u5f0f\uff1a\n\n   ```\n   \ud83d\udcc5 \u9762\u8bd5\u63d0\u9192 \u2014 \u672a\u67657\u5929\u5b89\u6392\n\n   ### YYYY-MM-DD (X\u5929\u540e)\n   - **[\u5019\u9009\u4eba\u59d3\u540d]** | [\u8f6e\u6b21] | [\u65f6\u95f4] | [\u5f62\u5f0f] | \u9762\u8bd5\u5b98\uff1a[\u9762\u8bd5\u5b98]\n     \u5907\u6ce8\uff1a[\u5907\u6ce8]\n   ```\n\n   \u5982\u679c\u4eca\u5929\u6709\u9762\u8bd5\uff1a\n   ```\n   ### \u4eca\u5929\n   - **[\u5019\u9009\u4eba\u59d3\u540d]** | [\u8f6e\u6b21] | [\u65f6\u95f4] | [\u5f62\u5f0f] | \u9762\u8bd5\u5b98\uff1a[\u9762\u8bd5\u5b98]\n     \u5907\u6ce8\uff1a[\u5907\u6ce8]\n   ```\n\n7. \u5982\u679c\u6ca1\u6709\u672a\u67657\u5929\u5185\u7684\u9762\u8bd5\u5b89\u6392\uff0c\u53d1\u9001\"\u672a\u67657\u5929\u5185\u65e0\u9762\u8bd5\u5b89\u6392\"\n\n## \u6ce8\u610f\u4e8b\u9879\n- \u5fc5\u987b\u4f7f\u7528 `date \"+%Y-%m-%d\"` \u83b7\u53d6\u4eca\u5929\u7684\u65e5\u671f\uff0c\u4e0d\u8981\u5047\u8bbe\u6216\u786c\u7f16\u7801\u65e5\u671f\n- \u5982\u679c\u9762\u8bd5\u5df2\u8fc7\u671f\uff08\u65e5\u671f\u5728\u4eca\u5929\u4e4b\u524d\u4e14\u72b6\u6001\u975e\u5df2\u5b8c\u6210\uff09\uff0c\u6807\u6ce8\"\u26a0\ufe0f \u5df2\u8fc7\u671f\"\n- \u6ce8\u610f\u8868\u683c\u4e2d\u7684\u65e5\u671f\u683c\u5f0f\uff0c\u53ea\u6709\u4e00\u884c\u6570\u636e\u65f6\u4e0d\u8981\u91cd\u590d\u8868\u5934",
       "skills": [
         "interview"
       ],
@@ -171,18 +171,18 @@
       "schedule_display": "0 21 * * *",
       "repeat": {
         "times": null,
-        "completed": 5
+        "completed": 10
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-27T19:22:17.374140+08:00",
-      "next_run_at": "2026-05-02T21:00:00+08:00",
-      "last_run_at": "2026-05-01T21:02:06.560300+08:00",
+      "next_run_at": "2026-05-05T21:00:00+08:00",
+      "last_run_at": "2026-05-04T21:03:28.223208+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage error: ret=-2 errcode=None errmsg=unknown error",
+      "last_delivery_error": null,
       "deliver": "origin",
       "origin": null
     },
@@ -205,15 +205,15 @@
       "schedule_display": "0 8,18 * * *",
       "repeat": {
         "times": 999,
-        "completed": 5
+        "completed": 11
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-30T10:00:25.900478+08:00",
-      "next_run_at": "2026-05-02T18:00:00+08:00",
-      "last_run_at": "2026-05-02T08:02:39.070780+08:00",
+      "next_run_at": "2026-05-05T18:00:00+08:00",
+      "last_run_at": "2026-05-05T08:10:03.664907+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -246,15 +246,15 @@
       "schedule_display": "0 3 * * *",
       "repeat": {
         "times": null,
-        "completed": 2
+        "completed": 4
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-01T22:06:04.249578+08:00",
-      "next_run_at": "2026-05-03T03:00:00+08:00",
-      "last_run_at": "2026-05-02T08:12:47.975052+08:00",
+      "next_run_at": "2026-05-06T03:00:00+08:00",
+      "last_run_at": "2026-05-05T03:01:16.560385+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -272,5 +272,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-05-02T09:00:49.762167+08:00"
+  "updated_at": "2026-05-05T09:00:03.913182+08:00"
 }

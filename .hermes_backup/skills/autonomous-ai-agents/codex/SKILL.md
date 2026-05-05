@@ -30,6 +30,34 @@ Requires the codex CLI and a git repository.
 - **Must run inside a git repository** — Codex refuses to run outside one
 - Use `pty=true` in terminal calls — Codex is an interactive terminal app
 
+### Installation Troubleshooting
+
+**Codex binary not found (`command not found`):**
+- Installed with `npm`? Check `npm bin -g` is in your PATH
+- Installed with `bun`? Bun places binaries in `~/.bun/bin/codex` (a JS wrapper). If `bun` itself isn't on the non-interactive PATH, create a wrapper:
+  ```bash
+  cat > ~/.local/bin/codex << 'EOF'
+  #!/bin/bash
+  exec /home/jianliu/.bun/bin/bun /home/jianliu/.bun/install/global/node_modules/@openai/codex/dist/cli.js "$@"
+  EOF
+  chmod +x ~/.local/bin/codex
+  ```
+
+**Codex works interactively but fails from Hermes terminal:**
+Same issue — `codex` binary resolves via interactive PATH but the non-interactive Hermes terminal shell may not have bun's bin directory. Use the wrapper above or add `export PATH="$HOME/.bun/bin:$PATH"` to a script entry point.
+
+**`codex exec resume` does NOT support `-C`/`--cd` flag:**
+Unlike `codex exec <prompt>`, the resume subcommand doesn't accept `--cd`. You must `cd` to the target directory before calling resume:
+```bash
+# CORRECT:
+cd /path/to/repo && codex exec resume --last "Continue the task"
+
+# WRONG (will error):
+codex exec resume --last -C /path/to/repo "Continue the task"
+
+# The companion script codex_session.sh handles this correctly with `cd` before resume.
+```
+
 ## One-Shot Tasks
 
 ```
@@ -41,31 +69,59 @@ For scratch work (Codex needs a git repo):
 terminal(command="cd $(mktemp -d) && git init && codex exec 'Build a snake game in Python'", pty=true)
 ```
 
-## Background Mode (Long Tasks)
+## Session Continuity (Default: Reuse Same Session)
 
+Each call to `codex exec` starts a **fresh** session by default, losing context. For multi-step tasks (design → implement → test → fix), use session continuity:
+
+### Automatic Session Script
+
+Save as `scripts/codex_session.sh` alongside this skill:
+
+```bash
+#!/bin/bash
+# codex_session.sh — Call Codex with automatic session continuity
+set -euo pipefail
+MARKER="$HOME/.codex/last_session_for_hermes"
+WORKDIR=""; MODEL=""; JSON_FLAG=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in --workdir) WORKDIR="$2"; shift 2 ;; --model) MODEL="$2"; shift 2 ;;
+    -j|--json) JSON_FLAG="--json"; shift ;; --) shift; break ;; *) break ;; esac
+done
+PROMPT="$*"
+if [ -z "$PROMPT" ]; then echo "ERROR: prompt required"; exit 1; fi
+
+if [ -f "$MARKER" ] && [ "$(cat "$MARKER")" = "active" ]; then
+  echo "[Codex-Session] Resuming last session..." >&2
+  if [ -n "$WORKDIR" ]; then cd "$WORKDIR"; fi
+  codex exec resume --last ${JSON_FLAG} ${MODEL:+-m "$MODEL"} "$PROMPT"
+  EC=$?; if [ $EC -ne 0 ]; then rm -f "$MARKER"; fi; exit $EC
+fi
+
+echo "[Codex-Session] Starting new session..." >&2
+ARGS=(); [ -n "$WORKDIR" ] && ARGS=(-C "$WORKDIR"); [ -n "$MODEL" ] && ARGS+=(-m "$MODEL")
+[ -n "$JSON_FLAG" ] && ARGS+=("$JSON_FLAG")
+codex exec --full-auto "${ARGS[@]}" "$PROMPT"
+EC=$?; if [ $EC -eq 0 ]; then echo "active" > "$MARKER"; fi; exit $EC
 ```
-# Start in background with PTY
-terminal(command="codex exec --full-auto 'Refactor the auth module'", workdir="~/project", background=true, pty=true)
-# Returns session_id
 
-# Monitor progress
-process(action="poll", session_id="<id>")
-process(action="log", session_id="<id>")
+**How it works:**
+1. **First call** → `codex exec --full-auto <prompt>` — starts a new session, saves a marker
+2. **Subsequent calls** → `codex exec resume --last <prompt>` — resumes the last session, carrying over full context (files read, changes made, decisions)
+3. **Resume failure** → marker is auto-cleared, next call starts fresh
 
-# Send input if Codex asks a question
-process(action="submit", session_id="<id>", data="yes")
+**Usage from Hermes:**
+```bash
+# First call — creates session
+bash ~/.hermes/skills/autonomous-ai-agents/codex/scripts/codex_session.sh --workdir /path/to/repo "Add input validation to API"
 
-# Kill if needed
-process(action="kill", session_id="<id>")
-```
+# Second call — same session, Codex remembers context
+bash ~/.hermes/skills/autonomous-ai-agents/codex/scripts/codex_session.sh --workdir /path/to/repo "Now add unit tests for that validation"
 
-## Key Flags
+# JSON output (use -j, adds --json flag)
+bash ~/.hermes/skills/autonomous-ai-agents/codex/scripts/codex_session.sh -j --workdir /path "Describe the project structure"
 
-| Flag | Effect |
-|------|--------|
-| `exec "prompt"` | One-shot execution, exits when done |
-| `--full-auto` | Sandboxed but auto-approves file changes in workspace |
-| `--yolo` | No sandbox, no approvals (fastest, most dangerous) |
+# Start fresh (ignore previous session)
+rm -f ~/.codex/last_session_for_hermes
 
 ## PR Reviews
 

@@ -147,6 +147,40 @@ cronjob(action='run', job_id='xxx')
 
 **注意**：`cronjob(action='run', ...)` 不会创建新的 cron session，而是在**当前会话**中同步执行。真正的 cron session 文件名格式为 `session_cron_<job_id>_<timestamp>.json`，如果看不到新的这类文件，说明 run 在当前会话中执行了。
 
+### 6. 定时任务输出信息有误（日期错乱 / 硬编码）
+
+**症状**：cron job 成功执行并送达，但输出的日期/数据不对（如今天明明是 5月2日，却显示 4月27日的数据）。
+
+**原因**：cron job 的 **prompt 中硬编码了日期**（如 `今天是 2026-04-27`），而不是动态获取。当 cron job 创建后，prompt 文本被固定下来，后续每次执行使用的都是创建时写的日期。
+
+**排查方法**：
+```bash
+# 查看 cron job 的完整 prompt
+cronjob(action='list')  # 看 prompt_preview
+
+# 查看最近一次输出的 header 中的日期
+ls -la ~/.hermes/cron/output/<job_id>/
+cat ~/.hermes/cron/output/<job_id>/<latest>.md | head -10
+```
+
+**解决方案**：
+1. 更新 cron job prompt，删除所有硬编码日期
+2. 在 prompt 第一行强制要求 `date "+%Y-%m-%d"` 获取今天日期
+3. 明确要求 agent 基于 `date` 命令的结果做日期过滤，而不是假设
+
+```python
+# 修复后的 prompt 模板 — 开头增加：
+cronjob(action='update', job_id='xxx', prompt='''...你的任务...
+## 步骤
+1. 先执行 `date "+%Y-%m-%d"` 确认今天日期
+2. ...
+## 注意事项
+- 必须使用 `date "+%Y-%m-%d"` 获取今天的日期，不要假设或硬编码日期
+...''')
+```
+
+**预防**：创建 cron job 时，在 prompt 中**永远不要写具体日期**。所有日期判断必须通过 `date` 命令动态获取。
+
 ## 6. 建立自动健康检查 & 自愈机制
 
 当用户提出"检查cron是否正常运行"或"自动修复失败的cron"时，使用此模式。
@@ -288,6 +322,69 @@ ls -la ~/.hermes/cron/output/<job_id>/
 cat ~/.hermes/cron/output/<job_id>/<timestamp>.md
 ```
 
+### 强制恢复步骤（当 `hermes cron run <id>` 标记了 job 但 scheduler 不执行）
+
+**症状**：`hermes cron run <id>` 返回 "It will run on the next scheduler tick"，但等了很久（超过 2 个 tick 周期），job 仍然没有执行（`next_run_at` 不变，没有新 output 文件）。通常发生在 gateway 刚重启后。
+
+**根因**：`hermes cron run` 只设置 `next_run_at`，实际的执行由 gateway 的 cron ticker（每 60 秒 tick 一次）完成。当 gateway 重启时可能存在：
+- `.tick.lock` 残留锁（阻止新 tick 获取锁）
+- `get_due_jobs()` 发现 `next_run_at` 在 past 但超过了 grace 窗口 → **fast-forward 到下一周期** 而不是立即执行
+- `advance_next_run()` 已经在第一次 `run` 调用时被触发，job 的 `next_run_at` 已被前移
+
+**强制恢复步骤**：
+```bash
+# 1. 检查并清除残留的 tick lock（如果存在）
+python3 -c "import os; p=os.path.expanduser('~/.hermes/cron/.tick.lock'); os.path.exists(p) and os.remove(p) and print('Lock removed') or print('No lock')"
+
+# 2. 检查 jobs.json 中该 job 的 next_run_at 是否已经是未来时间
+python3 -c "
+import json
+with open(os.path.expanduser('~/.hermes/cron/jobs.json')) as f:
+    data = json.load(f)
+for j in data['jobs']:
+    if j['id'] == '<job_id>':
+        print(f'nra={j[\"next_run_at\"]} lra={j[\"last_run_at\"]}')
+"
+
+# 3. 如果 next_run_at 是未来时间（已被 advance 前移），手动设置为过去几秒
+#    这样 get_due_jobs() 会认为它 due；但如果超过 grace 窗口仍会被 fast-forward
+#    更好的做法：直接编辑 jobs.json 把 next_run_at 设为一个刚刚过去的时间
+python3 -c "
+import json, os
+from datetime import datetime, timezone, timedelta
+path = os.path.expanduser('~/.hermes/cron/jobs.json')
+with open(path) as f:
+    data = json.load(f)
+tz = timezone(timedelta(hours=8))
+for j in data['jobs']:
+    if j['id'] == '<job_id>':
+        j['next_run_at'] = (datetime.now(tz) - timedelta(seconds=5)).isoformat()
+        print(f'Set to: {j[\"next_run_at\"]}')
+with open(path, 'w') as f:
+    json.dump(data, f, indent=2, ensure_ascii=False)
+"
+
+# 4. 运行 tick 让 scheduler 处理（--accept-hooks 用于 cron 后台模式）
+hermes cron tick --accept-hooks
+
+# 5. 验证：查看 output 目录是否生成了新文件
+find ~/.hermes/cron/output/<job_id>/ -name '$(date +%Y-%m-%d)*' 2>/dev/null
+```
+
+**更简单的方法**（直接通过 cron tick 运行一次，跳过 gateway ticker）：
+```bash
+# 同时清理 lock 和设置 past time 后，运行 tick
+rm -f ~/.hermes/cron/.tick.lock && hermes cron tick --accept-hooks
+```
+注意：如果 job 的 `next_run_at` 已被 advance 到未来，tick 会认为没有 due job。此时必须手动编辑 `jobs.json` 把 `next_run_at` 设回过去。
+
+### 注意事项
+
+- `hermes cron run` ≠ 立即执行。它只是标记 job 让 scheduler tick 在下一个周期处理。
+- 每次 `cron run` 都会调用 `advance_next_run()`，即使用户只触发了一次，`next_run_at` 会被提前到下一个周期。
+- Gateway 重启后，之前的 triggered runs 会丢失。必须重新触发。
+- 不要依赖 `hermes cron run` 来验证 job 是否正常工作——应该直接 `cat ~/.hermes/cron/output/<job_id>/latest.md` 看已有的输出，或者编辑 jobs.json 后触发 tick。
+
 ## 查看 cron session
 ```bash
 ls -la ~/.hermes/sessions/ | grep cron
@@ -304,6 +401,6 @@ cronjob(action='pause', job_id='xxx')
 # 恢复任务
 cronjob(action='resume', job_id='xxx')
 
-# 立即运行
+# 立即运行（注意：仅标记，不立即执行）
 cronjob(action='run', job_id='xxx')
 ```
