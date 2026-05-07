@@ -27,3 +27,5 @@ User prefers step-by-step operation with verification after each stage when doin
 用户要求在执行远程操作时遵循 remote-70-88 技能的指令，该技能涉及 SSH 连接、CUDA/nvcc 安装、NCCL 版本管理、编译 nccl-tests 和运行带宽测试。
 §
 用户要求主动更新技能库，即使变化很小也不应错过学习机会，且技能库应保持类级别结构，每个技能有丰富的 SKILL.md 和 references/ 目录，而不是扁平的长列表。
+§
+用户在一周前创建了一个名为 remote-70-88 的技能，但该技能现在不可见或无法使用。
