@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [ssh, gpu, cuda, nccl, nvcc, a100, remote, devops]
-    related_skills: [remote-70-88, remote-deploy]
+    related_skills: [remote-70-88]
 ---
 
 # Remote GPU Server (10.10.70.66)
@@ -117,7 +117,7 @@ ssh jianliu@10.10.70.66 "nvidia-smi -q | grep 'CUDA Version'"
 
 ## NCCL 安装
 
-NCUDA 12.3 环境下需要安装与 A100 兼容的 NCCL。70.66 目前**未安装 NCCL**。
+70.66 目前**未安装 NCCL**。需要在 CUDA 12.3 环境下安装。
 
 ### Step 1: 安装 libnccl
 

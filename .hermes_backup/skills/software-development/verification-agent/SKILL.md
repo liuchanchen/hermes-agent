@@ -1,7 +1,8 @@
 ---
 name: verification-agent
-description: 创建验证/评审 subagent，对主 agent 的最终输出进行独立评审和测试，不看中间步骤。如不合格则反馈要求修改。
-tags: [agent-pattern, review, qa]
+description: 创建验证/评审 subagent，对主 agent 的最终输出进行独立评审和测试，如不合格则反馈要求修改。包含 Cron Job 故障排查扩展。
+version: 2.0.0
+tags: [agent-pattern, review, qa, cron, troubleshooting]
 ---
 
 # 验证 Agent 模式
@@ -212,3 +213,75 @@ result = await delegate_task(
 - 复杂的任务（涉及多文件、长时间测试）建议单独为其分配较长的超时时间
 - 如果任务对时效性要求高，可以设置 `max_rounds=1` 即验证最多一轮，不通过则直接报告问题由人工决定
 - 验证 Agent 的上下文不要包含主 Agent 的任何试探/中间产物，这是最重要的隔离原则
+
+---
+
+## Cron Job 故障排查扩展
+
+> 以下小节整合自原 `cron-job-troubleshooting` skill。Cron 任务作为一种定时验证机制，其故障诊断也属于系统验证的范畴。
+
+### 常见问题速查
+
+| 问题 | 原因 | 修复 |
+|------|------|------|
+| 没发送结果 | `deliver` 设为 `"local"` | `cronjob(action='update', job_id='xxx', deliver='origin')` |
+| 工具不可用 | 工具集受限 | 添加 `enabled_toolsets` |
+| 静默失败 `[SILENT]` | 缺少工具或超时 | 查看 session 文件 `~/.hermes/sessions/session_cron_<id>_<timestamp>.json` |
+| 模型 404 | 固定模型名不可用 | 更新 model 或清空以使用默认模型 |
+| 没运行 | job 被暂停或时间错乱 | `cronjob(action='list')` 确认 `enabled: true` 和 `next_run_at` |
+| 推送失败但执行成功 | iLink 连接抖动或 aiohttp 问题 | 从 cron output 恢复数据 |
+| 日期错乱 | prompt 中硬编码日期 | 更新 prompt，强制使用 `date "+%Y-%m-%d"` |
+
+### 关键排查路径
+
+**查看完整执行记录（最可靠）：**
+```bash
+ls -la ~/.hermes/sessions/ | grep cron_<job_id>
+cat ~/.hermes/sessions/session_cron_<job_id>_<timestamp>.json
+```
+Session 文件比 `agent.log` 更可靠（日志可能被轮转或截断）。
+
+**查看 cron output（推送失败时的备选方案）：**
+```bash
+ls -la ~/.hermes/cron/output/<job_id>/
+cat ~/.hermes/cron/output/<job_id>/<latest>.md
+```
+
+### 自动健康检查 & 自愈机制
+
+创建健康检查 cron job，每天自动诊断并修复失败的 cron 任务：
+
+```python
+# 1. 创建数据收集脚本 ~/.hermes/scripts/cron_health_collector.py
+# 2. 创建健康检查 cron job
+cronjob(action='create',
+    name='Cron 健康检查 & 自动恢复',
+    schedule='0 18 * * *',  # 每天北京时间 18:00
+    deliver='origin',
+    enabled_toolsets=['terminal', 'web', 'search'],
+    prompt='''...（见原 cron-job-troubleshooting skill 的完整模板）...''')
+```
+
+### 强制恢复（当 scheduler 不执行时）
+
+```bash
+# 1. 清除残留 lock
+rm -f ~/.hermes/cron/.tick.lock
+
+# 2. 手动设置 next_run_at 为过去时间
+python3 -c "
+import json, os
+from datetime import datetime, timezone, timedelta
+path = os.path.expanduser('~/.hermes/cron/jobs.json')
+with open(path) as f:
+    data = json.load(f)
+for j in data['jobs']:
+    if j['id'] == '<job_id>':
+        j['next_run_at'] = (datetime.now(timezone(timedelta(hours=8))) - timedelta(seconds=5)).isoformat()
+with open(path, 'w') as f:
+    json.dump(data, f, indent=2, ensure_ascii=False)
+"
+
+# 3. 触发 tick
+hermes cron tick --accept-hooks
+```

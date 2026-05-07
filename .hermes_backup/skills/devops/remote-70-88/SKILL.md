@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [ssh, gpu, cuda, nccl, nvcc, bandwidth-test, remote, devops]
-    related_skills: [remote-deploy, systematic-debugging]
+    related_skills: [remote-70-66, systematic-debugging]
 ---
 
 # Remote GPU Server (10.10.70.88)
@@ -182,42 +182,9 @@ ls -lh build/*_perf
 - 确认 `/usr/lib/x86_64-linux-gnu/libnccl.so` 存在
 - 运行 `echo 'PASSWORD' | sudo -S ldconfig` 刷新库缓存
 
-## 自动化 Benchmark 脚本（一键运行）
+## 运行带宽测试
 
-软件源里有一个可复用的自动化脚本，封装了完整的 benchmark 工作流（环境检查 → 构建 → 逐项测试 → 自动生成 Markdown 报告）：
-
-**脚本路径:** `~/work/bandwidth_test/nccl_test/run_nccl_benchmark.sh`
-
-```bash
-# 完整测试（2卡 + 6×8卡集合操作，约15-20分钟）
-bash ~/work/bandwidth_test/nccl_test/run_nccl_benchmark.sh full
-
-# 快速测试（仅8卡 all_reduce，约5分钟）
-bash ~/work/bandwidth_test/nccl_test/run_nccl_benchmark.sh quick
-
-# 重新生成报告（重用上次原始数据，不跑测试）
-bash ~/work/bandwidth_test/nccl_test/run_nccl_benchmark.sh summary
-```
-
-脚本输出：
-- `raw_results_YYYYMMDD_HHMMSS.txt` — 原始 nccl-tests 输出
-- `nccl_benchmark_YYYYMMDD_HHMMSS.md` — 结构化 Markdown 报告（7个章节）
-- `nccl_benchmark_latest.md` — 最新报告的符号链接
-
-**脚本特性:**
-- 自动检测 nccl-tests 是否已编译，按需构建
-- 单卡验证 → 2卡 all_reduce → 8卡全集合操作（all_reduce/all_gather/broadcast/reduce_scatter/alltoall/sendrecv）
-- 正确解析 nccl-tests 输出列（`time_us=$6, algbw=$7, busbw=$8`），自动生成数据表
-- 报告包含：环境信息、完整阶梯数据表、汇总对比表、延迟分析、2卡vs8卡对比、关键发现
-- 所有数字从实际测试结果动态提取，无硬编码
-
-## 运行带宽测试（手动 Benchmark 工作流）
-
-### 基准测试流程（推荐顺序）
-
-建议先运行 2 卡再跑 8 卡，逐项收集完整结果后汇总为报告。
-
-#### Step 1: 单 GPU 验证（快速检查编译是否正确）
+### 单 GPU 验证（快速检查编译是否正确）
 
 ```bash
 cd ~/work/bandwidth_test/nccl-tests/build
@@ -225,40 +192,21 @@ cd ~/work/bandwidth_test/nccl-tests/build
 ```
 注意：单 GPU 的 all_reduce 带宽为 0，这是正常的（all_reduce 需要 ≥2 卡才有意义）。用于验证程序能正常运行不崩溃。
 
-#### Step 2: 2 卡测试（检查 ring 基础性能）
-
-```bash
-cd ~/work/bandwidth_test/nccl-tests/build
-./all_reduce_perf -b 8 -e 8G -f 2 -g 2 2>&1
-```
-
-预计结果：大数据峰值 ~35 GB/s (AlgoBW)，延迟 ~7.8 us
-
-#### Step 3: 8 卡 ALL 集合操作测试
+### 全量 8 卡测试
 
 ```bash
 cd ~/work/bandwidth_test/nccl-tests/build
 
-# all_reduce（最常用的集合操作）
+# all_reduce
 ./all_reduce_perf -b 8 -e 8G -f 2 -g 8 2>&1
-# all_gather
+
+# 其他集合操作
 ./all_gather_perf -b 8 -e 8G -f 2 -g 8 2>&1
-# broadcast
 ./broadcast_perf -b 8 -e 8G -f 2 -g 8 2>&1
-# reduce_scatter
 ./reduce_scatter_perf -b 8 -e 8G -f 2 -g 8 2>&1
-# alltoall（PCIe 拓扑下最慢）
 ./alltoall_perf -b 8 -e 8G -f 2 -g 8 2>&1
-# sendrecv（P2P 带宽）
 ./sendrecv_perf -b 8 -e 8G -f 2 -g 8 2>&1
 ```
-
-#### Step 4: 汇总生成报告
-
-收集各测试的 tail 输出（关注最后几行的大数据峰值和 Avg bus bandwidth），汇总为 Markdown 报告：
-
-- 报告应包含：环境信息、各操作带宽对比表、延迟对比表、2卡vs8卡对比、关键发现
-- 报告文件可复制到 Windows 路径: `cp REPORT.md "/mnt/c/Users/liuch/Documents/warpdriveai/5090/"`
 
 ### 输出解读
 
@@ -270,21 +218,13 @@ cd ~/work/bandwidth_test/nccl-tests/build
 - **AlgoBW**: 算法带宽（实际传输的数据量/时间）
 - **BusBW**: 总线带宽（考虑了 NCCL 内部数据搬运倍数，通常 AlgoBW × 1.7~2.0）
 - **Avg bus bandwidth**: 所有 size 的平均总线带宽
-- **关注点**: 尾行（最大 size）反映峰值带宽，Avg bus bandwidth 反映整体效率
 
-### 8× RTX 5090 参考值（实测 2025-04-29）
+### 8× RTX 5090 参考值
 
-| 操作 | 8B 延迟 (us) | 峰值 BusBW (GB/s) | Avg BusBW (GB/s) |
-|------|:-----------:|:----------------:|:---------------:|
-| all_reduce (2卡) | 7.84 | 35.36 | 15.34 |
-| all_reduce (8卡) | 31.76 | 40.70 | 16.95 |
-| all_gather | 40.7 | 39.74 | 15.75 |
-| broadcast | 30.5 | 41.25 | 17.61 |
-| reduce_scatter | 40.5 | 38.12 | 15.43 |
-| alltoall | 54.8 | 27.58 | 8.81 |
-| sendrecv | 42.6 | 25.82 | 10.54 |
-
-**Note:** 峰值 BusBW 40+ GB/s 为 PCIe 5.0 x16 ring 算法理论极限。alltoall/sendrecv 较低为 PCIe 拓扑无 NVSwitch 所限。
+| 操作 | 小数据 (< 1MB) | 大数据 (> 128MB) |
+|------|---------------|------------------|
+| all_reduce | 0.8-3 GB/s | 22-23 GB/s (Algo) / 39-40 GB/s (Bus) |
+| (其他操作待补充) | | |
 
 ## 验证综合检查
 
@@ -311,139 +251,10 @@ ssh -t jianliu@10.10.70.88 "
 | 查看磁盘 | `ssh jianliu@10.10.70.88 "df -h /"` |
 | 网络测试 | `ssh jianliu@10.10.70.88 "iperf3 -c <server>"` |
 
-## Docker GPU 容器配置（nvidia-container-toolkit）
-
-在 GPU 服务器上运行 `docker run --gpus all` 需要安装 **nvidia-container-toolkit**。Docker 29+ 默认使用 CDI (Container Device Interface) 发现 GPU，必须通过此工具包生成 CDI 规范。
-
-### 常见错误
-
-```
-docker: Error response from daemon: failed to discover GPU vendor from CDI: no known GPU vendor found
-```
-
-**原因：** `nvidia-container-toolkit` 未安装，CDI 配置不存在，Docker 无法通过 CDI 找到 GPU。
-
-### 诊断步骤
-
-```bash
-# 1. 检查是否已安装
-dpkg -l | grep nvidia-container
-# 如果无输出 → 未安装
-
-# 2. 检查 CDI 目录是否存在
-ls /etc/cdi/ 2>/dev/null || echo 'No CDI config'
-
-# 3. 检查 nvidia-ctk 命令
-which nvidia-ctk 2>/dev/null || echo 'nvidia-ctk not installed'
-
-# 4. 检查 Docker 运行时列表
-echo 'PASSWORD' | sudo -S docker info 2>&1 | grep -A5 'Runtimes'
-# 如果只显示 runc 不显示 nvidia → 未配置
-```
-
-### 安装与配置
-
-```bash
-# 1. 安装 nvidia-container-toolkit
-echo 'PASSWORD' | sudo -S apt-get install -y nvidia-container-toolkit
-
-# 2. 配置 Docker 运行时（生成 CDI specs + 注册 nvidia runtime）
-echo 'PASSWORD' | sudo -S nvidia-ctk runtime configure --runtime=docker
-
-# 3. 重启 Docker daemon
-echo 'PASSWORD' | sudo -S systemctl restart docker
-
-# 4. 验证——应列出 nvidia CDI specs
-echo 'PASSWORD' | sudo -S nvidia-ctk cdi list
-```
-
-### 验证 GPU 容器可用
-
-```bash
-# 运行测试容器（使用 CDI device 语法——Docker 29.4 推荐方式）
-echo 'PASSWORD' | sudo -S docker run --rm --device='nvidia.com/gpu=all' nvidia/cuda:13.0-base-ubuntu22.04 nvidia-smi
-
-# 检查 /etc/cdi/ 目录
-ls /etc/cdi/nvidia.yaml 2>/dev/null && echo 'CDI config OK'
-```
-
-### 常见 CDI 错误排查
-
-**错误：** `docker: Error response from daemon: AMD CDI spec not found`
-
-**原因：** Docker 29.4 的 CDI 实现在使用 `--gpus all` 时有兼容性缺陷。即使 CDI 配置完全正确（`nvidia-ctk cdi list` 能列出所有 GPU），`--gpus all` 仍可能失败。
-
-**修复：** 用 `--device='nvidia.com/gpu=all'` 替代 `--gpus all`：
-```bash
-# ❌ 可能在 Docker 29.4 上失败
-docker run --rm --gpus all nvidia/cuda:13.0-base-ubuntu22.04 nvidia-smi
-
-# ✅ 总是有效
-docker run --rm --device='nvidia.com/gpu=all' nvidia/cuda:13.0-base-ubuntu22.04 nvidia-smi
-```
-
-**错误：** `docker: Error response from daemon: failed to discover GPU vendor from CDI: no known GPU vendor found`
-
-**原因：** `nvidia-container-toolkit` 未安装，CDI 配置不存在。
-
-**修复：** 安装并配置（见上一节）。
-
-**错误：** `docker: Error response from daemon: unknown or invalid runtime name: nvidia`
-
-**原因：** Docker daemon 未重启导致新配置未加载。`nvidia-ctk runtime configure` 在 `/etc/docker/daemon.json` 中添加了 nvidia runtime，但 Docker 需要重启才能生效。如果无法重启 Docker（如影响其他运行中的容器），仍可使用 `--device='nvidia.com/gpu=all'` CDI 语法来绕过。
-
-### 注意事项
-
-- `nvidia-ctk` 是 `nvidia-container-toolkit` 包的一部分，安装后自动可用
-- 旧版 Docker（< 29）可能使用 `--runtime=nvidia`，但 Docker 29+ 统一使用 CDI
-- **Docker 29.4 的已知问题：** `--gpus all` 可能失败。推荐使用 `--device='nvidia.com/gpu=all'`，这是标准的 CDI 语法，在所有支持 CDI 的 Docker 版本上都能工作
-- 如果已安装但还不工作，检查 `/etc/docker/daemon.json` 是否包含 `"runtimes": {"nvidia": ...}` 配置
-- 此操作不需要安装完整的 NVIDIA 驱动（驱动已通过 `nvidia-driver-580-server-open` 安装）
-
 ## 注意事项
 
-**注意:** `-t` 参数对于需要 PTY 的命令（watch、top、sudo 交互）是必须的，否则会报 "Pseudo-terminal will not be allocated"
+- `-t` 参数对于需要 PTY 的命令（watch、top、sudo 交互）是必须的，否则会报 "Pseudo-terminal will not be allocated"
 - sudo 密码通过管道传入时要注意特殊字符转义（如 `!` 在 bash 中有特殊含义，需要用单引号包裹）
 - NVIDIA 仓库在中国区域会自动重定向到 `developer.download.nvidia.cn`（镜像加速）
 - 不要在 cron job 或非交互式脚本中硬编码密码 — 优先设置 SSH key 免密登录
 - nccl-tests 编译时 `make -j8` 利用 8 核并行编译，约 30-60 秒完成
-- Docker 29+ 使用 CDI (Container Device Interface)。**不要使用 `--gpus all`**（会导致 `AMD CDI spec not found` 错误），应使用 **`--device='nvidia.com/gpu=all'`**。如果 `nvidia-ctk cdi list` 能列出 GPU 但 `--gpus all` 失败，这是 Docker 29.4 的一个已知 CDI 兼容性问题。
-
-## nccl-tests 输出列布局（解析脚本时必读）
-
-nccl-tests 的 `*_perf` 输出是**双列表**（out-of-place + in-place），解析时必须用正确的列号：
-
-```
-行格式:
-  size($1)  count($2)  type($3)  redop($4)  root($5)  time_us($6)  algbw($7)  busbw($8)  #wrong($9)  [in-place: time($10)  algbw($11)  busbw($12)  #wrong($13)]
-```
-
-**关键规则:**
-- Out-of-place 数据（最常用）: `$6`=延时(us), `$7`=AlgoBW, `$8`=BusBW
-- In-place 数据: `$10`=延时(us), `$11`=AlgoBW, `$12`=BusBW
-- 首列 8 字节行 = 最小延迟底噪
-- 尾行（最大数据量）= 峰值带宽
-
-### 常见解析陷阱（多次踩坑记录）
-
-1. **`set -euo pipefail` 和 grep 不兼容** — 任何 grep 无匹配时脚本会静默终止/退出。修复：所有可能无匹配的 grep 加 `|| true`：
-   ```bash
-   # ❌ 危险（无匹配时脚本退出）
-   start_line=$(grep -n "^--- Running: test$" "$logfile" | cut -d: -f1)
-   # ✅ 安全
-   start_line=$(grep -n "^--- Running: test$" "$logfile" | cut -d: -f1 || true)
-   ```
-
-2. **日志 section 标记必须一致** — 写入和解析格式必须完全匹配：
-   ```bash
-   # 写入时
-   echo "--- Running: all_reduce (8 cards) ---" >> "$log"
-   # 解析时
-   grep -n "^--- Running: all_reduce (8 cards) ---$" "$log" || true
-   ```
-
-3. **跳过全零行时要精确** — nccl-tests 的首行有效数据是 `0 0 float none ...`（skip 行），而 alltoall 等操作的合法小数据行也可能含 0 但非全零。用 `grep -v '^[[:space:]]*0[[:space:]]'` 更安全。
-
-4. **`awk '/^--- End of /{exit}1'` 在节头不匹配时会输出整个文件** — 务必先用 `|| true` 保护 grep 找 start_line。
-
-5. **备份旧的 raw_results 文件** — `summary` 模式会找最新的 `raw_results_*.txt`。多次运行后旧文件累积，容易搞混。

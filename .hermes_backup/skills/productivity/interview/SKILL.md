@@ -15,6 +15,41 @@ The skill is available as the slash command **`/interview`**. Type it directly t
 
 > **Important:** `_skill_commands` is populated once at hermes startup. If you create or update a skill while hermes is already running, the changes won't take effect — you must restart hermes first.
 
+## ⚠️ Critical: Direct Execution Rule
+
+**When the user gives a command with a candidate name + action, execute immediately. Do not ask clarifying questions.**
+
+The most common failure mode is asking unnecessary questions when the action is already clear:
+
+| ❌ Bad (don't do this) | ✅ Good (do this instead) |
+|---|---|
+| User: `/interview 介绍一下刘子铭情况` → Assistant: "请问您是已经下载了简历还是..." | → 直接去 `候选人档案/` 找，找到就读，找不到再去 `简历/` 找 |
+| User: `/interview 帮我把李明简历归档` → Assistant: "请问简历在哪里？" | → 先去 `Downloads/` 搜，找到就确认移动，找不到再问 |
+| User: `/interview 安排顾婧一面` → Assistant: "请问要安排什么？" | → 先读 `面试时间表.md`，检查是否已有记录，再问具体信息 |
+
+### Default Action Chain for "介绍一下/查一下"
+
+当用户说"介绍一下[某人]"或"查一下[某人]情况"时，按此顺序自动执行，**不要提前问问题**：
+
+1. **Step 1:** `find "$ARCHIVE_DIR" -name "*姓名*"` — 搜候选人档案
+   - ✅ 找到 → 直接读取并展示，不需要问"找到了，要我看吗？"
+   - ❌ 没找到 → Step 2
+2. **Step 2:** `find "$RESUME_DIR" -name "*姓名*"` — 搜简历目录
+   - ✅ 找到 → 读取简历内容，做摘要展示，询问是否要创建档案
+   - ❌ 没找到 → Step 3
+3. **Step 3:** `find "$DOWNLOADS_DIR" -name "*姓名*"` — 搜下载目录
+   - ✅ 找到 → 展示文件路径，询问是否归档
+   - ❌ 没找到 → 告知未找到该候选人
+
+### Default Action Chain for "安排面试"
+
+当用户说"安排[某人]面试"时：
+1. 先读 `面试时间表.md`，查看该候选人是否已有面试记录
+2. 展示已有记录（如果有）
+3. 要求用户补充: 轮次、日期、时间、形式、面试官
+
+---
+
 ## File Paths
 
 ```bash
@@ -277,6 +312,85 @@ find "$ARCHIVE_DIR" -name "*李明*" 2>/dev/null
 2. If exists, read it and update with new information
 3. If not, create new archive file from scratch
 4. Always update the `updated:` field
+
+---
+
+---
+
+## meeting-record: 会议记录管理
+
+记录和归档会议笔记、生成纪要、追踪待办事项。
+
+### File Paths
+
+```bash
+MEETING_DIR="/mnt/c/Users/liuch/My Documents/warpdriveai/meeting_record"
+INDEX_FILE="/mnt/c/Users/liuch/My Documents/warpdriveai/meeting_record/会议索引.md"
+```
+
+所有路径含空格 — **始终加引号**。
+
+### 模板
+
+```markdown
+# [YYYY-MM-DD] 会议主题
+
+## 基本信息
+- **日期:** YYYY-MM-DD
+- **时间:** HH:MM - HH:MM
+- **地点/形式:** 线下/线上
+- **参会人:** 张三, 李四
+- **主持人:** [姓名]
+- **记录人:** [姓名]
+
+## 会议议程
+1. [议程项1]
+
+## 讨论内容
+### 1. [议程项1]
+[讨论内容]
+
+**结论:**
+- [结论1]
+
+## 会议决议
+- ✅ [决议1]
+
+## 待办事项 (Action Items)
+
+| # | 事项 | 负责人 | 截止日期 | 状态 |
+|---|------|--------|----------|------|
+| 1 | [事项] | @姓名 | YYYY-MM-DD | ⬜ 待办 |
+
+## 下次会议
+- **时间:** [日期时间]
+- **待确认议题:** [议题列表]
+```
+
+### Workflows
+
+1. **创建会议记录**: 确认字段 → `mkdir -p` 目录 → `write_file` 生成 `YYYY-MM-DD_简短主题.md` → 更新 `会议索引.md`
+2. **记录讨论**: 识别当前会议文件 → 添加内容到对应章节 → 用 `patch` 或 Python 插入
+3. **完成并归档**: 检查完整性 → 提示缺失章节 → 更新索引状态
+4. **查找历史会议**: `grep -rl "关键词" "$MEETING_DIR"` 或 `ls -t` 按日期查找
+5. **更新待办状态**: 用 `patch` 将 `⬜ 待办` 改为 `✅ 已完成` / `🔄 进行中` / `❌ 已取消`
+
+### 索引文件格式
+
+`会议索引.md`:
+```markdown
+| 日期 | 主题 | 文件 | 状态 |
+|------|------|------|------|
+| 2026-04-30 | 产品评审 | [2026-04-30_产品评审.md](./2026-04-30_产品评审.md) | ✅ 已完成 |
+```
+
+### 约定
+
+- 文件名: `YYYY-MM-DD_主题关键词.md`
+- 日期格式: 始终 `YYYY-MM-DD`
+- 参会人: Action items 中用 @ 前缀标识责任人
+- 状态值: `📝 待完成` | `✅ 已完成` | `📅 已归档`
+- 编码: UTF-8
 
 ---
 

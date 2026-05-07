@@ -1,8 +1,8 @@
 {
   "last_report_path": null,
-  "last_run_at": "2026-05-02T11:57:35.904299+00:00",
+  "last_run_at": "2026-05-06T06:17:00+00:00",
   "last_run_duration_seconds": null,
-  "last_run_summary": "deferred first run — curator seeded, will run after one interval; use `hermes curator run --dry-run` to preview now",
+  "last_run_summary": "manual curation: consolidated media-monitor+media-processing → media-workflow, absorbed codex-session→memory-consolidation-pipeline, pruned auto-process/find-nearby/mcporter/remote-deploy/ml-training-workflows",
   "paused": false,
-  "run_count": 0
+  "run_count": 1
 }

@@ -70,3 +70,7 @@ mini-swe-agent/
 result
 website/static/api/skills-index.json
 models-dev-upstream/
+
+# Hermes backup - large database (compressed version stored as .gz)
+.hermes_backup/databases/state.db
+

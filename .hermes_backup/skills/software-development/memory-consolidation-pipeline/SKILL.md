@@ -7,7 +7,9 @@ license: MIT
 metadata:
   hermes:
     tags: [memory, consolidation, pipeline, dream-cycle, background, cron]
-    related_skills: [writing-plans, hermes-agent, cron-job-troubleshooting]
+    related_skills: [writing-plans, hermes-agent, cron-job-troubleshooting, codex-session]
+    references:
+      - references/codex-session.md: Codex session continuity details (absorbed from standalone codex-session skill)
 ---
 
 # Memory Consolidation Pipeline (Dream Cycle)
