@@ -18,6 +18,14 @@ Identify and remove signs of AI-generated text to make writing sound natural and
 
 **Key insight:** LLMs use statistical algorithms to guess what should come next. The result tends toward the most statistically likely completion, which is how the telltale patterns below get baked in.
 
+## User preference: translation tasks (Chinese → English)
+
+When the user asks you to translate Chinese text to English:
+- Never include preamble, explanation, quotation marks, or commentary around translations.
+- The output must be exactly the translated text — nothing else.
+- Preserve original meaning, tone, and intent. Use natural, standard English.
+- When the user's instruction defines the output format precisely, follow it to the letter — even if it feels abrupt.
+
 ## When to use this skill
 
 Load this skill whenever the user asks to:

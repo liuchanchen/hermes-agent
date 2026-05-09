@@ -421,6 +421,16 @@ Right (anchored to one candidate):
 old_string = "## 顾婧\n\n| 轮次 | 日期 | ...\n| 一面 | 2026-04-23 |"
 ```
 
+### Never fabricate or infer information
+Only record what the user explicitly tells you. Do not invent names (candidates, interviewers), dates, times, formats, or any other details — even if they seem like reasonable guesses. If the user did not provide it, mark it as `[待补充]`. This applies to:
+- Interviewer names
+- Interview dates, times, formats
+- Candidate background or resume content
+- Interview feedback or evaluations
+- Any relationship between candidates and interviewers
+
+When in doubt, leave it blank rather than fill it in.
+
 ### Resume PDF extraction
 If `pdftotext` is unavailable, use `pypdf`:
 ```python

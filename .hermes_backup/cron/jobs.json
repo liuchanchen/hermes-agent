@@ -20,18 +20,18 @@
       "schedule_display": "0 22 * * *",
       "repeat": {
         "times": 999,
-        "completed": 25
+        "completed": 27
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-21T11:25:30.331382+08:00",
-      "next_run_at": "2026-05-07T22:00:00+08:00",
-      "last_run_at": "2026-05-06T22:14:50.253786+08:00",
+      "next_run_at": "2026-05-09T22:00:00+08:00",
+      "last_run_at": "2026-05-08T22:15:24.648235+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": null,
+      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited: ret=-2 errcode=None errmsg=rate limited",
       "deliver": "origin",
       "origin": {
         "platform": "weixin",
@@ -60,15 +60,15 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": 999,
-        "completed": 16
+        "completed": 17
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-23T23:08:50.970385+08:00",
-      "next_run_at": "2026-05-08T08:00:00+08:00",
-      "last_run_at": "2026-05-07T08:12:23.499857+08:00",
+      "next_run_at": "2026-05-10T08:00:00+08:00",
+      "last_run_at": "2026-05-08T09:18:20.288998+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -85,8 +85,7 @@
       "name": "\u6bcf\u65e5 Herms \u914d\u7f6e\u5907\u4efd + GitHub Push",
       "prompt": "\u6267\u884c\u672c\u5730\u5907\u4efd\u5e76\u63a8\u9001\u5230 GitHub\u3002\n\n## \u6b65\u9aa4\n\n1. **\u672c\u5730\u5907\u4efd**\uff08memories + skills + cron + databases \u5230 /home/jianliu/work/hermes-agent/.hermes_backup/\uff09\n2. **git add + commit + push** \u5230 origin main\uff0ccommit message \u4e3a \"backup hermes YYYY-MM-DD\"\uff08\u5f53\u5929\u65e5\u671f\uff09\n3. **\u9a8c\u8bc1** push \u6210\u529f\uff1a`git status -sb` \u5e94\u663e\u793a `## main...origin/main`\uff0c\u65e0 ahead\n\n## \u6ce8\u610f\u4e8b\u9879\n\n- cron job \u65e0\u4ea4\u4e92\u73af\u5883\uff0c\u6240\u6709\u8def\u5f84\u4f7f\u7528\u7edd\u5bf9\u8def\u5f84\n- state.db \u4f7f\u7528 `sqlite3 ~/.hermes/state.db \".backup ...\"` \u505a\u539f\u5b50\u5feb\u7167\n- whatsapp \u6570\u636e\u5e93\u4e0d\u5b58\u5728\u65f6\u4e0d\u62a5\u9519\uff08\u7528 `2>/dev/null` \u6291\u5236\u9519\u8bef\uff09\n- push \u5931\u8d25\u65f6\u8bb0\u5f55\u9519\u8bef\u4f46\u4e0d\u963b\u585e\u6574\u4f53\u6d41\u7a0b\n- deliver \u8bbe\u4e3a origin\uff0c\u7ed3\u679c\u4f1a\u53d1\u9001\u56de\u5f53\u524d\u5bf9\u8bdd/\u4e3b\u9898",
       "skills": [
-        "hermes-backup",
-        "hermes-backup-push"
+        "hermes-backup"
       ],
       "skill": "hermes-backup",
       "model": "deepseekv4-flash",
@@ -101,18 +100,18 @@
       "schedule_display": "0 9 * * *",
       "repeat": {
         "times": 999,
-        "completed": 11
+        "completed": 13
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-26T17:30:29.608686+08:00",
-      "next_run_at": "2026-05-08T09:00:00+08:00",
-      "last_run_at": "2026-05-06T09:05:12.282500+08:00",
+      "next_run_at": "2026-05-10T09:00:00+08:00",
+      "last_run_at": "2026-05-08T09:25:30.944328+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited: ret=-2 errcode=None errmsg=rate limited",
+      "last_delivery_error": null,
       "deliver": "origin",
       "origin": null
     },
@@ -171,18 +170,18 @@
       "schedule_display": "0 21 * * *",
       "repeat": {
         "times": null,
-        "completed": 12
+        "completed": 14
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-27T19:22:17.374140+08:00",
-      "next_run_at": "2026-05-07T21:00:00+08:00",
-      "last_run_at": "2026-05-06T21:03:26.657179+08:00",
+      "next_run_at": "2026-05-09T21:00:00+08:00",
+      "last_run_at": "2026-05-08T21:03:25.620225+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": null,
+      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited: ret=-2 errcode=None errmsg=rate limited",
       "deliver": "origin",
       "origin": null
     },
@@ -205,18 +204,18 @@
       "schedule_display": "0 8,18 * * *",
       "repeat": {
         "times": 999,
-        "completed": 15
+        "completed": 18
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-30T10:00:25.900478+08:00",
-      "next_run_at": "2026-05-07T18:00:00+08:00",
-      "last_run_at": "2026-05-07T08:14:33.704017+08:00",
+      "next_run_at": "2026-05-09T18:00:00+08:00",
+      "last_run_at": "2026-05-08T18:01:15.301637+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": null,
+      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited: ret=-2 errcode=None errmsg=rate limited",
       "deliver": "origin",
       "origin": {
         "platform": "weixin",
@@ -253,7 +252,7 @@
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-01T22:06:04.249578+08:00",
-      "next_run_at": "2026-05-08T03:00:00+08:00",
+      "next_run_at": "2026-05-10T03:00:00+08:00",
       "last_run_at": "2026-05-07T03:03:44.481866+08:00",
       "last_status": "ok",
       "last_error": null,
@@ -272,5 +271,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-05-07T09:00:34.014437+08:00"
+  "updated_at": "2026-05-09T09:18:29.895772+08:00"
 }

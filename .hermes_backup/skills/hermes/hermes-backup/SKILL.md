@@ -17,45 +17,50 @@ cd /home/jianliu/work/hermes-agent
 # 1. memories（MEMORY.md + USER.md，排除 .lock 文件）
 rsync -a --exclude='*.lock' ~/.hermes/memories/ .hermes_backup/memories/
 
-# 2. skills（排除 .bundled_manifest + .git）
-rsync -a --exclude='.bundled_manifest' --exclude='.git' ~/.hermes/skills/ .hermes_backup/skills/
+# 2. skills（排除 .bundled_manifest + .git + .hub 缓存）
+rsync -a --exclude='.bundled_manifest' --exclude='.git' --exclude='.hub/' ~/.hermes/skills/ .hermes_backup/skills/
 
 # 3. cron（jobs.json + output 目录）\n# 注意：使用 Python 替代 rm -rf（避免终端递归删除保护，尤其在 cron 环境中）\npython3 -c "import shutil, os; d='.hermes_backup/cron'; shutil.rmtree(d) if os.path.isdir(d) else None"\nmkdir -p .hermes_backup/cron\ncp ~/.hermes/cron/jobs.json .hermes_backup/cron/jobs.json\ncp -r ~/.hermes/cron/output .hermes_backup/cron/output\ncp ~/.hermes/cron/.tick.lock .hermes_backup/cron/.tick.lock 2>/dev/null
 
 # 4. databases（所有 SQLite 数据库）
 mkdir -p .hermes_backup/databases
 
-# state.db（会话/消息历史，1.6MB）
-# 注意：cron 环境中 PATH 可能不含 sqlite3 CLI，优先用 sqlite3 .backup
-# 若 .backup 失败（exit!=0），fallback 到 python3 wal_checkpoint + shutil.copy2
-# 先检测 sqlite3 CLI 是否可用，若不可用则用 Python backup API 兜底
-if command -v sqlite3 &>/dev/null; then
-  sqlite3 ~/.hermes/state.db ".backup '/home/jianliu/work/hermes-agent/.hermes_backup/databases/state.db'" && echo "state.db: sqlite3 .backup ok" || SQLITE_FAILED=true
-else
-  SQLITE_FAILED=true
-  echo "sqlite3 CLI not found, using Python fallback"
-fi
+# ⚠️ state.db 可能超过 100MB（GitHub 限制），备份后需 gzip 压缩
+# cron 环境中 PATH 可能不含 sqlite3 CLI，优先用 Python backup API
+python3 - <<'EOF'
+import sqlite3, os, gzip, shutil
 
-if [ "$SQLITE_FAILED" = "true" ]; then
-  python3 - <<'EOF'
-import sqlite3, os
 src = os.path.expanduser("~/.hermes/state.db")
-dst = "/home/jianliu/work/hermes-agent/.hermes_backup/databases/state.db"
+dst_raw = "/home/jianliu/work/hermes-agent/.hermes_backup/databases/state.db"
+dst_gz  = "/home/jianliu/work/hermes-agent/.hermes_backup/databases/state.db.gz"
+
 try:
+    # Step 1: Create atomic backup via Python sqlite3 API
     conn = sqlite3.connect(src)
-    bak = sqlite3.connect(dst)
+    bak = sqlite3.connect(dst_raw)
     conn.execute("PRAGMA wal_checkpoint(PASSIVE)")
     conn.backup(bak)
     bak.close()
     conn.close()
     print("state.db: python3 backup api ok")
+
+    # Step 2: Gzip compress (raw .db not committed to git; .gz is)
+    with open(dst_raw, 'rb') as fin, gzip.open(dst_gz, 'wb') as fout:
+        shutil.copyfileobj(fin, fout)
+    raw_size = os.path.getsize(dst_raw)
+    gz_size = os.path.getsize(dst_gz)
+    print(f"state.db.gz: {raw_size:,} -> {gz_size:,} bytes ({100*gz_size/raw_size:.1f}%)")
+
+    # Step 3: Remove raw file (keep only .gz for git)
+    os.unlink(dst_raw)
+    print("state.db: raw removed, .gz retained for git")
+
 except Exception as e:
     print("state.db backup FAILED:", e, file=__import__('sys').stderr)
     __import__('sys').exit(1)
 EOF
-fi
 
-# dongchedi_l90.db（懂车帝二手车监控，24KB）
+# dongchedi_l90.db（懂车帝二手车监控，~1.2MB）
 cp ~/.hermes/dongchedi_l90.db .hermes_backup/databases/dongchedi_l90.db 2>/dev/null
 # whatsapp state.db（128KB）
 cp ~/.hermes/whatsapp/state.db .hermes_backup/databases/whatsapp_state.db 2>/dev/null
@@ -237,11 +242,17 @@ for root, dirs, files in os.walk(f'{base}/cron/output'):
 for f in os.listdir(f'{base}/databases'):
     fp = f'{base}/databases/{f}'
     if os.path.isfile(fp):
+        if f == 'state.db':
+            continue  # .gitignored; .gz stored instead
         subprocess.run(['git', 'add', fp], capture_output=True); added += 1
 
 subprocess.run(['git', 'add', f'{base}/MANIFEST.json'], capture_output=True); added += 1
 
+# Skills - skip .hub/ cache
 for root, dirs, files in os.walk(f'{base}/skills'):
+    # Skip .hub dir entirely
+    if '/.hub/' in root or root.endswith('/.hub'):
+        continue
     for f in files:
         subprocess.run(['git', 'add', os.path.join(root, f)], capture_output=True); added += 1
 
