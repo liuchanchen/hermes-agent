@@ -26,26 +26,35 @@ metadata:
 | CUDA Driver API | 13.0 |
 | CUDA Toolkit | 13.0.88 (仅 nvcc，非完整 toolkit) |
 | NCCL | 2.28.9-1+cuda13.0 (系统级) |
-| Python | 系统 Python + PyTorch (torchrun) |
-| 工作目录 | ~/work/bandwidth_test/ |
+| Python | 系统 Python + vLLM venv at `/data/venvs/vllm-ds4/` |
+| vLLM fork | 0.6.0.dev0 (`jasl/vllm` ds4-sm120 分支, 源码: `/data/vllm-ds4-sm120/`) |
+| 代理 | `http://10.10.60.140:7890` (在 `~/.bashrc` 中配置) |
+| 模型路径 | `/home/jianliu/work/models/deepseekv4_flash/` |
+| 工作目录 | `~/work/bandwidth_test/` |
 
 ## SSH 连接
+
+> **重要：** 服务器需要代理才能访问 GitHub 等外部资源。代理配置在 `~/.bashrc` 中（`http://10.10.60.140:7890`），但非交互式 SSH 不会自动加载 `.bashrc`。**所有通过 SSH 执行的命令都必须先 `source ~/.bashrc`** 才能正常访问 GitHub / PyPI 等外部服务。
 
 ```bash
 # 首次连接接受 host key
 ssh -o StrictHostKeyChecking=accept-new jianliu@10.10.70.88 "echo connected"
 
-# 交互式登录
-ssh -t jianliu@10.10.70.88
+# 交互式登录（自动加载 ~/.bashrc 环境）
+ssh -t jianliu@10.10.70.88 "source ~/.bashrc && bash -l"
 
-# 执行命令并返回
-ssh -t jianliu@10.10.70.88 "command"
+# 执行命令并返回（记得 source ~/.bashrc）
+ssh -t jianliu@10.10.70.88 "source ~/.bashrc && command"
 
-# 需要 sudo 时通过管道传密码
-ssh -t jianliu@10.10.70.88 "echo 'PASSWORD' | sudo -S apt-get install -y PACKAGE"
+# 需要 sudo 时通过管道传密码（同时 source ~/.bashrc）
+ssh -t jianliu@10.10.70.88 "source ~/.bashrc && echo 'PASSWORD' | sudo -S apt-get install -y PACKAGE"
 ```
 
-**注意:** `-t` 参数强制分配伪终端，某些 sudo 操作需要。如果不需要交互，可以省略 `-t`。
+**注意:** 
+- `-t` 参数强制分配伪终端，某些 sudo 操作需要。如果不需要交互，可以省略 `-t`。
+- 非交互式 SSH 不会加载 `~/.bashrc`，**务必在每个命令前加 `source ~/.bashrc &&`**，否则代理和 conda 等环境不会生效。
+- 代理已配置 `no_proxy=localhost,127.0.0.1,10.0.0.0/8`，发往本地的请求（如 `curl localhost:8000`）会直连不走代理。若仍有问题请检查 `~/.bashrc` 中 `no_proxy` 是否已设置。
+- sudo 密码通过管道传入时要注意特殊字符转义（如 `!` 在 bash 中有特殊含义，需要用单引号包裹）。
 
 ## CUDA / nvcc 安装与管理
 
@@ -226,7 +235,130 @@ cd ~/work/bandwidth_test/nccl-tests/build
 | all_reduce | 0.8-3 GB/s | 22-23 GB/s (Algo) / 39-40 GB/s (Bus) |
 | (其他操作待补充) | | |
 
-## 验证综合检查
+## vLLM fork (jasl/ds4-sm120) 编译与部署
+
+vLLM fork from `https://github.com/jasl/vllm/tree/ds4-sm120`，包含 DeepSeek V4 专用 SM12x sparse MLA 内核优化和 FP8 einsum 路径。
+
+### 环境
+
+- **硬件**: 8× RTX 5090 (Blackwell, CC 12.0), 32GB/卡
+- **源码**: `/data/vllm-ds4-sm120/`
+- **venv**: `/data/venvs/vllm-ds4/` (Python 3.12)
+- **CMake 缓存**: `/data/vllm-ds4-sm120/.deps/` (~2.6GB)
+- **PyTorch**: 2.11.0+cu130
+- **CMake**: 4.3.2 (pip 安装, 系统 cmake 3.22 太旧)
+
+### 首次编译
+
+```bash
+source ~/.bashrc
+source /data/venvs/vllm-ds4/bin/activate
+export PATH="/usr/local/cuda/bin:/data/venvs/vllm-ds4/bin:$PATH"
+export SETUPTOOLS_SCM_PRETEND_VERSION=0.6.0.dev0
+
+cd /data/vllm-ds4-sm120
+MAX_JOBS=4 pip install -e . --no-build-isolation \
+  -i https://mirrors.aliyun.com/pypi/simple/ \
+  --extra-index-url https://download.pytorch.org/whl/cu130
+```
+
+### 启动服务
+
+```bash
+source ~/.bashrc
+source /data/venvs/vllm-ds4/bin/activate
+
+vllm serve /home/jianliu/work/models/deepseekv4_flash \
+  --host 0.0.0.0 --port 8000 \
+  --tensor-parallel-size 8 \
+  --gpu-memory-utilization 0.90 \
+  --trust-remote-code \
+  --kv-cache-dtype fp8 \
+  --block-size 256 \
+  --enable-expert-parallel \
+  --data-parallel-size 8 \
+  --tokenizer-mode deepseek_v4 \
+  --tool-call-parser deepseek_v4 \
+  --enable-auto-tool-choice \
+  --reasoning-parser deepseek_v4 \
+  --enforce-eager
+```
+
+### 后台运行
+
+```bash
+source ~/.bashrc
+source /data/venvs/vllm-ds4/bin/activate
+nohup vllm serve /home/jianliu/work/models/deepseekv4_flash \
+  ...(同上) > /data/vllm_server.log 2>&1 &
+```
+
+### 测试 API
+
+```bash
+curl http://localhost:8000/v1/models
+curl http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model": "/home/jianliu/work/models/deepseekv4_flash", "messages": [{"role": "user", "content": "Hello"}]}'
+```
+
+## Docker vLLM 部署
+
+也可以使用 `vllm/vllm-openai:latest` Docker 镜像直接运行 vLLM 服务，无需源码编译。
+
+### 启动容器
+
+```bash
+# 拉取最新镜像
+docker pull vllm/vllm-openai:latest
+
+# 启动容器（所有 GPU + 模型目录挂载）
+docker run --gpus all \
+  -v /home/jianliu/work/models:/models \
+  -p 8000:8000 \
+  --shm-size=32g \
+  vllm/vllm-openai:latest \
+  --model /models/deepseekv4_flash \
+  --host 0.0.0.0 --port 8000 \
+  --tensor-parallel-size 8 \
+  --gpu-memory-utilization 0.90 \
+  --trust-remote-code \
+  --kv-cache-dtype fp8 \
+  --block-size 256 \
+  --enable-expert-parallel \
+  --data-parallel-size 8 \
+  --tokenizer-mode deepseek_v4 \
+  --tool-call-parser deepseek_v4 \
+  --enable-auto-tool-choice \
+  --reasoning-parser deepseek_v4
+```
+
+### 检查 Docker 容器
+
+```bash
+# 查看运行中的容器
+docker ps
+
+# 查看容器日志
+docker logs <container_id> --tail 100
+
+# 测试 API
+curl http://localhost:8000/v1/models
+```
+
+### 停止和清理
+
+```bash
+# 停止容器
+docker stop <container_id>
+
+# 删除容器（保留镜像）
+docker rm <container_id>
+```
+
+**Docker 方式 vs 源码编译方式对比：**
+- Docker：快速启动、隔离环境、无需管理 venv，适合快速验证
+- 源码编译：可使用自定义分支（如 `jasl/vllm` ds4-sm120），获得 DeepSeek V4 专用内核优化
 
 一键检查所有关键组件：
 
