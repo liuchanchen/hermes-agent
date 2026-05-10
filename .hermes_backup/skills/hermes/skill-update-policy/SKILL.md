@@ -37,7 +37,20 @@ Core policy for deciding whether and how to update the skill library at session 
 
 Style/format/workflow preferences belong in SKILL.md body, not memory. Memory captures 'who the user is and state'; skills capture 'how to do task class for this user'. When user complains about task handling, update the governing skill.
 
+## Mandatory post-session scan (aggressiveness policy)
+
+After EVERY session, BEFORE concluding "nothing to save", perform a forced scan for at least ONE of the following:
+
+1. **Unstated preference revealed by silence or repeated patterns** — user didn't correct you because you got it right; does that tacit approval encode a preference that should be recorded for next time?
+2. **Technique that became smoother through repetition** — task X went faster than last time; is there a shorthand, alias, or optimized sequence worth capturing?
+3. **Relevant pitfall that didn't trigger this session but WAS relevant** — you navigated around something that would have been a trap for a less-prepared agent; document the guardrail you carried in your head.
+4. **Supporting-context gap** — was there a concept, command, or boundary you had to figure out at runtime that would have been obvious from a reference file?
+
+**Threshold:** If you cannot find something within three reading passes of the conversation, only THEN is "Nothing to save." permissible. The default is "find one thing," not "assume nothing."
+
+**Precedent for this rule:** This policy was added after a user directly stated: *"A pass that does nothing is a missed learning opportunity, not a neutral outcome"* and *"I should never default to 'nothing to save'".* Reference: `references/skill-update-aggressiveness-policy.md`.
+
 ## Edge cases
 
-- 'Nothing to save' is valid but NOT the default. If session ran smoothly with no corrections and no new technique, say 'Nothing to save.' and stop.
+- 'Nothing to save' is valid only if you've exhausted the mandatory scan above AND genuinely found nothing. If session ran smoothly with no corrections and no new technique, you may still have uncovered (a) an unstated preference, (b) a technique that got smoother, or (c) a relevant but latent pitfall.
 - If two existing skills overlap, note it in reply — background curator handles consolidation at scale.

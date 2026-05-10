@@ -31,3 +31,5 @@ User prefers step-by-step operation with verification after each stage when doin
 用户在一周前创建了一个名为 remote-70-88 的技能，但该技能现在不可见或无法使用。
 §
 用户偏好: 偏好更新应写入 SKILL.md（技能文件），而不是 memory。修改技能时优先使用 patch（skill_manage action='patch'）更新已加载的技能，而不是创建新技能。
+§
+不要将远程服务器脚本/报告备份到本地 Windows 路径 — 用户认为没必要。所有测试结果应通过 Notion 管理。

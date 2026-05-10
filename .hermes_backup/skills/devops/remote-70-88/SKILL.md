@@ -79,7 +79,7 @@ echo 'PASSWORD' | sudo -S apt-get install -y cuda-nvcc-13-0
 
 ```bash
 # 查看驱动支持的 CUDA 版本
-ssh jianliu@10.10.70.88 "nvidia-smi -q | grep 'CUDA Version'"
+ssh jianliu@10.10.70.88 "source ~/.bashrc && nvidia-smi -q | grep 'CUDA Version'"
 
 # 查看可用版本
 curl -sL "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/Packages.gz" \
@@ -110,7 +110,7 @@ bash -l -c "nvcc --version"
 ### 查看已安装的 NCCL
 
 ```bash
-ssh jianliu@10.10.70.88 "
+ssh jianliu@10.10.70.88 "source ~/.bashrc && \\
   dpkg -l | grep -i nccl;
   awk '/NCCL_MAJOR|NCCL_MINOR|NCCL_PATCH/{print}' /usr/include/nccl.h | head -3;
   ldconfig -p | grep nccl
@@ -121,7 +121,7 @@ ssh jianliu@10.10.70.88 "
 
 ```bash
 # 列出所有可用的 libnccl2 版本
-ssh jianliu@10.10.70.88 "apt-cache madison libnccl2"
+ssh jianliu@10.10.70.88 "source ~/.bashrc && apt-cache madison libnccl2"
 ```
 
 ### 降级/升级 NCCL 以匹配 CUDA 版本
@@ -363,11 +363,11 @@ docker rm <container_id>
 一键检查所有关键组件：
 
 ```bash
-ssh -t jianliu@10.10.70.88 "
+ssh -t jianliu@10.10.70.88 "source ~/.bashrc && \\
   echo '=== GPU ==='; nvidia-smi --query-gpu=name,driver_version --format=csv,noheader | head -1;
   echo '=== CUDA Driver ==='; nvidia-smi -q | grep 'CUDA Version';
   echo '=== nvcc ==='; /usr/local/cuda/bin/nvcc --version 2>&1 | tail -2;
-  echo '=== NCCL ==='; awk '/NCCL_(MAJOR|MINOR|PATCH)/{printf \"%s.%s.%s\n\", \$3, \$3, \$3}' /usr/include/nccl.h;
+  echo '=== NCCL ==='; awk '/NCCL_(MAJOR|MINOR|PATCH)/{printf \"%s.%s.%s\\n\", \$3, \$3, \$3}' /usr/include/nccl.h;
   echo '=== nccl-tests ==='; ls ~/work/bandwidth_test/nccl-tests/build/*_perf 2>/dev/null | wc -l;
   echo '=== Python torch ==='; python3 -c 'import torch; print(\"torch\", torch.__version__)' 2>/dev/null || echo 'torch not found'
 "
@@ -377,11 +377,11 @@ ssh -t jianliu@10.10.70.88 "
 
 | 目的 | 命令 |
 |------|------|
-| 快速检查状态 | `ssh jianliu@10.10.70.88 "nvidia-smi --query-gpu=name,driver_version,memory.used --format=csv"` |
+| 快速检查状态 | `ssh jianliu@10.10.70.88 "source ~/.bashrc && nvidia-smi --query-gpu=name,driver_version,memory.used --format=csv"` |
 | 监控 GPU | `ssh -t jianliu@10.10.70.88 "watch -n 1 nvidia-smi"` |
 | 查看日志 | `ssh -t jianliu@10.10.70.88 "journalctl -n 50 -f"` |
-| 查看磁盘 | `ssh jianliu@10.10.70.88 "df -h /"` |
-| 网络测试 | `ssh jianliu@10.10.70.88 "iperf3 -c <server>"` |
+| 查看磁盘 | `ssh jianliu@10.10.70.88 "source ~/.bashrc && df -h /"` |
+| 网络测试 | `ssh jianliu@10.10.70.88 "source ~/.bashrc && iperf3 -c <server>"` |
 
 ## 注意事项
 
