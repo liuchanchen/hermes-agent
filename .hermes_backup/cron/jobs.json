@@ -20,15 +20,15 @@
       "schedule_display": "0 22 * * *",
       "repeat": {
         "times": 999,
-        "completed": 27
+        "completed": 28
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-21T11:25:30.331382+08:00",
-      "next_run_at": "2026-05-09T22:00:00+08:00",
-      "last_run_at": "2026-05-08T22:15:24.648235+08:00",
+      "next_run_at": "2026-05-10T22:00:00+08:00",
+      "last_run_at": "2026-05-09T22:07:35.112720+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited: ret=-2 errcode=None errmsg=rate limited",
@@ -60,18 +60,18 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": 999,
-        "completed": 17
+        "completed": 19
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-23T23:08:50.970385+08:00",
-      "next_run_at": "2026-05-10T08:00:00+08:00",
-      "last_run_at": "2026-05-08T09:18:20.288998+08:00",
+      "next_run_at": "2026-05-11T08:00:00+08:00",
+      "last_run_at": "2026-05-10T08:01:41.830684+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": null,
+      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited: ret=-2 errcode=None errmsg=rate limited",
       "deliver": "origin",
       "origin": {
         "platform": "weixin",
@@ -100,18 +100,18 @@
       "schedule_display": "0 9 * * *",
       "repeat": {
         "times": 999,
-        "completed": 13
+        "completed": 14
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-26T17:30:29.608686+08:00",
-      "next_run_at": "2026-05-10T09:00:00+08:00",
-      "last_run_at": "2026-05-08T09:25:30.944328+08:00",
+      "next_run_at": "2026-05-11T09:00:00+08:00",
+      "last_run_at": "2026-05-09T09:32:27.249605+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": null,
+      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited: ret=-2 errcode=None errmsg=rate limited",
       "deliver": "origin",
       "origin": null
     },
@@ -170,15 +170,15 @@
       "schedule_display": "0 21 * * *",
       "repeat": {
         "times": null,
-        "completed": 14
+        "completed": 15
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-27T19:22:17.374140+08:00",
-      "next_run_at": "2026-05-09T21:00:00+08:00",
-      "last_run_at": "2026-05-08T21:03:25.620225+08:00",
+      "next_run_at": "2026-05-10T21:00:00+08:00",
+      "last_run_at": "2026-05-09T21:07:59.903772+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited: ret=-2 errcode=None errmsg=rate limited",
@@ -204,15 +204,15 @@
       "schedule_display": "0 8,18 * * *",
       "repeat": {
         "times": 999,
-        "completed": 18
+        "completed": 21
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-30T10:00:25.900478+08:00",
-      "next_run_at": "2026-05-09T18:00:00+08:00",
-      "last_run_at": "2026-05-08T18:01:15.301637+08:00",
+      "next_run_at": "2026-05-10T18:00:00+08:00",
+      "last_run_at": "2026-05-10T08:03:09.496201+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited: ret=-2 errcode=None errmsg=rate limited",
@@ -245,15 +245,15 @@
       "schedule_display": "0 3 * * *",
       "repeat": {
         "times": null,
-        "completed": 6
+        "completed": 7
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-01T22:06:04.249578+08:00",
-      "next_run_at": "2026-05-10T03:00:00+08:00",
-      "last_run_at": "2026-05-07T03:03:44.481866+08:00",
+      "next_run_at": "2026-05-11T03:00:00+08:00",
+      "last_run_at": "2026-05-10T03:00:42.504102+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -271,5 +271,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-05-09T09:18:29.895772+08:00"
+  "updated_at": "2026-05-10T09:00:09.760955+08:00"
 }
