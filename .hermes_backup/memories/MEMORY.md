@@ -21,3 +21,5 @@ User requires all model calls to use max thinking/reasoning effort globally. Set
 技能收集的目标是构建一个类级别指令和经验知识的库，每个技能应是宽泛的伞状技能并带有标记的子部分，而不是多个狭窄的技能。
 §
 Hermes 的 Curator 后台进程在 2026-05-06 06:15 UTC 自动运行，将 remote-70-88 和 remote-70-66 技能吸收进 remote-deploy umbrella 技能，随后将 remote-deploy 作为过时技能删除，导致三个技能全部消失。
+§
+用户调用了 remote-70-88 技能，要求按照该技能指令操作远程 GPU 服务器 10.10.70.88，包括 SSH 连接、CUDA/nvcc 安装、NCCL 版本管理、编译 nccl-tests、运行带宽测试等。

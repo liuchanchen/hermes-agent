@@ -33,3 +33,5 @@ User prefers step-by-step operation with verification after each stage when doin
 用户偏好: 偏好更新应写入 SKILL.md（技能文件），而不是 memory。修改技能时优先使用 patch（skill_manage action='patch'）更新已加载的技能，而不是创建新技能。
 §
 不要将远程服务器脚本/报告备份到本地 Windows 路径 — 用户认为没必要。所有测试结果应通过 Notion 管理。
+§
+用户希望使用 GitHub 上 jasl/vllm 仓库的 ds4-sm120 分支来运行 vLLM 服务器，而非官方镜像。
