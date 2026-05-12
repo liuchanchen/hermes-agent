@@ -75,13 +75,13 @@
     "archived_at": null,
     "created_at": "2026-05-05T01:00:11.102785+00:00",
     "last_patched_at": "2026-05-07T01:07:06.815290+00:00",
-    "last_used_at": "2026-05-11T01:00:12.535912+00:00",
-    "last_viewed_at": "2026-05-11T01:00:12.528668+00:00",
+    "last_used_at": "2026-05-12T01:01:10.853722+00:00",
+    "last_viewed_at": "2026-05-12T01:01:10.847607+00:00",
     "patch_count": 4,
     "pinned": false,
     "state": "active",
-    "use_count": 8,
-    "view_count": 8
+    "use_count": 9,
+    "view_count": 9
   },
   "hermes-backup-push": {
     "archived_at": null,
@@ -111,13 +111,25 @@
     "archived_at": null,
     "created_at": "2026-05-02T10:33:41.339332+00:00",
     "last_patched_at": null,
-    "last_used_at": "2026-05-09T13:00:48.721087+00:00",
-    "last_viewed_at": "2026-05-09T13:00:48.715471+00:00",
+    "last_used_at": "2026-05-11T11:25:25.504837+00:00",
+    "last_viewed_at": "2026-05-11T11:25:25.494299+00:00",
     "patch_count": 0,
     "pinned": false,
     "state": "active",
-    "use_count": 28,
-    "view_count": 9
+    "use_count": 30,
+    "view_count": 10
+  },
+  "language-translation": {
+    "archived_at": null,
+    "created_at": "2026-05-11T09:39:08.840735+00:00",
+    "last_patched_at": "2026-05-11T09:40:05.755500+00:00",
+    "last_used_at": "2026-05-11T09:39:08.849745+00:00",
+    "last_viewed_at": "2026-05-11T09:39:08.840777+00:00",
+    "patch_count": 1,
+    "pinned": false,
+    "state": "active",
+    "use_count": 1,
+    "view_count": 1
   },
   "media-workflow": {
     "archived_at": null,
@@ -159,12 +171,12 @@
     "archived_at": null,
     "created_at": "2026-05-06T08:28:30.863192+00:00",
     "last_patched_at": "2026-05-08T12:07:05.211124+00:00",
-    "last_used_at": "2026-05-10T00:00:44.039928+00:00",
+    "last_used_at": "2026-05-11T09:33:28.507227+00:00",
     "last_viewed_at": "2026-05-09T08:55:24.562062+00:00",
     "patch_count": 5,
     "pinned": false,
     "state": "active",
-    "use_count": 55,
+    "use_count": 63,
     "view_count": 8
   },
   "remote-70-93": {
