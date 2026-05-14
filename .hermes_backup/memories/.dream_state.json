@@ -1,7 +1,7 @@
 {
-  "last_processed_session": "20260507_101516_3cd8a3",
-  "last_run": "2026-05-11T19:04:27.422497+00:00",
-  "total_runs": 8,
+  "last_processed_session": "20260508_094440_225312",
+  "last_run": "2026-05-13T19:04:09.448551+00:00",
+  "total_runs": 10,
   "phases_executed": [
     "calibrate",
     "collect",
@@ -9,11 +9,11 @@
     "index"
   ],
   "stats_summary": {
-    "added": 7,
-    "replaced": 9,
+    "added": 3,
+    "replaced": 14,
     "removed": 0,
     "contradictions_found": 0,
-    "budget_evictions": 6,
-    "skipped_duplicates": 4
+    "budget_evictions": 0,
+    "skipped_duplicates": 7
   }
 }
