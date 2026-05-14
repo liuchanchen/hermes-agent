@@ -1,8 +1,8 @@
 {
-  "last_report_path": null,
-  "last_run_at": "2026-05-06T06:17:00+00:00",
-  "last_run_duration_seconds": null,
-  "last_run_summary": "manual curation: consolidated media-monitor+media-processing → media-workflow, absorbed codex-session→memory-consolidation-pipeline, pruned auto-process/find-nearby/mcporter/remote-deploy/ml-training-workflows",
+  "last_report_path": "/home/jianliu/.hermes/logs/curator/20260513-065708",
+  "last_run_at": "2026-05-13T06:57:08.223416+00:00",
+  "last_run_duration_seconds": 334.588649,
+  "last_run_summary": "auto: no changes; llm: All done. Here's a summary of what was executed:\n\n---\n\n## ✅ Consolidation Complete — 9 skills archived\n\n### Created 4 new umbrella skills\n\n| Umbrella | Category | Content | References |\n|----------|----------|---------|------------|\n| **`re…",
   "paused": false,
-  "run_count": 1
+  "run_count": 2
 }
