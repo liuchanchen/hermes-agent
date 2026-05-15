@@ -74,7 +74,7 @@ This is a consolidated subsection from the former `skill-update-policy` skill. I
 
 - Be **ACTIVE** — most sessions produce at least one skill update, even small. Doing nothing is a missed learning opportunity.
 - Signals that ALWAYS warrant action:
-  1. **User corrected style/tone/format/legibility/verbosity** — frustration signals are FIRST-CLASS skill signals, not just memory. Embed the preference in the governing skill's body.
+  1. **User corrected style/tone/format/legibility/verbosity** — frustration signals are FIRST-CLASS skill signals, not just memory. Embed the preference in the governing skill's body immediately via `skill_manage(action='patch')`. Do not defer to session end — do it on the spot.
   2. **User corrected workflow/approach/sequence** — encode as pitfall or explicit step in the governing skill.
   3. **Non-trivial technique/fix/workaround/debugging path/tool-usage pattern emerged** — capture for future sessions.
   4. **Loaded skill found wrong/missing/outdated** — patch NOW.

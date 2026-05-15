@@ -2,11 +2,7 @@
 §
 User prefers step-by-step operation with verification after each stage when doing multi-step operations (e.g., fix NCCL → verify → install nvcc → verify → compile nccl-tests → verify).
 §
-用户要求每天晚上10点执行/dongchedi-l90-watch脚本，结果需要包含商家地址信息和车型信息，新增和下架的信息需要额外给出，最后给出车型统计。
-§
 用户要求安装来自 https://clawhub.ai/wallstreetinsights/wallstreetcn-news 的 skill。
-§
-用户希望添加一个技能，将 .hermes_backup 推送到远程 GitHub，提交信息格式为 'backup hermes ' + 日期。
 §
 用户要求将备份功能扩展到所有数据库文件，而不仅仅是当前技能中的数据库。
 §
@@ -35,3 +31,7 @@ User prefers step-by-step operation with verification after each stage when doin
 不要将远程服务器脚本/报告备份到本地 Windows 路径 — 用户认为没必要。所有测试结果应通过 Notion 管理。
 §
 用户希望使用 GitHub 上 jasl/vllm 仓库的 ds4-sm120 分支来运行 vLLM 服务器，而非官方镜像。
+§
+用户希望使用远程 GPU 服务器 10.10.70.88 进行 vLLM 服务部署，使用 vllm/vllm-openai:latest 镜像。
+§
+用户希望使用远程GPU服务器10.10.70.88，并遵循remote-70-88技能中的工作流进行操作。
