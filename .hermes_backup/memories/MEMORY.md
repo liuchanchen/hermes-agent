@@ -14,16 +14,18 @@ User requires all model calls to use max thinking/reasoning effort globally. Set
 §
 Hermes 的 Curator 后台进程在 2026-05-06 06:15 UTC 自动运行，将 remote-70-88 和 remote-70-66 技能吸收进 remote-deploy umbrella 技能，随后将 remote-deploy 作为过时技能删除，导致三个技能全部消失。
 §
-用户拥有远程 GPU 服务器 10.10.70.88，并期望通过 Hermes 代理进行 SSH 连接、CUDA/nvcc 安装、NCCL 版本管理、编译 nccl-tests 和运行带宽测试等操作。
-§
-用户要求验证已完成的工作，不得修改项目文件，应使用源代码读取、shell检查、浏览器/网络证据或提供的工具句柄，并返回有证据支持的检查结果，最终给出PASS、FAIL或PARTIAL的结论。
-§
-用户要求验证工作时不修改项目文件，仅通过源读取、shell检查、浏览器/网络证据或提供的工具句柄进行验证，并返回证据支持的检查结果和最终裁决（PASS/FAIL/PARTIAL）。
-§
-用户启用了 interview 技能，该技能用于管理 WarpDriveAI 的面试日程、候选人、简历和入职时间线。
-§
 Long IO 16384/16384 测试默认运行次数为 2 次，而非之前声称的 1 次。
 §
 用户通过调用 remote-70-88 技能，要求使用 vllm/vllm-openai:latest 镜像在远程 GPU 服务器 10.10.70.88 上启动 vLLM 服务。
 §
-Long IO 16384/16384 测试实际运行次数为 2 次，而非之前声称的 1 次。
+70.95: MiniMax-M2.7-NVFP4, DP=8+EP, 8×RTX 5090 (32 GB), --max-model-len 16384, --gpu-memory-utilization 0.96, start script at /data/venvs/vllm-ds4/start_minimax_m2_nvfp4_70.95.sh
+§
+用户通过调用 remote-70-88 技能，要求使用 SSH 连接 GPU 服务器 10.10.70.88 进行远程操作，包括 CUDA 安装、NCCL 管理、编译 nccl-tests 和运行带宽测试。
+§
+Long IO 16384/16384 测试运行次数为 2 次，而非之前声称的 1 次。
+§
+用户要求验证工作结果时不得修改项目文件，只能通过源读取、shell检查、浏览器/网络证据或提供的工具句柄进行验证，并返回基于证据的检查结果和最终裁决（PASS/FAIL/PARTIAL）。
+§
+远程 GPU 服务器 10.10.70.88 上运行着 vLLM 服务，监听端口 8000，使用 4 张 NVIDIA GeForce RTX 5090 GPU，每张显存使用约 30GB。
+§
+用户要求重新运行 test_deepseekv4_throughput_cache.py 脚本，并发数分别为 32 和 64。
