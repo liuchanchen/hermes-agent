@@ -53,7 +53,7 @@ _HERMES_CORE_TOOLS = [
     # Clarifying questions
     "clarify",
     # Code execution + delegation
-    "execute_code", "delegate_task",
+    "execute_code", "delegate_task", "verify_task",
     # Cronjob management
     "cronjob",
     # Car scraper (懂车帝/瓜子 L90 monitoring)
@@ -115,6 +115,12 @@ TOOLSETS = {
         "tools": ["skills_list", "skill_view", "skill_manage"],
         "includes": []
     },
+
+    "skills_read": {
+        "description": "Read-only skill discovery and viewing tools",
+        "tools": ["skills_list", "skill_view"],
+        "includes": []
+    },
     
     "browser": {
         "description": "Browser automation for web interaction (navigate, click, type, scroll, iframes, hold-click) with web search for finding URLs",
@@ -157,6 +163,12 @@ TOOLSETS = {
         "tools": ["read_file", "write_file", "patch", "search_files"],
         "includes": []
     },
+
+    "file_read": {
+        "description": "Read-only file tools: read files and search paths/content",
+        "tools": ["read_file", "search_files"],
+        "includes": []
+    },
     
     "tts": {
         "description": "Text-to-speech: convert text to audio with Edge TTS (free), ElevenLabs, OpenAI, or xAI",
@@ -196,7 +208,7 @@ TOOLSETS = {
     
     "delegation": {
         "description": "Spawn subagents with isolated context for complex subtasks",
-        "tools": ["delegate_task"],
+        "tools": ["delegate_task", "verify_task"],
         "includes": []
     },
 

@@ -1850,6 +1850,10 @@ def _looks_like_slash_command(text: str) -> bool:
     if not text or not text.startswith("/"):
         return False
     first_word = text.split()[0]
+    if first_word.startswith("//") and not first_word.startswith("///"):
+        # Skill invocations are accepted as //skill-name; network paths
+        # like //server/share still contain another slash and remain text.
+        return bool(first_word[2:]) and "/" not in first_word[2:]
     # After stripping the leading /, a command name has no slashes.
     # A path like /Users/foo/bar.md always does.
     return "/" not in first_word[1:]
@@ -1863,6 +1867,7 @@ from agent.skill_commands import (
     scan_skill_commands,
     build_skill_invocation_message,
     build_preloaded_skills_prompt,
+    run_codex_session_skill,
 )
 
 _skill_commands = scan_skill_commands()
@@ -6577,7 +6582,9 @@ class HermesCLI:
             self._handle_busy_command(cmd_original)
         else:
             # Check for user-defined quick commands (bypass agent loop, no LLM call)
-            base_cmd = cmd_lower.split()[0]
+            base_token_lower = cmd_lower.split()[0]
+            base_token_original = cmd_original.split()[0]
+            base_cmd = "/" + base_token_lower.lstrip("/")
             quick_commands = self.config.get("quick_commands", {})
             if base_cmd.lstrip("/") in quick_commands:
                 qcmd = quick_commands[base_cmd.lstrip("/")]
@@ -6605,7 +6612,7 @@ class HermesCLI:
                     target = qcmd.get("target", "").strip()
                     if target:
                         target = target if target.startswith("/") else f"/{target}"
-                        user_args = cmd_original[len(base_cmd):].strip()
+                        user_args = cmd_original[len(base_token_original):].strip()
                         aliased_command = f"{target} {user_args}".strip()
                         return self.process_command(aliased_command)
                     else:
@@ -6620,7 +6627,7 @@ class HermesCLI:
                 )
                 plugin_handler = get_plugin_command_handler(base_cmd.lstrip("/"))
                 if plugin_handler:
-                    user_args = cmd_original[len(base_cmd):].strip()
+                    user_args = cmd_original[len(base_token_original):].strip()
                     try:
                         result = resolve_plugin_command_result(
                             plugin_handler(user_args)
@@ -6631,23 +6638,32 @@ class HermesCLI:
                         _cprint(f"\033[1;31mPlugin command error: {e}{_RST}")
             # Check for skill slash commands (/gif-search, /axolotl, etc.)
             elif base_cmd in _skill_commands:
-                user_instruction = cmd_original[len(base_cmd):].strip()
-                msg = build_skill_invocation_message(
-                    base_cmd, user_instruction, task_id=self.session_id
-                )
-                if msg:
-                    skill_name = _skill_commands[base_cmd]["name"]
-                    print(f"\n⚡ Loading skill: {skill_name}")
-                    if hasattr(self, '_pending_input'):
-                        self._pending_input.put(msg)
+                user_instruction = cmd_original[len(base_token_original):].strip()
+                skill_name = _skill_commands[base_cmd]["name"]
+                if str(skill_name).lower() == "codex-session":
+                    print(f"\n⚡ Running skill: {skill_name}")
+                    result = run_codex_session_skill(
+                        user_instruction,
+                        workdir=os.getcwd(),
+                        skill_dir=_skill_commands[base_cmd].get("skill_dir"),
+                    )
+                    self._console_print(_rich_text_from_ansi(result))
                 else:
-                    ChatConsole().print(f"[bold red]Failed to load skill for {base_cmd}[/]")
+                    msg = build_skill_invocation_message(
+                        base_cmd, user_instruction, task_id=self.session_id
+                    )
+                    if msg:
+                        print(f"\n⚡ Loading skill: {skill_name}")
+                        if hasattr(self, '_pending_input'):
+                            self._pending_input.put(msg)
+                    else:
+                        ChatConsole().print(f"[bold red]Failed to load skill for {base_cmd}[/]")
             else:
                 # Prefix matching: if input uniquely identifies one command, execute it.
                 # Matches against both built-in COMMANDS and installed skill commands so
                 # that execution-time resolution agrees with tab-completion.
                 from hermes_cli.commands import COMMANDS
-                typed_base = cmd_lower.split()[0]
+                typed_base = "/" + cmd_lower.split()[0].lstrip("/")
                 all_known = set(COMMANDS) | set(_skill_commands)
                 matches = [c for c in all_known if c.startswith(typed_base)]
                 if len(matches) > 1:
@@ -6673,7 +6689,7 @@ class HermesCLI:
                         _cprint(f"\033[1;31mUnknown command: {cmd_lower}{_RST}")
                         _cprint(f"{_DIM}{_ACCENT}Type /help for available commands{_RST}")
                     else:
-                        remainder = cmd_original.strip()[len(typed_base):]
+                        remainder = cmd_original.strip()[len(base_token_original):]
                         full_cmd = full_name + remainder
                         return self.process_command(full_cmd)
                 elif len(matches) > 1:
