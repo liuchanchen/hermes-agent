@@ -1216,11 +1216,9 @@ def _build_child_agent(
     except Exception as exc:
         logger.debug("Could not load delegation reasoning_effort: %s", exc)
 
-<<<<<<< HEAD
     # Verifier doesn't need extended thinking — just read, check, report.
     if role == "verifier":
         child_reasoning = {"enabled": False}
-=======
     # Inherit the parent's fallback provider chain so subagents can recover
     # from rate-limits and credential exhaustion exactly like the top-level
     # agent does.  _fallback_chain is a list accepted by AIAgent's
@@ -1247,7 +1245,6 @@ def _build_child_agent(
         # Note: openrouter_min_coding_score is model-gated (only emitted on
         # openrouter/pareto-code), so we keep it inherited even when the
         # provider is overridden — it's a no-op on any other model.
->>>>>>> 44b63fc6de3fe2b53eac3109b4a20db41c663195
 
     child = AIAgent(
         base_url=effective_base_url,
@@ -2039,7 +2036,6 @@ def _run_single_child(
             logger.debug("Failed to close child agent after delegation")
 
 
-<<<<<<< HEAD
 _VERDICT_RE = re.compile(r"(?im)^\s*VERDICT:\s*(PASS|FAIL|PARTIAL)\s*\.?\s*$")
 _CHECK_HEADING_RE = re.compile(r"(?im)^\s*#{2,4}\s*Check\s*:\s*(.+?)\s*$")
 _CHECK_RESULT_RE = re.compile(r"(?im)^\s*Result\s*:\s*(PASS|FAIL|PARTIAL)\s*\.?\s*$")
@@ -2151,7 +2147,8 @@ def _augment_verification_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     payload["verified"] = payload["verdict"] == "PASS"
     payload["action_required"] = payload["verdict"] != "PASS"
     return payload
-=======
+
+
 def _recover_tasks_from_json_string(
     tasks: Any,
 ) -> tuple[Optional[List[Dict[str, Any]]], Optional[str]]:
@@ -2173,7 +2170,6 @@ def _recover_tasks_from_json_string(
             f"{type(parsed).__name__} instead."
         )
     return parsed, None
->>>>>>> 44b63fc6de3fe2b53eac3109b4a20db41c663195
 
 
 def delegate_task(
@@ -2837,16 +2833,11 @@ def _build_top_level_description() -> str:
         "never enter your context window.\n\n"
         "TWO MODES (one of 'goal' or 'tasks' is required):\n"
         "1. Single task: provide 'goal' (+ optional context, toolsets)\n"
-<<<<<<< HEAD
-        "2. Batch (parallel): provide 'tasks' array with up to delegation.max_concurrent_children items (default 3, configurable via config.yaml, no hard ceiling). "
-        "All run concurrently and results are returned together. Nested delegation requires role='orchestrator' and delegation.max_spawn_depth >= 2. Evidence-backed validation uses role='verifier'.\n\n"
-=======
         f"2. Batch (parallel): provide 'tasks' array with up to {max_children} "
         f"items concurrently for this user (configured via "
         f"delegation.max_concurrent_children in config.yaml). "
         f"All run in parallel and results are returned together. {nesting_clause}\n\n"
->>>>>>> 44b63fc6de3fe2b53eac3109b4a20db41c663195
-        "WHEN TO USE delegate_task:\n"
+        "WHEN TO USE:\n"
         "- Reasoning-heavy subtasks (debugging, code review, research synthesis)\n"
         "- Independent verification of facts, code behavior, or claimed tool results via role='verifier'\n"
         "- Tasks that would flood your context with intermediate data\n"
@@ -3044,7 +3035,7 @@ DELEGATE_TASK_SCHEMA = {
                         },
                         "role": {
                             "type": "string",
-                            "enum": ["leaf", "orchestrator", "verifier"],
+                            "enum": ["leaf", "orchestrator"],
                             "description": "Per-task role override. See top-level 'role' for semantics.",
                         },
                     },
@@ -3057,24 +3048,8 @@ DELEGATE_TASK_SCHEMA = {
             },
             "role": {
                 "type": "string",
-<<<<<<< HEAD
-                "enum": ["leaf", "orchestrator", "verifier"],
-                "description": (
-                    "Role of the child agent. 'leaf' (default) = focused "
-                    "worker, cannot delegate further. 'orchestrator' = can "
-                    "use delegate_task to spawn its own workers. Requires "
-                    "delegation.max_spawn_depth >= 2 in config; ignored "
-                    "(treated as 'leaf') when the child would exceed "
-                    "max_spawn_depth or when "
-                    "delegation.orchestrator_enabled=false. 'verifier' = "
-                    "verification-only child for facts, code, or tool results; "
-                    "uses evidence-backed checks and must end with "
-                    "VERDICT: PASS, VERDICT: FAIL, or VERDICT: PARTIAL."
-                ),
-=======
                 "enum": ["leaf", "orchestrator"],
                 "description": "(rebuilt at get_definitions() time)",
->>>>>>> 44b63fc6de3fe2b53eac3109b4a20db41c663195
             },
             "acp_command": {
                 "type": "string",
