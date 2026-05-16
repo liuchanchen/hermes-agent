@@ -23,6 +23,14 @@ from guazi_l90_watch import (
     now_iso,
 )
 
+from dongchedi_decoder import (
+    extract_car_info,
+    extract_sku_list,
+    get_pagination_info,
+    extract_mileage_from_meta,
+    extract_price_from_text,
+)
+
 
 def normalize_year_month(value: Optional[str]) -> Optional[str]:
     if not value:
@@ -58,7 +66,14 @@ def parse_chinese_ten_thousands(value: str) -> Optional[int]:
     return None
 
 
-def parse_price_wan(text: str) -> Optional[float]:
+def parse_price_wan(text: str, html: str = "") -> Optional[float]:
+    """Parse price in wan. Uses extract_price_from_text which computes from plain text guide_price - save_price."""
+    if html:
+        price = extract_price_from_text(text)
+        if price is not None:
+            return price
+
+    # Fallback: regex on rendered text
     value = first_group(
         [
             r"(?:现在仅售|仅售|一口价|售价|现价|车价|卖价|报价|到手价)\s*([0-9]+(?:\.[0-9]+)?)\s*万",
@@ -79,7 +94,15 @@ def parse_price_wan(text: str) -> Optional[float]:
     return None
 
 
-def parse_mileage_km(text: str) -> Optional[int]:
+def parse_mileage_km(text: str, html: str = "") -> Optional[int]:
+    """Parse mileage in km. Prioritizes meta description which has clean text."""
+    # Method 1: meta description (has clean text with mileage, no icon font issues)
+    if html:
+        mileage = extract_mileage_from_meta(html)
+        if mileage is not None:
+            return mileage
+
+    # Method 2: regex on rendered text (works when icon font numbers survived)
     value = first_group(
         [
             r"(?:表显里程|行驶里程|里程)\s*([0-9]+(?:\.[0-9]+)?)\s*万公里",
@@ -292,7 +315,7 @@ def looks_like_no_results_page(text: str) -> bool:
     return any(p in t for p in probes)
 
 
-def parse_listing_from_text(url: str, text: str) -> Listing:
+def parse_listing_from_text(url: str, text: str, html: str = "") -> Listing:
     raw_text = clean_text(text)
     title_text = raw_text
     detail_text = raw_text
@@ -303,8 +326,8 @@ def parse_listing_from_text(url: str, text: str) -> Listing:
         title=parse_title(title_text),
         model="乐道L90",
         battery_plan=parse_battery_plan(detail_text),
-        price_wan=parse_price_wan(detail_text),
-        mileage_km=parse_mileage_km(detail_text),
+        price_wan=parse_price_wan(detail_text, html=html),
+        mileage_km=parse_mileage_km(detail_text, html=html),
         claim_count=parse_claim_count(detail_text),
         city=parse_city(detail_text),
         first_license_date=parse_first_license_date(detail_text),
@@ -325,10 +348,11 @@ async def fetch_list_page(
     *,
     headless: bool,
 ) -> tuple[list[str], str]:
-    async def _fetch_once():
+    """Fetch the list page and extract all detail links. Supports pagination."""
+    async def _fetch_once(page_url: str) -> tuple[list[str], str, str]:
         result, text_candidate = await fetch_page_with_verification_support(
             crawler,
-            url,
+            page_url,
             session_id,
             stage_label="懂车帝列表页",
             stage_key="dongchedi_list",
@@ -343,25 +367,44 @@ async def fetch_list_page(
             links = extract_detail_links_from_html(url, html)
         return text_candidate, html, links
 
-    text_candidate, html, links = await _fetch_once()
-    if links or looks_like_no_results_page(text_candidate):
-        return links, html
+    # Fetch page 1
+    text_candidate, raw_html, links = await _fetch_once(url)
+    if not links and not looks_like_no_results_page(text_candidate):
+        snap = dump_debug_snapshot("dongchedi_list_empty_links", url, raw_html or text_candidate)
+        if headless:
+            raise RuntimeError(f"懂车帝列表页未解析到详情链接，调试快照已保存: {snap}")
+        print("\n[INFO] 懂车帝列表页没有解析到任何详情链接。")
+        print("[INFO] 如果浏览器里正显示二维码、登录框或验证页，请先完成它。")
+        input("\n[INPUT] 完成检查后按回车继续...")
+        text_candidate, raw_html, links = await _fetch_once(url)
+        if not links or looks_like_no_results_page(text_candidate):
+            snap = dump_debug_snapshot("dongchedi_list_empty_links_after_retry", url, raw_html or text_candidate)
+            raise RuntimeError(f"懂车帝列表页重试后仍未解析到详情链接。调试快照已保存: {snap}")
 
-    snap = dump_debug_snapshot("dongchedi_list_empty_links", url, html or text_candidate)
-    if headless:
-        raise RuntimeError(f"懂车帝列表页未解析到详情链接，调试快照已保存: {snap}")
+    # Check pagination via __NEXT_DATA__
+    all_links = list(links) if links else []
+    pagination = get_pagination_info(raw_html)
+    total_page = pagination.get("total_page", 1)
+    current_page = pagination.get("page", 1)
 
-    print("\n[INFO] 懂车帝列表页没有解析到任何详情链接。")
-    print("[INFO] 如果浏览器里正显示二维码、登录框或验证页，请先完成它。")
-    print("[INFO] 完成后回到终端按回车，脚本会在同一个浏览器会话里重试列表页。")
-    input("\n[INPUT] 完成检查后按回车继续...")
+    if total_page > 1 and current_page == 1:
+        # Fetch subsequent pages
+        for page_num in range(2, total_page + 1):
+            page_url = re.sub(
+                r'(310000-)1(-)',
+                lambda m: f"{m.group(1)}{page_num}{m.group(2)}",
+                url,
+            )
+            try:
+                _, _, page_links = await _fetch_once(page_url)
+                if page_links:
+                    all_links.extend(page_links)
+                print(f"[INFO] 列表页第{page_num}页: {len(page_links)}个链接")
+            except Exception as e:
+                print(f"[WARN] 列表页第{page_num}页获取失败: {e}")
+                break
 
-    retry_text, retry_html, retry_links = await _fetch_once()
-    if retry_links or looks_like_no_results_page(retry_text):
-        return retry_links, retry_html
-
-    snap = dump_debug_snapshot("dongchedi_list_empty_links_after_retry", url, retry_html or retry_text)
-    raise RuntimeError(f"懂车帝列表页重试后仍未解析到详情链接。调试快照已保存: {snap}")
+    return all_links, raw_html
 
 
 async def fetch_detail_page(
@@ -371,7 +414,7 @@ async def fetch_detail_page(
     *,
     headless: bool,
 ) -> Listing:
-    _, text_candidate = await fetch_page_with_verification_support(
+    result, text_candidate = await fetch_page_with_verification_support(
         crawler,
         url,
         session_id,
@@ -381,7 +424,8 @@ async def fetch_detail_page(
         verbose=False,
         headless=headless,
     )
-    return parse_listing_from_text(url, text_candidate)
+    html = (result.cleaned_html or result.html or "") if hasattr(result, "cleaned_html") else (result.html or "")
+    return parse_listing_from_text(url, text_candidate, html=html)
 
 
 async def init_db(db_path: Path):
@@ -465,6 +509,14 @@ async def run(
         headless=headless,
         use_persistent_context=True,
         user_data_dir=str(profile_dir),
+        enable_stealth=True,
+        user_agent=(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        viewport_width=1920,
+        viewport_height=1080,
         verbose=True,
     )
 
@@ -499,6 +551,9 @@ async def run(
                     session_id=session_id,
                     headless=headless,
                 )
+                if item.battery_plan is None:
+                    # 懂车帝L90默认为电池买断，只有明确标注BaaS/租电才是租赁
+                    item.battery_plan = "电池买断"
                 if item.battery_plan != "电池买断":
                     continue
                 curr[item.listing_id] = item
@@ -543,7 +598,7 @@ def main():
     )
     parser.add_argument(
         "--headed",
-        default=True,
+        default=False,
         action="store_true",
         help="显示浏览器窗口，便于人工验证",
     )
