@@ -2112,7 +2112,6 @@ async def send_weixin_direct(
     # Instead, always build a fresh session for standalone calls.
     live_adapter = _LIVE_ADAPTERS.get(resolved_token)
     send_session = getattr(live_adapter, '_send_session', None)
-
     if (live_adapter is not None and send_session is not None
             and not send_session.closed
             and send_session._loop is asyncio.get_running_loop()):
