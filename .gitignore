@@ -77,3 +77,6 @@ models-dev-upstream/
 # Hermes backup - skills .hub/ cache (noise)
 .hermes_backup/skills/.hub/
 
+hermes_cli/tui_dist/*
+hermes_cli/scripts/
+docs/superpowers/*
