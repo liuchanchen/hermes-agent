@@ -11,6 +11,17 @@ This umbrella skill governs the **meta-process** of maintaining the skill librar
 
 The user has identified that Hermes Agent was too frequently defaulting to "nothing to save" after complex tasks, missing learning opportunities. The core directive: **be active and scan for improvement in every session.**
 
+## Relationship to session-review-and-update
+
+This skill (`skill-library-maintenance`) governs the **what and when** of skill updates. The sibling skill `session-review-and-update` governs the **session-end review process** — scanning conversation history for memory-worthy facts and skill-relevant signals.
+
+**Workflow:**
+1. At session end, invoke `session-review-and-update` logic to scan for user corrections, preferences, and technique discoveries.
+2. Forward any skill-relevant signals here (to `skill-library-maintenance` rules) for the actual patch/create decision.
+3. Memory-level signals go directly to `memory(action=...)` commands per `session-review-and-update` rules.
+
+These two skills are designed to be applied **in sequence**: review first, then act on the library.
+
 ## Update Mandate
 
 **Every session must result in at least one skill evaluation.** A session ending without any skill activity is a missed learning opportunity, not a neutral outcome. Even tiny improvements count over time.

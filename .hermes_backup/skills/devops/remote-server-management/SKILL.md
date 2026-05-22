@@ -17,12 +17,16 @@ Umbrella skill for managing remote GPU servers in the 10.10.70.x network. Covers
 | 10.10.70.66 | oem66 | A100 40GB | 6× | Older setup, full CUDA 12.3 installed, no proxy needed |
 | 10.10.70.88 | oem88 | RTX 5090 | 8× | Primary dev server, has proxy, has vLLM fork compiled |
 | 10.10.70.93 | oem93 | RTX 5090 | 8× | Cluster node 1 — no proxy, bare metal initially |
-| 10.10.70.95 | oem95 | RTX 5090 | 8× | Cluster node 2 — has proxy (via .bashrc), LVM storage |
-| 10.10.70.96 | oem96 | RTX 5090 | 8× | Cluster node 3 — has proxy (via .bashrc), LVM storage |
+| 10.10.70.95 | oem95 | RTX 5090 | 8× | Cluster node 2 — has proxy (via .bashrc), LVM storage, DeepSeek-V4-Pro models |
+| 10.10.70.96 | oem96 | RTX 5090 | 8× | Cluster node 3 — has proxy (via .bashrc), DeepSeek-V4-Pro master node |
+| 10.10.70.98 | oem98 | RTX PRO 6000 Blackwell SE | 8× | New server, 96 GB GPUs, no proxy, DeepSeek-V4-Pro worker node |
+| 10.10.70.96 | oem96 | Cluster node 3, proxy via .bashrc, LVM storage details |
+| 10.10.70.98 | oem98 | New RTX PRO 6000 Blackwell SE server, no proxy, no CUDA/Docker yet |
+| 10.10.70.98 | oem98 | RTX PRO 6000 Blackwell SE | 8× | New server, 96 GB GPUs, no proxy, no Docker yet |
 
 ## SSH Connection Patterns
 
-### No-proxy servers (66, 93)
+### No-proxy servers (66, 93, 98)
 ```bash
 ssh -o StrictHostKeyChecking=accept-new jianliu@10.10.70.XX "command"
 ```
@@ -193,6 +197,89 @@ ssh jianliu@10.10.70.XX "source ~/.bashrc && \
   echo '=== Disk ==='; df -h / | tail -1"
 ```
 
+## vLLM Server Management
+
+### Finding server process and config
+
+```bash
+# Find running vLLM processes and their startup config
+ssh jianliu@10.10.70.XX "ps aux | grep 'vllm serve' | grep -v grep"
+
+# Read the startup script to get full config including API key
+ssh jianliu@10.10.70.XX "cat /path/to/start_script.sh"
+
+# Get exact cmdline (includes API key which may be stripped from ps output)
+ssh jianliu@10.10.70.XX "cat /proc/PID/cmdline | tr '\0' ' '"
+```
+
+### Graceful restart procedure
+
+1. **Identify all vLLM-related PIDs** (main process, resource_tracker, workers):
+```bash
+ssh jianliu@10.10.70.XX "ps aux | grep vllm | grep -v grep | awk '{print \$2}'"
+```
+
+2. **Kill processes** (SIGTERM first, SIGKILL if they don't die):
+```bash
+ssh jianliu@10.10.70.XX "kill PID1 PID2 ... 2>/dev/null; sleep 2"
+# Force kill if still alive:
+ssh jianliu@10.10.70.XX "kill -9 PID1 PID2 ... 2>/dev/null; sleep 2"
+```
+
+3. **Start the server** using its startup script (background recommended):
+```bash
+ssh jianliu@10.10.70.XX "cd /path/to/venv && bash start_script.sh"
+# From Hermes: use terminal(background=true, notify_on_complete=true)
+```
+
+4. **Verify the server is up** — it can take several minutes for large models with compilation:
+```bash
+# Check if process is running
+ssh jianliu@10.10.70.XX "ps aux | grep vllm | grep -v grep"
+
+# Health endpoint (loads faster than models endpoint)
+python3 -c 'import urllib.request; r=urllib.request.urlopen("http://localhost:8000/health"); print(r.status)'
+
+# Models endpoint with API key (get max_model_len, served model name)
+python3 -c '
+import json, urllib.request
+req = urllib.request.Request("http://localhost:8000/v1/models")
+req.add_header("Authorization", "Bearer API_KEY_HERE")
+r = urllib.request.urlopen(req)
+for m in json.loads(r.read().decode())["data"]:
+    print(json.dumps(m, indent=2))
+'
+
+# Quick chat test
+python3 -c '
+import json, urllib.request
+body = json.dumps({"model":"MODEL_NAME","messages":[{"role":"user","content":"hi"}],"max_tokens":10}).encode()
+req = urllib.request.Request("http://localhost:8000/v1/chat/completions", data=body,
+    headers={"Content-Type":"application/json", "Authorization":"Bearer API_KEY_HERE"})
+r = urllib.request.urlopen(req)
+res = json.loads(r.read().decode())
+print(res["choices"][0]["message"]["content"])
+'
+```
+
+### Verifying context length
+
+The `max_model_len` is set via `--max-model-len` in the startup script. To confirm it at runtime, check the v1/models endpoint response which includes `max_model_len` in the model metadata.
+
+### Known server configs
+
+| Server | Model | Port | API Key | Startup Script | Setup |
+|--------|-------|------|---------|----------------|-------|
+| 10.10.70.95 | minimax_m2_7 (MiniMax M2 nvfp4) | 8000 | `***.95-vllm` | `/data/venvs/vllm-ds4/start_minimax_m2_nvfp4_tpep.sh` | TP=8, EP, max_model_len=80920, kv-cache=fp8, compilation mode=3 |
+
+### Pitfalls
+
+- **API keys with asterisks** — some startup scripts may have literal `***` characters in the `--api-key` value due to placeholder substitution. These literal values actually work as the API key. Read the raw file or `/proc/PID/cmdline` to get the exact key.
+- **Kill may not work on first try** — vLLM main processes and workers can be stubborn. Use `kill -9` if SIGTERM doesn't work after a few seconds.
+- **Model loading is slow** — large models with `--compilation-config` can take several minutes to start. Don't assume failure — poll the process and health endpoint.
+- **Use the venv's python** — for HTTP requests on servers without curl, use the vLLM venv's python interpreter to avoid Python version issues: `/data/venvs/vllm-ds4/bin/python3 -c '...'`
+- **SSH port forwarding from Hermes** — when checking from the Hermes host, connections to vLLM ports on remote servers may be blocked. Check via SSH to the remote server instead.
+
 ## References
 
 Detailed server-specific notes are stored in `references/`:
@@ -201,6 +288,7 @@ Detailed server-specific notes are stored in `references/`:
 - `references/70-93-performance-quirks.md` — 70.93: Cluster node 1, no proxy, bare-metal initial setup patterns
 - `references/70-95-security-config.md` — 70.95: Cluster node 2, proxy via .bashrc, LVM storage, newer kernel
 - `references/70-96-storage-resize.md` — 70.96: Cluster node 3, proxy via .bashrc, LVM storage details
+- `references/70-98-detailed-setup.md` — 70.98: RTX PRO 6000 Blackwell SE, no proxy, initial setup status
 
 ## GPU Architecture Codes
 
@@ -208,6 +296,7 @@ Detailed server-specific notes are stored in `references/`:
 |-----|------|-------------------|
 | A100 | Ampere | sm_80 |
 | RTX 5090 | Blackwell | sm_120 |
+| RTX PRO 6000 Blackwell SE | Blackwell | sm_120 |
 
 ## Pitfalls
 

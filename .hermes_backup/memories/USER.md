@@ -4,12 +4,6 @@ User prefers step-by-step operation with verification after each stage when doin
 §
 用户要求安装来自 https://clawhub.ai/wallstreetinsights/wallstreetcn-news 的 skill。
 §
-用户要求将备份功能扩展到所有数据库文件，而不仅仅是当前技能中的数据库。
-§
-用户重视对话上下文的连续性，当Hermes忘记之前说过的话（如"想吃披萨"然后问位置后又忘了目的）时会不满并被指正。需要始终保持任务目标跟踪，特别是在加载新技能或切换上下文时不能丢失原始用户需求。
-§
-用户调用了 codex-session 技能，要求遵循其指令，该技能用于显式调用 OpenAI Codex 并自动保持会话连续性。
-§
 用户要求助手在收到英文提示时只输出英文翻译，不附加其他语言或评论。
 §
 用户使用中文与Hermes交互，期望Hermes在调用Codex前将中文提示翻译成英文。
@@ -20,7 +14,7 @@ User prefers step-by-step operation with verification after each stage when doin
 §
 用户期望 Hermes 在调用 Codex 前将中文提示翻译成英文。
 §
-用户要求在执行远程操作时遵循 remote-70-88 技能的指令，该技能涉及 SSH 连接、CUDA/nvcc 安装、NCCL 版本管理、编译 nccl-tests 和运行带宽测试。
+用户拥有名为 remote-70-88 的技能，用于远程操作 GPU 服务器 10.10.70.88，涉及 SSH 连接、CUDA/nvcc 安装、NCCL 版本管理、编译 nccl-tests、运行带宽测试等操作。
 §
 用户要求主动更新技能库，即使变化很小也不应错过学习机会，且技能库应保持类级别结构，每个技能有丰富的 SKILL.md 和 references/ 目录，而不是扁平的长列表。
 §
@@ -35,3 +29,9 @@ User prefers step-by-step operation with verification after each stage when doin
 用户希望使用远程 GPU 服务器 10.10.70.88 进行 vLLM 服务部署，使用 vllm/vllm-openai:latest 镜像。
 §
 用户希望使用远程GPU服务器10.10.70.88，并遵循remote-70-88技能中的工作流进行操作。
+§
+用户期望在每次会话结束后审查对话并主动更新技能库，将学到的技能和教训组织为CLASS级别条目，每个条目包含丰富的SKILL.md和references/目录。
+§
+用户拥有一台远程 GPU 服务器，IP 为 10.10.70.88，用于运行 vLLM 等任务。
+§
+用户使用远程 GPU 服务器 10.10.70.88 进行工作，并期望助手遵循 remote-70-88 技能中的 SSH、CUDA、NCCL 等操作流程。

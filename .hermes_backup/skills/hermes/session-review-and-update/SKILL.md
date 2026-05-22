@@ -11,6 +11,10 @@ Review conversation history at session end (or when context window closes) to:
 2. Extract environment facts and conventions into `memory` (personal notes)
 3. Identify skill-relevant signals for creating or patching **class-level umbrella skills**
 
+## Relationship to skill-library-maintenance
+
+This skill governs the **review process**. The sibling skill `skill-library-maintenance` governs **what and when** to act on the skill library. Apply in sequence: review first (this skill), then act on the library (sibling). See `skill-library-maintenance` for the full update mandate and preference order.
+
 ## Priority Order for Skill Actions
 
 When a signal warrants a skill update, apply in this order:
