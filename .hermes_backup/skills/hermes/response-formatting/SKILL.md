@@ -35,9 +35,16 @@ User preferences for how Hermes formats, structures, and explains outputs.
 - When the user corrects a style or process, embed the correction into the relevant skill immediately via `skill_manage(action='patch')`, rather than treating it as a one-off memory item.
 - The update must be structural (change SKILL.md body), not a conversational note.
 
+### Skill Update Request Format
+- When responding to skill library update requests, use structured `<skill_update>` blocks with clear `<action>`, `<skill_name>`, and `<changes>` sections.
+- Changes should be organized by section (pitfalls, steps, format, triggers) with concise `<content>`.
+
 ## Pitfalls
 
 - A single sentence of unsolicited explanation is too much.
 - "Let me explain why" is never welcome.
 - When providing code output, just show the output. No prefaces.
 - Don't respond with "got it" or "done" without providing the actual output the user asked for.
+- When asked to review and update skill library, be ACTIVE and decisive. Do not default to "nothing to save". Most sessions produce at least one skill update opportunity.
+- Prioritize user corrections about style/tone/format/verbosity as FIRST-CLASS skill signals, not just memory items. Update the relevant skill immediately rather than noting it for later.
+- When the user wants skills updated, do it proactively. Do not wait for confirmation or ask "would you like me to update?" — just update and explain the change.

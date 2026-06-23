@@ -60,8 +60,7 @@ When deciding where to save information discovered during a session:
 ├── SKILL.md
 └── references/
     ├── maintenance-mandate-2025.md               # Precedent: user's active-update instruction (2026-05)
-    ├── skill-update-aggressiveness-policy.md      # Consolidated from skill-update-policy
-    └── future-precedents.md                       # Reserved for future explicit directives
+    └── skill-update-aggressiveness-policy.md      # Consolidated from skill-update-policy
 ```
 
 ## Conventions
@@ -73,6 +72,8 @@ When deciding where to save information discovered during a session:
 ## Pitfalls
 
 - **Don't create narrow one-session skills.** The user prefers class-level umbrellas with rich SKILL.md + references/, not flat lists of narrow skills.
+- **Name must pass the class test.** A name like `fix-api-rate-limit-timeout-november` or `audit-pr-1423-data-race` fails the class test. The correct class for those examples might be `api-rate-limit-retry-patterns` or `deadlock-data-race-analysis` respectively. When in doubt, ask yourself: "Will this name make sense in a new session six months from now with a different problem?" If no, keep leveling up.
+- **If the name only makes sense for today's task, it's wrong.** A skill name that references a specific PR number, error code, feature branch, meeting date, or chat thread is guaranteed to be too narrow. Level up until the name describes a durable problem class that will recur.
 - **Don't skip update because it's small.** User explicitly said: "change is not small, it's a missed learning opportunity."
 - **Don't wait to be asked.** The user wants proactive updates, not passive "should I save this?" questions.
 - **Don't use memory for procedures.** Memory is for facts and preferences; skills are for procedures and workflows.
@@ -122,6 +123,18 @@ After EVERY session, BEFORE concluding "nothing to save", perform a forced scan 
 
 - 'Nothing to save' is valid only if you've exhausted the mandatory scan above AND genuinely found nothing. If session ran smoothly with no corrections and no new technique, you may still have uncovered (a) an unstated preference, (b) a technique that got smoother, or (c) a relevant but latent pitfall.
 - If two existing skills overlap, note it in reply — background curator handles consolidation at scale.
+
+## Effective Skill Maintenance Observations
+
+**Signal-to-update pattern**: When debugging multi-node vLLM over many iterations, each independent root cause (SSH keys, /etc/hosts, node-rank, api-server-count, max-num-batched-tokens timeout) is a separate learning worth capturing. However, each individual fix is not a new skill — they belong under the relevant umbrella (`model-deployment` for vLLM config, `remote-server-management` for cluster operations). The correct pattern is:
+
+1. Add **one line** as a pitfall in the existing umbrella SKILL.md for each root cause
+2. Write a **detailed reference file** capturing the full debugging session as a connected timeline
+3. Update the umbrella's SKILL.md with a one-line pointer to the new reference
+
+This avoids creating narrow session-specific skills while still preserving the full context.
+
+**Update granularity**: For long sessions with many findings, batch all patches into a single skill library maintenance session rather than interleaving updates with the ongoing task. Document the findings mentally, then update all relevant umbrellas at the end.
 
 ## Verification
 

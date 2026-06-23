@@ -35,18 +35,18 @@ The most common failure mode is asking unnecessary questions when the action is 
    - ✅ 找到 → 直接读取并展示，不需要问"找到了，要我看吗？"
    - ❌ 没找到 → Step 2
 2. **Step 2:** `find "$RESUME_DIR" -name "*姓名*"` — 搜简历目录
-   - ✅ 找到 → 读取简历内容，做摘要展示，询问是否要创建档案
+   - ✅ 找到 → 读取简历内容，做摘要展示
    - ❌ 没找到 → Step 3
 3. **Step 3:** `find "$DOWNLOADS_DIR" -name "*姓名*"` — 搜下载目录
-   - ✅ 找到 → 展示文件路径，询问是否归档
+   - ✅ 找到 → **立即移动到 RESUME_DIR**，再读取简历做摘要展示
    - ❌ 没找到 → 告知未找到该候选人
 
 ### Default Action Chain for "安排面试"
 
 当用户说"安排[某人]面试"时：
 1. 先读 `面试时间表.md`，查看该候选人是否已有面试记录
-2. 展示已有记录（如果有）
-3. 要求用户补充: 轮次、日期、时间、形式、面试官
+2. 如无记录，搜索简历（按 RESUME_DIR → Downloads 顺序），**简历在 Downloads 则立即移动到 RESUME_DIR**后再创建档案
+3. 展示已有记录（如果有）或新建记录，要求用户补充: 轮次、形式、面试官
 
 ---
 
@@ -304,14 +304,41 @@ updated: [YYYY-MM-DD]
 
 ### Workflow
 
-1. Check if archive exists:
-```bash
-find "$ARCHIVE_DIR" -name "*李明*" 2>/dev/null
+> **⚠️ Prerequisite: Always move resume to RESUME_DIR FIRST.** The archive must record the official path, not a Downloads path. Never create an archive while the resume still lives in Downloads.
+
+1. **Move resume first** — check all three locations in order:
+   ```bash
+   # Already in RESUME_DIR?
+   find "$RESUME_DIR" -type f \( -iname "*金仁操*" -o -iname "*jinrencao*" \) 2>/dev/null
+   # In Downloads?
+   find "$DOWNLOADS_DIR" -type f \( -iname "*金仁操*" -o -iname "*jinrencao*" \) 2>/dev/null
+   ```
+   If found in Downloads → move to RESUME_DIR before proceeding:
+   ```bash
+   mv "/mnt/c/Users/liuch/Downloads/金仁操*.pdf" "$RESUME_DIR/"
+   ```
+   If found in RESUME_DIR → use it directly.
+
+2. Check if archive already exists:
+   ```bash
+   find "$ARCHIVE_DIR" -name "*金仁操*" 2>/dev/null
+   ```
+
+3. If exists, read it and update with new information (preserve existing content, only add new sections/rows).
+
+4. If not, create new archive file. **The resume path in the archive MUST be the RESUME_DIR path** — never reference a Downloads path.
+
+5. Always update the `updated:` field.
+
+**Wrong — archive points to Downloads:**
+```
+- **简历路径:** `/mnt/c/Users/liuch/Downloads/金仁操.pdf`   ← WRONG
 ```
 
-2. If exists, read it and update with new information
-3. If not, create new archive file from scratch
-4. Always update the `updated:` field
+**Right — archive points to RESUME_DIR:**
+```
+- **简历路径:** `/mnt/c/Users/liuch/My Documents/warpdriveai/制度/招聘/简历/金仁操.pdf`  ← CORRECT
+```
 
 ---
 
@@ -421,6 +448,9 @@ Right (anchored to one candidate):
 old_string = "## 顾婧\n\n| 轮次 | 日期 | ...\n| 一面 | 2026-04-23 |"
 ```
 
+### Resume-first rule (non-negotiable)
+When creating a candidate archive, **the resume MUST already be in RESUME_DIR** before creating the archive. If it is found in Downloads, move it first — the archive must never record a Downloads path.
+
 ### Never fabricate or infer information
 Only record what the user explicitly tells you. Do not invent names (candidates, interviewers), dates, times, formats, or any other details — even if they seem like reasonable guesses. If the user did not provide it, mark it as `[待补充]`. This applies to:
 - Interviewer names
@@ -443,4 +473,15 @@ for i, page in enumerate(reader.pages):
 Install with: `pip install pypdf -q`
 
 Note: Some PDFs may have font encoding issues in extracted text — key data (education, experience, projects) usually remains readable even if decorative text is garbled.
+
+**When pypdf returns garbled/unreadable text**, check PDF metadata for candidate info — this works even when body text is corrupted:
+```python
+import pypdf
+reader = pypdf.PdfReader("/path/to/resume.pdf")
+meta = reader.metadata
+print("Title:", meta.get('/Title', 'N/A'))       # e.g. "金仁操 · 大模型框架开发工程师"
+print("Author:", meta.get('/Author', 'N/A'))     # e.g. "Adonis Jim"
+print("CreationDate:", meta.get('/CreationDate', 'N/A'))
+```
+Filename often contains key signals: `【AI框架开发工程师_上海 35-65K】金仁操 5年.pdf` → role=AI框架开发工程师, city=上海, salary=35-65K, name=金仁操, exp=5年.
 - **Confirmation:** Always confirm before moving files or overwriting existing archive entries

@@ -437,7 +437,14 @@ Headings 5/6 collapse to H4. Multiple `>` lines render as separate quote blocks 
 | One-off API exploration | `ntn api ...` | curl |
 | Build a sync / webhook / agent tool hosted by Notion | `ntn workers ...` | WSL2 + `ntn workers ...` |
 
-## Notes
+## Known Constraints (see references/notion-api-constraints.md)
+
+- `PATCH /pages/{id}/markdown` does not accept a markdown body — use block append only
+- Code blocks: max 2000 chars per block
+- Callout icons: must be real Unicode emoji, not arbitrary text
+- Table blocks: require `table_width` field
+- File blocks: only HTTP(S) URLs work, not `file:///` paths
+- File upload API: `.py` and most text files not supported; only images/PDFs
 
 - Page/database IDs are UUIDs (with or without dashes — both accepted).
 - Rate limit: ~3 requests/second average. The CLI doesn't bypass this.

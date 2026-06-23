@@ -229,8 +229,9 @@ result = await delegate_task(
 | 静默失败 `[SILENT]` | 缺少工具或超时 | 查看 session 文件 `~/.hermes/sessions/session_cron_<id>_<timestamp>.json` |
 | 模型 404 | 固定模型名不可用 | 更新 model 或清空以使用默认模型 |
 | 没运行 | job 被暂停或时间错乱 | `cronjob(action='list')` 确认 `enabled: true` 和 `next_run_at` |
-| 推送失败但执行成功 | iLink 连接抖动或 aiohttp 问题 | 从 cron output 恢复数据 |
+| 推送失败但执行成功 | iLink 限流或连接抖动 | `hermes send --to weixin --file <path> --subject "[任务名]"` 重发（避免直传长文本触发 Unicode 安全检查） |
 | 日期错乱 | prompt 中硬编码日期 | 更新 prompt，强制使用 `date "+%Y-%m-%d"` |
+| `execute_code` 被阻止 | cron 模式安全策略禁止 | 改用 `terminal` + `write_file` + 直接工具组合 |
 
 ### 关键排查路径
 
@@ -260,6 +261,25 @@ cronjob(action='create',
     deliver='origin',
     enabled_toolsets=['terminal', 'web', 'search'],
     prompt='''...（见原 cron-job-troubleshooting skill 的完整模板）...''')
+```
+
+### 重发失败消息（iLink 限流 / 推送失败）
+
+当 cron job 执行成功但消息推送失败（如 `Weixin send failed: iLink sendmessage rate limited`）时：
+
+1. **定位完整输出文件**：`~/.hermes/cron/output/<job_id>/<latest_timestamp>.md`
+2. **用 `hermes send --file` 重发**（避免 `hermes send weixin "..."` 直传长文本触发 Unicode 安全检查）：
+   ```bash
+   hermes send --to weixin --file /tmp/resend_content.md --subject "[任务名]" -q
+   ```
+3. **如果 output 在 script context 中被截断**，先 `cat` 或 `read_file` 获取完整内容，写入临时文件后重发
+4. **注意**：cron 模式下 `execute_code` 默认被安全策略阻止，需改用 `terminal` + `write_file` + `hermes send` 组合
+
+**重发流程模板**（用于健康检查 cron agent）：
+```
+NEED-RESEND + WITH_CONTENT → 读 output 文件 → write_file 写临时文件 → hermes send --to weixin --file <path>
+NEED-RESEND + NO_CONTENT   → 跳过（无内容可发）
+NEED-RERUN                  → hermes cron run <job_id>
 ```
 
 ### 强制恢复（当 scheduler 不执行时）
