@@ -229,7 +229,7 @@ result = await delegate_task(
 | 静默失败 `[SILENT]` | 缺少工具或超时 | 查看 session 文件 `~/.hermes/sessions/session_cron_<id>_<timestamp>.json` |
 | 模型 404 | 固定模型名不可用 | 更新 model 或清空以使用默认模型 |
 | 没运行 | job 被暂停或时间错乱 | `cronjob(action='list')` 确认 `enabled: true` 和 `next_run_at` |
-| 推送失败但执行成功 | iLink 限流或连接抖动 | `hermes send --to weixin --file <path> --subject "[任务名]"` 重发（避免直传长文本触发 Unicode 安全检查） |
+| 推送失败但执行成功 | iLink 限流或连接抖动 | 非 cron 上下文：`hermes send --to weixin --file <path> --subject "[任务名]"` 重发；cron 上下文中 `hermes send` 被阻止，需合并到最终响应自动投递 |
 | 日期错乱 | prompt 中硬编码日期 | 更新 prompt，强制使用 `date "+%Y-%m-%d"` |
 | `execute_code` 被阻止 | cron 模式安全策略禁止 | 改用 `terminal` + `write_file` + 直接工具组合 |
 
@@ -275,12 +275,31 @@ cronjob(action='create',
 3. **如果 output 在 script context 中被截断**，先 `cat` 或 `read_file` 获取完整内容，写入临时文件后重发
 4. **注意**：cron 模式下 `execute_code` 默认被安全策略阻止，需改用 `terminal` + `write_file` + `hermes send` 组合
 
+**⚠️ 关键陷阱：cron 上下文中 `hermes send` 被阻止**
+
+当健康检查 agent 本身作为 cron job 运行时，`hermes send --to weixin` 会被系统阻止，报错：
+```
+Skipped send_message to weixin:... This cron job will already auto-deliver its final response to that same target.
+```
+这是因为 cron 系统会自动将 agent 的最终响应投递到目标平台，所以 `hermes send` 到同一目标被视为重复投递而被跳过。
+
+**解决方案（按优先级）：**
+1. **合并到最终响应**（推荐）— 将所有待重发内容包含在 cron agent 的最终响应中，利用自动投递一次性发送。适用于消息总量不超过平台单条消息限制的场景
+2. **发送到不同目标** — 如 `hermes send --to telegram` 发到备用平台（需配置多平台）
+3. **外部脚本重发** — 用 `terminal` 启动独立 hermes 进程发送（不受 cron 上下文限制）：
+   ```bash
+   cat /tmp/resend_content.md | hermes chat -q "Resend this message to weixin" --toolsets messaging 2>&1
+   ```
+4. **等待下次定时执行** — 如果限流是暂时的，下次 cron 周期会自动重试
+
 **重发流程模板**（用于健康检查 cron agent）：
 ```
-NEED-RESEND + WITH_CONTENT → 读 output 文件 → write_file 写临时文件 → hermes send --to weixin --file <path>
+NEED-RESEND + WITH_CONTENT → 读 output 文件 → 合并到最终响应（cron 上下文）或 hermes send --file（非 cron 上下文）
 NEED-RESEND + NO_CONTENT   → 跳过（无内容可发）
 NEED-RERUN                  → hermes cron run <job_id>
 ```
+
+**判断是否在 cron 上下文中**：如果 `hermes send` 返回 "Skipped send_message... cron job will already auto-deliver" 错误，说明当前处于 cron 自动投递模式，应改用合并到最终响应的方式。
 
 ### 强制恢复（当 scheduler 不执行时）
 

@@ -50,6 +50,7 @@ See linked files for detailed information:
 - `references/nvfp4-memory-analysis.md` — NVFP4 checkpoint→GPU memory breakdown: why 22GB on disk = 30.4 GiB/GPU with TP=2 on RTX 5090, minimum TP=4 required for 32GB cards
 - `references/memory-budget.md` — GPU memory estimation for DeepSeek V4 Pro on 96GB Blackwell cards
 - `references/multi-node-dp-debugging-session.md` — Full debugging session log: --api-server-count+headless conflict, ZMQ port persistence, zombie VLLM:: cleanup
+- `references/dsv4-flash-1m-context-bench.md` — DeepSeek-V4-Flash 1M vs 16K context benchmark comparison (70.98 Blackwell, 70.92 RTX 5090)
 - `references/nccl-blackwell-compat.md` — NCCL 2.28.9 incompatibility with Blackwell sm120: error signature, fix (copy system 2.30.4 into venv), verification steps
 - `references/vllm-bench-serve.md` — Accurate flag reference for vllm bench serve v0.6.0
 - `scripts/startup-master.sh` — Template startup script for master node (DP mode)
@@ -1163,9 +1164,9 @@ Key flags: TP auto-detected from `CUDA_VISIBLE_DEVICES` (default 8, set `CUDA_VI
 Model path on 70.88: `/home/jianliu/work/models/deepseekv4_flash/` (149G, 46 safetensors)
 Model path on 70.98: `/data/models/deepseekv4_flash/` (149G, 46 safetensors)
 
-**70.98 benchmark results — TP=8, 1-node:**
+**70.98 benchmark results — TP=8, 1-node, max-model-len=16384 (16K context):**
 
-Config: 2048 input tokens, 500 output tokens, 200 requests, concurrency=64, request-rate=inf
+Config: 2048 input tokens, 500 output tokens, 200 requests, concurrency=64, request-rate=inf, vllm 0.1.dev1+gb709b75b4
 
 | Scenario | Cache Hit | Output tok/s | Total tok/s | Mean TTFT (ms) | Mean TPOT (ms) |
 |----------|-----------|-------------|-------------|----------------|----------------|
@@ -1178,6 +1179,57 @@ Config: 2048 input tokens, 500 output tokens, 200 requests, concurrency=64, requ
 | Local (70.98→70.98), 06-18 | 0% | 316.1 | 1610.7 | 11,716 | 168.3 |
 | Local (70.98→70.98), 06-18 | 40% | 358.8 | 1828.3 | 9,539 | 148.5 |
 | Local (70.98→70.98), 06-18 | 80% | 386.4 | 1968.9 | 9,125 | 133.4 |
+| Local (70.98→70.98), 06-23 | 0% | 646.2 | 3,293 | 9,454 | 76.1 |
+| Local (70.98→70.98), 06-23 | 40% | 805.0 | 4,102 | 8,031 | 59.2 |
+| Local (70.98→70.98), 06-23 | 80% | 1,019.4 | 5,195 | 6,380 | 45.8 |
+
+**70.98 benchmark results — TP=8, 1-node, max-model-len=1048576 (1M context):**
+
+Config: 2048 input tokens, 500 output tokens, 200 requests, concurrency=64, request-rate=inf, vllm 0.1.dev1+gb709b75b4
+
+| Scenario | Cache Hit | Output tok/s | Total tok/s | Mean TTFT (ms) | Mean TPOT (ms) |
+|----------|-----------|-------------|-------------|----------------|----------------|
+| Local (70.98→70.98), 06-23 | 0% | 309.3 | 1,576 | 12,263 | 171.6 |
+| Local (70.98→70.98), 06-23 | 40% | 351.3 | 1,790 | 9,986 | 151.3 |
+| Local (70.98→70.98), 06-23 | 80% | 407.4 | 2,076 | 8,141 | 129.8 |
+
+**1M vs 16K context comparison on 70.98 (same hardware, same vllm build):**
+
+| Cache Hit | Metric | 16K ctx | 1M ctx | Change |
+|-----------|--------|---------|--------|--------|
+| 0% | Output tok/s | 646 | 309 | **-52%** |
+| 0% | Mean TTFT (ms) | 9,454 | 12,263 | **+30%** |
+| 0% | Mean TPOT (ms) | 76.1 | 171.6 | **+126%** |
+| 40% | Output tok/s | 805 | 351 | **-56%** |
+| 40% | Mean TPOT (ms) | 59.2 | 151.3 | **+155%** |
+| 80% | Output tok/s | 1,019 | 407 | **-60%** |
+| 80% | Mean TPOT (ms) | 45.8 | 129.8 | **+183%** |
+
+**Conclusion**: 1M context on 8×Blackwell 98GB destroys throughput — TPOT more than doubles and output tok/s drops 52-60%. The 98GB GPUs are heavily memory-bound at 1M context (~89.8 GB/GPU for KV cache + weights). For concurrent serving, 16K context is dramatically better. Only use 1M context for sequential long-context workloads.
+
+**70.92 benchmark results — TP=8, 1-node, max-model-len=16384 (RTX 5090 32GB×8):**
+
+Config: 2048 input tokens, 500 output tokens, 200 requests, concurrency=64, request-rate=inf, vllm 0.6.0.dev0
+
+| Scenario | Cache Hit | Output tok/s | Total tok/s | Mean TTFT (ms) | Mean TPOT (ms) |
+|----------|-----------|-------------|-------------|----------------|----------------|
+| Local (70.92→70.92), 06-23 | 0% | 570.2 | 2,906 | 15,961 | 76.2 |
+| Local (70.92→70.92), 06-23 | 40% | 655.1 | 3,339 | 10,343 | 73.2 |
+| Local (70.92→70.92), 06-23 | 80% | 976.4 | 4,972 | 3,807 | 54.1 |
+
+**70.92 vs 70.98 comparison (16K context, both TP=8):**
+
+| Cache Hit | Metric | 70.92 (RTX 5090×8) | 70.98 (Blackwell×8) | Delta |
+|-----------|--------|--------------------|--------------------|-------|
+| 0% | Output tok/s | 570 | 646 | **+13%** |
+| 0% | Mean TTFT (ms) | 15,961 | 9,454 | **-41%** |
+| 0% | Mean TPOT (ms) | 76.2 | 76.1 | ~same |
+| 40% | Output tok/s | 655 | 805 | **+23%** |
+| 40% | Mean TPOT (ms) | 73.2 | 59.2 | **-19%** |
+| 80% | Output tok/s | 976 | 1,019 | **+4%** |
+| 80% | Mean TPOT (ms) | 54.1 | 45.8 | **-15%** |
+
+Blackwell shows +13-23% throughput at low cache hit rates and -41% TTFT at 0% cache. TPOT advantage grows with cache hit rate (-15% to -19%). The 98GB HBM on Blackwell provides more KV cache headroom.
 
 **70.98 benchmark results — TP=4 (4 GPUs), 1-node:**
 
@@ -1235,6 +1287,25 @@ On 70.98, `/usr/bin/gcc` → `gcc-12` but `cc1plus` only exists for `gcc-11`. Th
 3. **Slow FetchContent on 100 Mb/s NIC**: CMake FetchContent clones CUTLASS, Triton kernels, flash-attn from GitHub. On 70.98's `ens20f0` (100 Mb/s), `triton_kernels` alone takes 30+ min. Fix: rsync `.deps/` from 70.88 (~30s for 2.6GB over 10GbE): `rsync -avz jianliu@10.10.70.88:/data/vllm-ds4-sm120/.deps/ /data/vllm-ds4-sm120/.deps/`, then `rm -rf build` (NOT `.deps/`) before rebuilding.
 
 **70.88 NIC bottleneck**: `ens20f0` is stuck at 100 Mb/s (Fast Ethernet). Large model copies from 70.88 are capped at ~5 MB/s. Use `rsync -avz` from 70.88 → 70.98 for faster transfers over 10GbE.
+
+## Critical Pitfall: 1M Context Destroys Throughput on Single-Node Blackwell
+
+Setting `--max-model-len 1048576` (1M) on DeepSeek-V4-Flash with 8×Blackwell 98GB GPUs causes severe performance degradation compared to `--max-model-len 16384` (16K):
+
+- **TPOT doubles** (76→172ms at 0% cache, 46→130ms at 80% cache)
+- **Output throughput drops 52-60%** (646→309 tok/s at 0% cache, 1019→407 tok/s at 80% cache)
+- **TTFT increases 30%** at 0% cache (9.5s→12.3s)
+- GPU memory fills to ~89.8 GB per card (vs ~89.5 GB at 16K, but KV cache pre-allocation for 1M context blocks concurrent scheduling)
+
+**Root cause**: KV cache pre-allocation at 1M context consumes massive memory, leaving less room for concurrent batch scheduling. The scheduler can hold far fewer concurrent requests in memory simultaneously, leading to serialization and poor throughput.
+
+**Recommendation**: Only use 1M context for sequential long-context workloads (single-request long prompts). For concurrent serving at 64 concurrency, 16K context delivers 2-2.5x better throughput and 2x lower TPOT.
+
+## Critical Pitfall: vLLM Log File Empty on 70.98 (vllm 0.1.dev1)
+
+When starting vLLM via `nohup bash script.sh > /dev/null 2>&1 &` on 70.98 (vllm 0.1.dev1+gb709b75b4), the log file targeted by the script's `> /tmp/vllm_*.log 2>&1` redirect may remain 0 bytes even though the process is running. The APIServer child process inherits the file descriptor but the parent's `nohup` redirect to `/dev/null` takes precedence.
+
+**Workaround**: Check server readiness via `curl -s http://localhost:8000/v1/models` and `nvidia-smi` instead of relying on the log file. Use `ps aux | grep 'vllm serve'` to confirm the process is running.
 
 ## Verification Checklist
 

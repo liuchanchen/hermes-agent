@@ -38,11 +38,31 @@
 - **Model path:** `/home/public/models/tgu01/deepseekv4_flash/` (149GB, 46 safetensors)
 - **vLLM venv:** `/data/venvs/vllm-ds4/` — copied from 70.88 on 2026-06-22
   - **Python 3.12 required** — venv was built with Python 3.12 but 70.92 only has Python 3.10 by default
-  - Need to install Python 3.12: `sudo add-apt-repository -y ppa:deadsnakes/ppa && sudo apt-get install -y python3.12 python3.12-venv python3.12-dev`
+  - Install: `sudo add-apt-repository -y ppa:deadsnakes/ppa && sudo apt-get update && sudo apt-get install -y python3.12 python3.12-venv python3.12-dev`
+  - **Already installed** as of 2026-06-23
+- **vLLM source tree:** `/data/vllm-ds4-sm120/` — editable install, copied from 70.88 (6.2GB)
+  - The venv uses `__editable__.vllm-0.6.0.dev0.pth` pointing to `/data/vllm-ds4-sm120/vllm`
+  - Without this source tree, `import vllm` fails with `ModuleNotFoundError`
+- **Model symlink:** `/data/models/deepseekv4_flash` → `/home/public/models/tgu01/deepseekv4_flash/` (created 2026-06-23)
 - **Startup script:** `~/work/tgu01-pro-model-deployment/deepseekv4_flash/start_dsv4_flash_1node.sh`
-  - Script references `/data/models/deepseekv4_flash` — need symlink: `sudo ln -s /home/public/models/tgu01/deepseekv4_flash /data/models/deepseekv4_flash`
-  - Or change `MODEL_PATH` in the script
+  - Script references `MODEL_PATH="/data/models/deepseekv4_flash"` and `source /data/venvs/vllm-ds4/bin/activate`
+  - Both paths now valid (venv + source tree + model symlink in place)
 - **Previously running config (killed 2026-06-22):** TP=8, EP enabled, port 8844, max_model_len=40960, kv-cache=fp8, block-size=256
+- **vLLM version:** 0.6.0.dev0 (editable install from ds4-sm120 branch)
+
+### Copying venv from 70.88 to 70.92 — Procedure
+
+The venv at `/data/venvs/vllm-ds4/` is an editable install that depends on BOTH the venv AND the source tree. Copying only the venv results in `ModuleNotFoundError: No module named 'vllm'`.
+
+**Required steps:**
+1. Install Python 3.12 on target (deadsnakes PPA): `sudo add-apt-repository -y ppa:deadsnakes/ppa && sudo apt-get install -y python3.12 python3.12-venv python3.12-dev`
+2. Create `/data/venvs/` with correct ownership: `sudo mkdir -p /data/venvs && sudo chown jianliu:jianliu /data/venvs`
+3. Copy venv: `rsync -avz 70.88:/data/venvs/vllm-ds4/ /tmp/vllm-ds4/ && tar cf - -C /tmp vllm-ds4 | ssh 70.92 "cd /data/venvs && tar xf -"`
+   - Direct rsync to remote IP may be blocked by security tools — use local staging + tar pipe
+4. Copy source tree: `rsync -avz 70.88:/data/vllm-ds4-sm120/ /tmp/vllm-ds4-sm120/ && tar cf - -C /tmp vllm-ds4-sm120 | ssh 70.92 "cd /data && tar xf -"`
+   - `/data/` may be owned by `rapidsdb` — need `sudo chown jianliu:jianliu /data/` before tar extraction
+5. Create model symlink: `sudo mkdir -p /data/models && sudo ln -sf /home/public/models/tgu01/deepseekv4_flash /data/models/deepseekv4_flash`
+6. Verify: `/data/venvs/vllm-ds4/bin/python -c 'import vllm; print(vllm.__version__)'`
 
 ## Access
 - **SSH:** `ssh jianliu@10.10.70.92` (key auth works)

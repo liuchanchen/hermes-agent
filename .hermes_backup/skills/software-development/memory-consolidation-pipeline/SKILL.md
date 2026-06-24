@@ -549,6 +549,18 @@ cd /home/jianliu/work/hermes-agent && source venv/bin/activate && python ~/.herm
 | File corruption from concurrent writes | Atomic temp+rename; fcntl file lock on state file; session files are read-only |
 | Accidental deletion of important memories | Only drop entries with stale keywords; never drop correction entries |
 | LLM unavailable during cron window | Reserve final merge to write phase; skip LLM if API returns error; try again next cycle |
+
+### Pitfall: LLM Endpoint Timeout Blocks Entire Cron Run
+
+The script uses `urllib.request.urlopen(req, timeout=60)` per LLM call. If the endpoint is unreachable or unresponsive (not just slow, but completely stalled on TCP connect), the process blocks indefinitely — even with `timeout=60`, the OS-level socket poll (`__x64_sys_poll`) can hang much longer. With 30 LLM calls max, worst case is 30+ minutes, causing the cron job to exceed its time limit and report as `error`.
+
+**Observed failure (2026-06-23):** LLM endpoint `10.10.70.96:8000` (glm5_1_fp8) had multiple TIME_WAIT connections but no response. Script ran >7 minutes with zero output before being killed.
+
+**Mitigations:**
+1. **Add a global timeout** wrapping the entire script execution (e.g., `timeout 300` in the cron command, or `signal.alarm(300)` in Python)
+2. **Detect endpoint availability before Phase 2** — make a single test request; if it fails/times out, skip Phase 2 entirely and run only the maintenance pass (Phase 3 dedup + budget enforcement, Phase 4 index update)
+3. **Consider fallback endpoints** — if primary `base_url` is unreachable, try an alternative (e.g., `192.168.12.12:19258` with deepseekv4-flash)
+4. **Shorter per-call timeout** — reduce from 60s to 15-20s; a non-responsive endpoint won't magically respond in 60s
 | First run processes too many sessions | Cap at last 7 days or 20 sessions, whichever is smaller |
 
 ## Verification
