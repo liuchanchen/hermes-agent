@@ -1,9 +1,9 @@
 {
-  "last_report_path": "/home/jianliu/.hermes/logs/curator/20260617-091615",
-  "last_run_at": "2026-06-17T09:16:15.446076+00:00",
-  "last_run_duration_seconds": 25.2193,
-  "last_run_summary": "auto: no changes; llm: API call failed after 3 retries: Connection error.",
+  "last_report_path": "/home/jianliu/.hermes/logs/curator/20260624-092327",
+  "last_run_at": "2026-06-24T09:23:27.398160+00:00",
+  "last_run_duration_seconds": 856.576894,
+  "last_run_summary": "auto: no changes; llm: Now the structured machine-readable block as required:\n\n```yaml\nconsolidations:\n  - from: apple-notes\n    into: archived-stale\n    reason: macOS-only bundled skill, unsupported on Linux/WSL, archived as stale built-in\n  - from: apple-remind…\narchived 26 skill(s):\n  • apple-notes — pruned (stale)\n  • apple-reminders — pruned (stale)\n  • claude-code — pruned (stale)\n  • codex — pruned (stale)\n  • coding-go — pruned (stale)\n  • findmy — pruned (stale)\n  • github-auth — pruned (stale)\n  • github-code-review — pruned (stale)\n  • github-issues — pruned (stale)\n  • github-pr-workflow — pruned (stale)\n  … and 16 more\nfull report: hermes curator status",
   "last_run_summary_shown_at": null,
   "paused": false,
-  "run_count": 7
+  "run_count": 8
 }

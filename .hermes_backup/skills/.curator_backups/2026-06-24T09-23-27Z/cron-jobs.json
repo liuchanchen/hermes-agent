@@ -20,15 +20,15 @@
       "schedule_display": "0 22 * * *",
       "repeat": {
         "times": 999,
-        "completed": 44
+        "completed": 43
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-21T11:25:30.331382+08:00",
-      "next_run_at": "2026-06-25T22:00:00+08:00",
-      "last_run_at": "2026-06-24T22:04:22.907880+08:00",
+      "next_run_at": "2026-06-24T22:00:00+08:00",
+      "last_run_at": "2026-06-23T22:03:50.159260+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s",
@@ -60,15 +60,15 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": 999,
-        "completed": 34
+        "completed": 33
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-23T23:08:50.970385+08:00",
-      "next_run_at": "2026-06-26T08:00:00+08:00",
-      "last_run_at": "2026-06-25T08:01:14.579516+08:00",
+      "next_run_at": "2026-06-25T08:00:00+08:00",
+      "last_run_at": "2026-06-23T08:02:08.569817+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s",
@@ -107,7 +107,7 @@
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-26T17:30:29.608686+08:00",
-      "next_run_at": "2026-06-26T09:00:00+08:00",
+      "next_run_at": "2026-06-25T09:00:00+08:00",
       "last_run_at": "2026-06-24T10:29:56.902543+08:00",
       "last_status": "ok",
       "last_error": null,
@@ -170,15 +170,15 @@
       "schedule_display": "0 21 * * *",
       "repeat": {
         "times": null,
-        "completed": 29
+        "completed": 28
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-27T19:22:17.374140+08:00",
-      "next_run_at": "2026-06-25T21:00:00+08:00",
-      "last_run_at": "2026-06-24T21:00:56.555069+08:00",
+      "next_run_at": "2026-06-24T21:00:00+08:00",
+      "last_run_at": "2026-06-23T21:02:14.610812+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s",
@@ -204,15 +204,15 @@
       "schedule_display": "0 8,18 * * *",
       "repeat": {
         "times": 999,
-        "completed": 47
+        "completed": 45
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-30T10:00:25.900478+08:00",
-      "next_run_at": "2026-06-25T18:00:00+08:00",
-      "last_run_at": "2026-06-25T08:02:13.915519+08:00",
+      "next_run_at": "2026-06-24T18:00:00+08:00",
+      "last_run_at": "2026-06-23T18:08:46.025233+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s",
@@ -245,17 +245,17 @@
       "schedule_display": "0 3 * * *",
       "repeat": {
         "times": null,
-        "completed": 21
+        "completed": 20
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-01T22:06:04.249578+08:00",
-      "next_run_at": "2026-06-26T03:00:00+08:00",
-      "last_run_at": "2026-06-25T03:01:27.907739+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-06-25T03:00:00+08:00",
+      "last_run_at": "2026-06-23T18:21:00.913224+08:00",
+      "last_status": "error",
+      "last_error": "RuntimeError: ## \ud83c\udf19 \u505a\u68a6\u7cbe\u70bc\u6d41\u6c34\u7ebf \u2014 \u6267\u884c\u62a5\u544a\n\n### \u6267\u884c\u72b6\u6001\n\u811a\u672c `dream_cycle.py` \u5df2\u5728\u540e\u53f0\u542f\u52a8\uff08PID 530523\uff09\uff0c\u5f53\u524d\u4ecd\u5728\u8fd0\u884c\u4e2d\u3002\n\n### \u8bca\u65ad\u53d1\u73b0\n\n1. **\u5f85\u5904\u7406\u4f1a\u8bdd\u91cf\u5927**\uff1a\u81ea\u4e0a\u6b21\u5904\u7406\uff08session `20260511_180639_6c42cd`\uff0c2026-06-23 00:22 UTC\uff09\u4ee5\u6765\uff0c\u79ef\u538b\u4e86 **395 \u4e2a\u65b0 session**\uff08\u5176\u4e2d 189 \u4e2a cron session \u4f1a\u88ab\u81ea\u52a8\u8df3\u8fc7\uff0c61 \u4e2a >1.5MB \u7684\u4e5f\u4f1a\u88ab\u8df3\u8fc7\uff09\u3002\n\n2. **LLM API \u914d\u7f6e**\uff1a\u811a\u672c\u6b63\u786e\u8bfb\u53d6\u4e86 `config.yaml` \u4e2d\u7684\u914d\u7f6e\uff08`glm5_1_fp8` + `http://10.10.70.96:8000/v1`\uff09\uff0c\u800c\u975e\u811a\u672c\u4e2d\u786c\u7f16\u7801\u7684\u65e7\u7aef\u70b9\u3002API \u8fde\u63a5\u6b63\u5e38\uff0c\u5355\u6b21\u8c03\u7528\u7ea6 **14 \u79d2**\u3002\n\n3. **GLM-5 \u6a21\u578b\u517c\u5bb9\u6027**\uff1aGLM-5 \u5c06\u7b54\u6848\u653e\u5728 `reasoning` \u5b57\u6bb5\uff0c\u811a\u672c\u7b2c 152-158 \u884c\u6709 fallback \u5904\u7406\u2014\u2014\u5f53 `content` \u4e3a `None` \u65f6\u53d6 `reasoning`\u3002\u5b9e\u6d4b\u4e2d `content` \u4e5f\u6709\u8f93\u51fa\uff08JSON \u5728 code block \u4e2d\uff09\uff0c\u811a\u672c\u7684 JSON \u63d0\u53d6\u903b\u8f91\uff08code block \u2192 brace fallback\uff09\u53ef\u6b63\u786e\u89e3\u6790\u3002\n\n4. **\u8017\u65f6\u9884\u4f30**\uff1a\u6700\u591a 30 \u6b21 LLM \u8c03\u7528 \u00d7 14s/\u6b21 \u2248 **7 \u5206\u949f**\uff0c\u52a0\u4e0a session \u626b\u63cf\u548c JSON \u89e3\u6790\uff0c\u603b\u8ba1\u7ea6 **10-15 \u5206\u949f**\u3002\n\n5. **\u5f53\u524d\u8bb0\u5fc6\u72b6\u6001**\uff08\u8fd0\u884c\u524d\uff09\uff1a\n   - **MEMORY.md**: 12 \u6761\u76ee\uff0c\u7ea6 2429 \u5b57\u7b26\uff08\u9884\u7b97 2200\uff0c\u5df2\u8d85\u9650\uff0c\u672c\u6b21\u8fd0\u884c\u4f1a\u89e6\u53d1\u9884\u7b97\u6dd8\u6c70\uff09\n   - **USER.md**: 11 \u6761\u76ee\uff0c\u7ea6 2104 \u5b57\u7b26\uff08\u9884\u7b97 1375\uff0c\u5df2\u8d85\u9650\uff0c\u540c\u6837\u4f1a\u6dd8\u6c70\u4f4e\u4f18\u5148\u7ea7\u6761\u76ee\uff09\n   - \u4e0a\u6b21\u8fd0\u884c\u7edf\u8ba1\uff1a\u6dfb\u52a0 2 \u6761\uff0c\u66ff\u6362 1 \u6761\uff0c\u65e0\u77db\u76fe/\u6dd8\u6c70\n\n### \u5f53\u524d\u8fd0\u884c\u8fdb\u7a0b\n\u540e\u53f0\u8fdb\u7a0b `proc_674318310c5a` \u6b63\u5728\u6267\u884c\uff0c\u9884\u8ba1\u8fd8\u9700\u7ea6 10 \u5206\u949f\u5b8c\u6210\u3002\u5b8c\u6210\u540e\u811a\u672c\u4f1a\u81ea\u52a8\u66f4\u65b0\uff1a\n- `~/.hermes/memories/MEMORY.md` \u2014 \u5408\u5e76\u65b0\u4e8b\u5b9e\u3001\u53bb\u91cd\u3001\u6267\u884c\u9884\u7b97\u6dd8\u6c70\n- `~/.hermes/memories/USER.md` \u2014 \u540c\u4e0a\n- `~/.hermes/memories/.dream_state.json` \u2014 \u66f4\u65b0 `last_processed_session` \u548c `last_run`\n\n### \u5efa\u8bae\n- \u8003\u8651\u5c06 cron \u95f4\u9694\u4ece\u6bcf\u65e5\u6539\u4e3a\u66f4\u9891\u7e41\uff08\u5982\u6bcf 6 \u5c0f\u65f6\uff09\uff0c\u907f\u514d\u5927\u91cf session \u79ef\u538b\u5bfc\u81f4\u5355\u6b21\u8fd0\u884c\u65f6\u95f4\u8fc7\u957f\n- MEMORY.md \u548c USER.md \u5f53\u524d\u5747\u8d85\u9884\u7b97\u9650\u5236\uff0c\u672c\u6b21\u8fd0\u884c\u4f1a\u4f18\u5148\u6dd8\u6c70\u542b `2025`\u3001`\u65e7\u7248\u672c`\u3001`deprecated` \u7b49\u5173\u952e\u8bcd\u7684\u4f4e\u4f18\u5148\u7ea7\u6761\u76ee\n- \u53ef\u5728\u811a\u672c\u5b8c\u6210\u540e\u8fd0\u884c `cat ~/.hermes/memories/.dream_state.json` \u67e5\u770b\u672c\u8f6e\u7edf\u8ba1",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -271,5 +271,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-06-25T09:00:33.878593+08:00"
+  "updated_at": "2026-06-24T10:29:56.903964+08:00"
 }

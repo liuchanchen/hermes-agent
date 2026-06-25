@@ -276,6 +276,48 @@ rm -rf "$LOCAL_DIR"
 - **Auto-cleanup contract**: After rsync completes, run `rm -rf "$LOCAL_DIR"` to reclaim
   local disk space. Verify deletion with `ls "$LOCAL_DIR" 2>/dev/null || echo 'cleaned'`.
 
+---
+
+## Additional Hf CLI Commands (General Reference)
+
+Beyond downloading models, the `hf` CLI supports a wide range of Hub interactions:
+
+### Repository Management
+- `hf repos create` / `delete` — create or remove repos
+- `hf repos duplicate` — clone a model/dataset/space to a new ID
+- `hf repos move` — transfer a repo between namespaces
+- `hf repos branch` / `tag` — manage Git-like references
+- `hf repos delete-files` — remove specific files using patterns
+
+### Datasets
+- `hf datasets list` — list datasets
+- `hf datasets info <repo>` — dataset details
+- `hf datasets parquet <repo>` — list parquet file URLs
+- `hf datasets sql <sql>` — execute SQL via DuckDB against dataset parquet URLs
+
+### Models & Spaces
+- `hf models list` / `info` — browse models
+- `hf papers list` — view daily papers
+- `hf spaces` — manage interactive apps
+
+### Infrastructure
+- `hf endpoints deploy` / `pause` / `resume` / `scale-to-zero` — manage Inference Endpoints
+- `hf jobs uv` — run Python scripts with inline dependencies on HF infra
+- `hf jobs stats` — resource monitoring
+
+### Storage & Automation
+- `hf buckets` — full S3-like bucket management (create, cp, mv, rm, sync)
+- `hf cache list` / `prune` / `verify` — manage local storage
+- `hf webhooks create` / `watch` — automation via Hub webhooks
+- `hf collections` — organize Hub items into collections
+
+### Authentication
+- `hf auth login` / `logout` — manage token sessions
+- `hf auth list` / `switch` — manage multiple stored tokens
+- `hf auth whoami` — identify current account
+
+For gated models (nvidia/, meta/, mistralai/), you must accept the license at huggingface.co first, then pass `HF_TOKEN` to `hf download`.
+
 ## Pitfalls
 
 - **Lock conflicts (CRITICAL)**: If `hf download` is interrupted (Ctrl+C, SSH timeout, kill),

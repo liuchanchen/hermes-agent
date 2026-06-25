@@ -1,12 +1,6 @@
 User requires all model calls to use max thinking/reasoning effort globally. Set agent.reasoning_effort: xhigh and delegation.reasoning_effort: xhigh in config.yaml. Note: "xhigh" is the highest available effort level — "max" is not a valid config value.
 §
-GLM-5.1-FP8 Blackwell: TP8 PP2 EP8, TRITON_MLA+eager+block64. SM12 shared mem 99KB < Triton's 100KB = enforce-eager needed. Skill: mlops/glm5-fp8-blackwell.
-§
-用户要求技能库更新为类级别技能，每个技能包含丰富的SKILL.md和references/目录，而不是扁平的一会话一技能的条目列表。
-§
 vLLM decode deadlock: 97% GPU util but /v1/completions hangs. Verify with /v1/models + quick POST before benchmarks. pkill requires USER CONSENT — user runs kill manually. GLM-5.1-NVFP4 on 70.96: TP8/bond0/bf16/prefix-cache, vllm-ds4 venv.
-§
-技能收集的目标是构建一个类级别指令和经验知识的库，每个技能应是宽泛的伞状技能并带有标记的子部分，而不是多个狭窄的技能。
 §
 70.88: venv /data/venvs/vllm-ds4/, ens20f0=100Mb/s瓶颈, ens35f0np0/1 DOWN.
 §
@@ -20,8 +14,10 @@ DS-V4-Flash bench (2048in/500out, TP8+EP): 70.92(RTX5090×8,16K) 0%=570tok/s,40%
 §
 70.92: /data/venvs/vllm-ds4/, /data/vllm-ds4-sm120/, DS-V4-Flash at /data/models/deepseekv4_flash, /data/ chown'd jianliu, cudagraph_mode(not wdgraph_mode).
 §
-用户使用 'interview' 技能管理 WarpDriveAI 的招聘流程，包括候选人简历、面试时间表、入职时间线和候选人档案。
+用户负责 WarpDriveAI 招聘，用 interview 技能管理简历、面试、入职。
 §
-用户负责 WarpDriveAI 的招聘工作，使用 interview 技能管理候选人简历、面试时间表和入职时间线。
+70.93: WarpDrive TGU01-Pro x8(openEuler24.03,WD580.159.03). nvidia-smi blocked(stub exit 113,use wd-smi). No host CUDA/NCCL. Docker deepseek-v4-flash(NCCL 2.27.7+cuda13.0). backstage=198.18.0.206(SSH blocked). All servers pwd:!QAZ2wsx. SSH shorthand(70.92等)→70.0.0.x错误,必须完整IP(10.10.70.92). 70.92+96新增xuechenli/yirongpan(sudo,docker,!QAZ2wsx). vLLM at 192.168.12.12:19258(运行中,需API key)。
 §
-User is involved in hiring processes for WarpDriveAI, managing interview timetables, candidates, resumes, and onboard timelines.
+用户调用了 interview 技能，该技能用于管理 WarpDriveAI 的面试日程、候选人、简历和入职时间线。
+§
+单节点TP=8服务器在10.10.70.88:8000上运行，修复KV缓存问题后（gpu-memory-utilization=0.96, max-model-len=8192），GPU内存利用率50.8%，KV缓存约7.5 GiB。

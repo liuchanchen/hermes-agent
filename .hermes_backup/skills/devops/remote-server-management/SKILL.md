@@ -1,7 +1,7 @@
 ---
 name: remote-server-management
 description: Remote GPU server management — SSH access, CUDA/nvcc toolchain, NCCL configuration, nccl-tests compilation, bandwidth testing, and multi-server cluster operations for servers in the 10.10.70.x network.
-version: 1.2.0
+version: 1.3.0
 author: Hermes Agent
 license: MIT
 ---
@@ -16,8 +16,8 @@ Umbrella skill for managing remote GPU servers in the 10.10.70.x network. Covers
 |--------|----------|-----|------|-------------------|-------|
 | 10.10.70.66 | oem66 | A100 40GB | 6× | — | Older setup, full CUDA 12.3 installed, no proxy needed |
 | 10.10.70.88 | oem88 | RTX 5090 32GB | 8× | **100 Mb/s** ⚠️ | Proxy via .bashrc, vLLM + SGLang + TRTLLM, Wan2.2-T2V-A14B, CUDA 13.0, Xeon Platinum 8558P (48c/socket, 260MB L3), NCCL 2.28.9. **See also: `remote-server-70-88` skill (detailed).** |
-| 10.10.70.93 | oem93 | RTX 5090 | 8× | — | No SSH key for jianliu (password required) |
-| 10.10.70.94 | oem94 | — | — | — | No SSH key for jianliu (password required) |
+| 10.10.70.93 | oem93 | **WarpDrive TGU01-Pro** 32GB | 8× | — | openEuler 24.03 LTS-SP3, WD driver 580.159.03, **`nvidia-smi` blocked** (stub exit 113 — use `wd-smi` instead), no host-level CUDA toolkit or NCCL. Docker containers: `deepseek-v4-flash` (nvidia/cuda:13.0.0 + NCCL 2.27.7), `qs_wdtgu01_20000`. Password auth only (`!QAZ2wsx`). **See also: `references/70-93-performance-quirks.md` (detailed).** |
+| 10.10.70.94 | oem94 | RTX 5090 32GB | 8× | 1 GbE | SSH key auth for jianliu. Driver 595.71.05. **`/usr/local/bin/nvidia-smi` is a shell script wrapper that exits 113** — use `/usr/bin/nvidia-smi` instead. All 8 GPUs occupied by vLLM (VLLM::Worker_TP* processes, ~32GB VRAM each). nccl-tests at `~/work/bandwidth_test/nccl-tests/` (copied from 70.88 via scp -r). No proxy. **NCCL 2.30.7+cuda13.3** (apt-installed, no CUDA/NCCL toolchain pre-installed). No OpenMPI pre-installed — install with `apt-get install openmpi-bin libopenmpi-dev`. nccl-tests rebuilt with `make MPI=1 NCCL_HOME=/usr MPI_HOME=/usr/lib/x86_64-linux-gnu/openmpi`. **nvidia-smi wrapper quirk confirmed 2026-06-24**: the stub wrapper is a bash script at `/usr/local/bin/nvidia-smi` that calls `exit 113`. Direct `/usr/bin/nvidia-smi` works normally. |
 | 10.10.70.95 | oem95 | RTX 5090 | 8× | 1 GbE | Has proxy (via .bashrc), LVM storage, currently running MiniMax M2 nvfp4 |
 | 10.10.70.96 | oem96 | RTX PRO 6000 Blackwell SE | 8× | 1 GbE | DeepSeek-V4-Pro PP=2 master, proxy via .bashrc, bond0 RoCE v2 (192.168.66.10/24) |
 | 10.10.70.92 | oem92 | RTX 5090 32GB | 8× | — | SSH key auth. NCCL 2.28.9+cuda13.0 (downgraded from 2.30.4 for A/B test — disproved NCCL regression hypothesis), cuda-toolkit-13-2, nccl-tests at `~/work/bandwidth_test/nccl-tests` (rebuilt vs 2.28.9). Xeon Gold 6530 (32c/socket, 160MB L3). **`/data/` owned by `rapidsdb`** — need `sudo mkdir` + `sudo chown jianliu:jianliu`. No proxy. sudo password: `!QAZ2wsx`. **vLLM venv** at `/data/venvs/vllm-ds4/` (copied from 70.88) — requires Python 3.12 (`add-apt-repository ppa:deadsnakes/ppa`, already installed). **vLLM source tree** at `/data/vllm-ds4-sm120/` (editable install, copied from 70.88, 6.2GB). vLLM 0.6.0.dev0. **DeepSeek-V4-Flash** at `/home/public/models/tgu01/deepseekv4_flash/` (149GB), symlinked at `/data/models/deepseekv4_flash`. Startup script: `~/work/tgu01-pro-model-deployment/deepseekv4_flash/start_dsv4_flash_1node.sh` (uses `cudagraph_mode` not `wdgraph_mode` — parameter differs by vllm version). Model supports 1M context (YaRN factor 16 from 64K base). **Fake nvidia-smi wrapper** at `/usr/local/bin/nvidia-smi` (xplatform wd-smi blocker, exit 113) — removed 2026-06-22. Real nvidia-smi at `/usr/bin/nvidia-smi`. |
@@ -149,12 +149,13 @@ dpkg -l libnccl2 libnccl-dev | grep -E '^ii'
 
 **Note:** NVIDIA's repo auto-redirects in China to `developer.download.nvidia.cn`. This is transparent — no config change needed.
 
-### NCCL version inventory (2026-06-22)
+### NCCL version inventory (2026-06-24)
 
 | Server | NCCL Version | CUDA | GPU | Notes |
 |--------|-------------|------|-----|-------|
-| 70.88 | 2.28.9+cuda13.0 | 13.0 | RTX 5090 | Oldest — best 8-GPU alltoall (25.25 GB/s peak), likely due to Xeon 8558P (48c, 260MB L3) |
-| 70.92 | 2.28.9+cuda13.0 | 13.2 | RTX 5090 | Downgraded from 2.30.4 on 2026-06-22. A/B test: 2.28.9 peak busbw=12.46 vs 2.30.4=12.36 — NCCL version is NOT the alltoall regression cause. vLLM venv at `/data/venvs/vllm-ds4/` needs Python 3.12 installed |
+| 70.88 | 2.28.9+cuda13.0 | 13.0 | RTX 5090 | Oldest — best 8-GPU alltoall (23.50 GB/s avg busbw, 25.25 GB/s peak), likely due to Xeon 8558P (48c, 260MB L3) |
+| 70.92 | 2.28.9+cuda13.0 | 13.2 | RTX 5090 | Downgraded from 2.30.4 on 2026-06-22. Alltoall benchmark pending. |
+| 70.94 | 2.30.7+cuda13.3 | 13.2 | RTX 5090 | apt-installed, no CUDA/NCCL toolchain pre-installed. 8-GPU alltoall avg busbw=16.45 GB/s (30% slower than 70.88). |
 | 70.95 | 2.30.4+cuda13.2 | 13.2 | RTX 5090 | — |
 | 70.96 | 2.30.4+cuda13.2 | 13.2 | RTX PRO 6000 | — |
 | 70.98 | 2.30.4+cuda13.2 | 13.2 | RTX PRO 6000 | — |
@@ -204,9 +205,14 @@ ssh jianliu@10.10.70.98 "cd ~/work/bandwidth_test && tar xzf /tmp/nccl-tests.tar
 ```
 
 **IMPORTANT: If the source and target servers have different NCCL versions, you MUST rebuild nccl-tests on the target.** Pre-built binaries from NCCL 2.28 will fail with "Incompatible NCCL versions" error when run against NCCL 2.30+ (Device API changed at 2.29). Copy the source tree, then rebuild:
+
 ```bash
-ssh jianliu@10.10.70.92 "cd ~/work/bandwidth_test/nccl-tests && make clean MPI=0 && make -j8 MPI=0 CUDA_HOME=/usr/local/cuda-13.2"
+# Rebuild on target server (e.g., 70.92, 70.94) after installing OpenMPI:
+ssh jianliu@10.10.70.XX "echo '!QAZ2wsx' | sudo -S apt-get install -y openmpi-bin libopenmpi-dev"
+ssh jianliu@10.10.70.XX "cd ~/work/bandwidth_test/nccl-tests && rm -rf build && make MPI=1 NCCL_HOME=/usr MPI_HOME=/usr/lib/x86_64-linux-gnu/openmpi -j8"
 ```
+
+> **Why `MPI=1`?** When building nccl-tests for single-node multi-GPU (all on one machine), MPI=1 links the OpenMPI library so `mpirun -np 8 --allow-run-as-root ./alltoall_perf -g 1 ...` works. Without MPI=1, `alltoall_perf` has no mpirun launcher and cannot spawn 8 processes. Also: **always use `-g 1`** (1 GPU per process) for single-node 8-GPU tests. `-g 8` (all 8 GPUs in one process) causes NCCL to request 64 GPUs (`8 processes × 8 GPUs`) and fail.
 
 ### Run tests
 ```bash
@@ -222,16 +228,22 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 ./all_reduce_perf -b 8 -e 8G -f 2 -g 4 2>&1
 - **AlgoBW**: Algorithm bandwidth (actual data/time)
 - **BusBW**: Bus bandwidth (accounts for NCCL internal data movement, ~1.7-2× AlgoBW)
 
-### Alltoall performance: cross-server comparison (2026-06-22)
+### Alltoall performance: cross-server comparison (2026-06-24, float32, 256MB-4GB, -g 1 -b 256M -e 4G -f 2 -w 10 -n 5)
 
 Alltoall is significantly more sensitive to NCCL version than all_reduce due to its N² communication pattern.
 
-| Server | GPU | CPU | NCCL | 4-GPU avg busbw | 8-GPU avg busbw | 8/4 degradation |
-|--------|-----|-----|------|----------------:|----------------:|:---------------:|
-| 70.88 | RTX 5090 32GB | Xeon 8558P (48c, 260MB L3) | 2.28.9+cu13.0 | 9.60 GB/s | 5.71 GB/s | 0.59x |
-| 70.92 | RTX 5090 32GB | Xeon Gold 6530 (32c, 160MB L3) | 2.28.9+cu13.0 | 6.11 GB/s | 4.12 GB/s | 0.67x |
-| 70.92 | RTX 5090 32GB | Xeon Gold 6530 (32c, 160MB L3) | 2.30.4+cu13.2 | 6.20 GB/s | 3.98 GB/s | 0.64x |
-| 70.98 | RTX PRO 6000 98GB | Xeon Gold 6530 (32c, 160MB L3) | 2.30.4+cu13.2 | 8.68 GB/s | 3.70 GB/s | 0.43x |
+| Server | GPU | CPU | NCCL | Driver-CUDA | Avg busbw (GB/s) | Peak busbw (GB/s) |
+|--------|-----|-----|------|-------------|------------------|------------------|
+| 70.88 | RTX 5090 32GB | Xeon Platinum 8558P (48c, 260MB L3) | 2.28.9+cu13.0 | 580.159.03 / 13.0 | 23.50 | 23.98 @ 4GB |
+| 70.92 | RTX 5090 32GB | Xeon Gold 6530 (32c, 160MB L3) | 2.28.9+cu13.0 | 595.71.05 / 13.2 | untested (2026-06-24) | — |
+| 70.94 | RTX 5090 32GB | (untested) | 2.30.7+cuda13.3 | 580.159.03 / 13.2 | 16.45 | 16.88 @ 4GB |
+
+**Key finding — 70.94 vs 70.88 alltoall regression (2026-06-24):**
+- 70.94 (NCCL 2.30.7, Driver 580.159.03, Driver-CUDA 13.2) achieves **16.45 GB/s avg busbw**
+- 70.88 (NCCL 2.28.9, Driver 580.159.03, Driver-CUDA 13.0) achieves **23.50 GB/s avg busbw**
+- **70.94 is ~30% slower than 70.88** despite nominally newer NCCL and same GPU model
+- CPU difference is the likely cause: 70.88 has 48c/260MB L3 vs 70.94's unknown CPU (likely Ice Lake with less L3)
+- 70.92 data missing — collect with: `ssh 10.10.70.92 "echo '!QAZ2wsx' | sudo -S apt-get install -y openmpi-bin libopenmpi-dev && cd ~/work/bandwidth_test/nccl-tests && rm -rf build && make MPI=1 NCCL_HOME=/usr MPI_HOME=/usr/lib/x86_64-linux-gnu/openmpi && cd build && mpirun -np 8 --allow-run-as-root ./alltoall_perf -g 1 -b 256M -e 4G -f 2 -w 10 -n 5"`
 
 **Key findings — NCCL 2.30.4 regression DISPROVED:**
 - **Same GPU, different NCCL:** 70.92 with NCCL 2.30.4 gets 12.36 GB/s 8-GPU peak busbw at 256M; after downgrading to NCCL 2.28.9, it gets 12.32 GB/s — **identical**. NCCL version is NOT the cause.
@@ -736,6 +748,14 @@ Step 1 is ~7s slower due to GPU kernel JIT compilation. Steps 2+ are consistent 
 **`xformers` NOT available** on 70.88's vllm-ds4 venv — memory-efficient attention acceleration not currently installable.
 **Benchmark first, then optimize offload strategy.** Sequential CPU offload is the safe default but orders of magnitude slower than GPU offload.
 
+## Driver & CUDA Toolkit Downgrade
+
+See `references/nvidia-driver-cuda-downgrade.md` for the complete procedure to downgrade NVIDIA driver + CUDA toolkit on Ubuntu 22.04. Covers:
+
+- Removing `nvidia-driver-595-open` + `cuda-toolkit-13-2` and installing `nvidia-driver-580-server-open` + `cuda-toolkit-13-0`
+- Post-reboot verification checklist
+- SMI version vs Driver version mismatch interpretation
+
 ## References
 
 Detailed server-specific notes are stored in `references/`:
@@ -752,6 +772,7 @@ Detailed server-specific notes are stored in `references/`:
 - `references/glm5-fp8-deployment.md` — GLM-5.1-FP8 2-node deployment: setup steps, CC 12.0 patches, sparse MLA workaround, pitfall reference
 - `references/qwen-image-2512-70-88.md` — qwen_image_2512 on 70.88: API schema, warmup results, sequential CPU offload slowness, rsync silent failure lesson
 - `references/70-92-setup.md` — 70.92: RTX 5090 32GB×8, NCCL 2.30.4+cuda13.2 install, cuda-toolkit-13-2, nccl-tests rebuild, nvidia-smi wrapper fix
+- `references/70-94-alltoall-benchmark.md` — 70.94: alltoall benchmark (16.45 GB/s avg busbw), VLLM kill, OpenMPI install, nccl-tests rebuild, 30% slower than 70.88
 - `references/multi-hop-rsync-70-88-to-70-92.md` — Multi-hop rsync pattern: 70.88 → local → 70.92 transfer for qwen_image_2512 (54GB), local disk pre-flight, `/data/` ownership (rapidsdb) causing rsync mkdir failure, session transcript
 
 ## GPU Topology & P2P Diagnostics
@@ -774,33 +795,57 @@ Output: `OK` = P2P supported, `CNS` = chipset not supported, `GNS` = GPU not sup
 
 ### PCIe Link Speed Diagnostics
 
-The PCIe link speed reported by sysfs (`current_link_speed`) and nvidia-smi (`pcie.link.gen.current`) reflects the **current link training state** — which can change between idle and load:
+### PCIe Link Speed Diagnostics
 
+The PCIe link speed reported by nvidia-smi reflects the **current link training state** — which changes between idle and load:
 ```bash
-# Check current PCIe link speed (may show Gen1 if GPU is idle/P8)
-nvidia-smi --query-gpu=index,pcie.link.gen.current,pcie.link.gen.max,pcie.link.width.current,pcie.link.width.max --format=csv,noheader
+# CORRECT nvidia-smi query syntax for PCIe info (verified 2026-06-24)
+# -q = structured query output, -i = specific GPU index
+nvidia-smi -q -i 0 | grep -A 10 'PCIe Generation'
 
-# Check sysfs per-GPU bus
-for bus in 16 27 38 5a 98 a8 b8 d8; do
-  echo -n "GPU (bus 0000:${bus}:00.0): "
-  cat /sys/bus/pci/devices/0000:${bus}:00.0/current_link_speed 2>/dev/null || echo 'N/A'
-  echo -n "  width: "
-  cat /sys/bus/pci/devices/0000:${bus}:00.0/current_link_width 2>/dev/null || echo 'N/A'
-done
+# Quick all-GPU PCIe summary (loop, one-liner):
+ssh jianliu@10.10.70.XX "for i in 0 1 2 3 4 5 6 7; do echo \"=== GPU \$i ===\"; nvidia-smi -q -i \$i | grep -E 'PCIe Gen|Link Width|Perf' | head -6; done"
 
-# Check upstream bridge max vs current
-cat /sys/bus/pci/devices/0000:15:01.0/max_link_speed
-cat /sys/bus/pci/devices/0000:15:01.0/current_link_speed
-
-# Check after loading the GPU (PCIe link renegotiates under load)
-./all_reduce_perf -b 256M -e 256M -f 2 -g 8 2>&1 | tail -3
-nvidia-smi --query-gpu=index,pcie.link.gen.current,pcie.link.gen.max --format=csv,noheader
+# Simple CSV (gen current/max, width):
+nvidia-smi --query-gpu=index,pcie.link.gen.current,pcie.link.gen.max,pcie.link.width.current --format=csv,noheader
 ```
 
-**Critical: "Gen1 lock" is often misleading.** On RTX PRO 6000 Blackwell, when idle (Performance State P8), the GPU power-gates the PCIe link and renegotiates down to Gen1. Under any workload (P0), it renegotiates to Gen4/Gen5 ×16. Always test under load before concluding the link is stuck. To check the GPU's performance state:
-```bash
-nvidia-smi -q -i 0 | grep 'Performance State'
-```
+**Critical: "Gen1 lock" is often misleading.** When idle (Performance State P8), the GPU power-gates the PCIe link and renegotiates down to Gen1. Under any workload (P1/P0), it renegotiates to Gen4/Gen5 ×16. Always test under load before concluding the link is stuck:
+
+| Server | GPU | Perf State | Negotiated Max | Device Max | Host Max | Device Current | Current | Link Width | Driver | Note |
+|--------|-----|-----------|--------------|------------|----------|--------------|---------|------------|---------|------|
+| 70.88 | RTX 5090 ×8 | P8 (idle) | **Gen 5** | Gen 5 | Gen 5 | Gen 1 | Gen 1 | 16x | 580.159.03 | P8 idle → Gen1; under load → Gen5 |
+| 70.92 | RTX 5090 ×8 | P8 (idle) | **Gen 4** | Gen 5 | Gen 5 | Gen 1 | Gen 1 | 16x | 595.71.05 | P8 idle → Gen1; negotiated Max capped at Gen4 |
+
+To force renegotiation: run a GPU compute workload (e.g., `./all_reduce_perf -b 256M -e 256M -f 2 -g 8`), then re-query.
+
+**nvidia-smi syntax pitfalls (verified 2026-06-24):**
+- `nvidia-smi pcie` — **invalid** (unrecognized option)
+- `nvidia-smi -d pcie` — **invalid** (`-d`/`--display` takes display types like MEMORY/UTILIZATION, not PCIe)
+- `nvidia-smi -q -i N -d pcie` — **invalid** (combining `-q` and `-d` is mutually exclusive)
+- `nvidia-smi nvlink` — valid subcommand but for NVLink status only, not PCIe gen/speed
+- Correct for structured detail: `nvidia-smi -q -i N` — full output block includes `GPU Link Info` with all Gen/width fields
+- Correct for CSV: `nvidia-smi --query-gpu=index,pcie.link.gen.current,pcie.link.gen.max,pcie.link.width.current --format=csv,noheader`
+- Correct all-GPU loop: `for i in 0 1 2 3 4 5 6 7; do echo "=== GPU $i ==="; nvidia-smi -q -i $i | grep -E 'PCIe Gen|Link Width|Perf'; done`
+
+**The old entry in nccl-tests bandwidth results is confirmed correct:**
+> "All servers show PCIe Gen1 at idle (2.5 GT/s) — normal ASPM power-gating, ramps to Gen5 under load"
+
+This explains why 70.88's all-servers PCIe Gen1 report is NOT a hardware problem — it's pure ASPM idle behavior.
+
+### Key Finding: Negotiated Max Discrepancy (70.88 vs 70.92)
+
+Both servers have **Device Max = Gen 5** and **Host Max = Gen 5** (identical hardware PCIe capability), but their **negotiated `Max`** differs:
+
+- **70.88: Negotiated Max = Gen 5** — link trains to Gen 5 when under load
+- **70.92: Negotiated Max = Gen 4** — link trains to Gen 4 (capped below Gen 5)
+
+This is NOT an ASPM/idle artifact — the `Max` field is the negotiated link ceiling, recorded independently of Current speed. Possible causes (check in order):
+1. **BIOS PCIe Speed Policy** — most likely. 70.92 BIOS may be set to "Gen 4" or "PCIe 4.0 Only" instead of "Auto/Gen 5". Requires physical/IPMI access.
+2. **Driver version** — 70.92 runs `595.71.05`, 70.88 runs `580.159.03`. Newer driver may have more conservative Gen 5 link training.
+3. **PCIe signal integrity** — Gen 5 (32 GT/s) is sensitive to PCB trace quality; 70.92's PCIe switch/riser may not reliably train to Gen 5.
+
+**The `Device Max = 5` field on RTX 5090** comes directly from `nvidia-smi -q`. The RTX 5090 spec sheet says Gen 4, but the actual firmware/driver reports Gen 5 capability — use the nvidia-smi value as ground truth, not the spec sheet.
 
 ### Additional P2P checks
 
@@ -821,7 +866,8 @@ lspci -s 15:01.0 -vn             # bridge vendor/device class (e.g. Intel 352a)
 ```
 
 ### Known GPU topologies & P2P status
-See `references/gpu-topology-p2p.md` for per-server topology snapshots and P2P matrices.
+- `references/gpu-topology-p2p.md` — Per-server GPU topology snapshots and P2P matrices.
+- `references/gpu-pcie-state.md` — PCIe Gen/speed state: 70.88 (Gen 1 P8 idle) vs 70.92 (Gen 4 P1 loaded), nvidia-smi syntax guide, GPU bus addresses, **WarpDrive lspci vs nvidia-smi device ID mapping**.
 
 ## GPU Architecture Codes
 
@@ -923,8 +969,43 @@ ssh remote "echo '$B64' | base64 -d > /tmp/file.py"
 
 Python heredoc via `ssh remote "python3 - << 'EOF' ..."` frequently mangles quotes and backslashes. Base64 transfer is reliable.
 
+## User Management (Remote Servers)
+
+### Create user with home directory and bash shell
+```bash
+ssh jianliu@10.10.70.XX "echo '!QAZ2wsx' | sudo -S useradd -m -s /bin/bash USERNAME"
+```
+
+### Add user to sudo group
+```bash
+ssh jianliu@10.10.70.XX "echo '!QAZ2wsx' | sudo -S usermod -aG sudo USERNAME"
+```
+
+### Set user password
+```bash
+ssh jianliu@10.10.70.XX "echo '!QAZ2wsx' | sudo -S bash -c \"echo 'USERNAME:PASSWORD' | chpasswd\""
+```
+
+**Important:** `useradd -m` creates the account with a **locked password** — the user cannot log in via password until you explicitly set one with `chpasswd` or `passwd`. SSH key auth works immediately, but password auth requires this extra step.
+
+### Verify
+```bash
+ssh jianliu@10.10.70.XX "id USERNAME && getent group sudo"
+```
+
+### User accounts on 70.92 (as of 2026-06-24)
+
+| User | UID | Groups | Password | Notes |
+|------|-----|--------|----------|-------|
+| jianliu | 1000 | jianliu, sudo | SSH key + !QAZ2wsx | Primary admin |
+| qs | — | sudo | — | Pre-existing |
+| luojie | — | sudo | — | Pre-existing |
+| xuechenli | 1004 | xuechenli, sudo | !QAZ2wsx | Added 2026-06-24 |
+| yirongpan | 1005 | yirongpan, sudo | !QAZ2wsx | Added 2026-06-24 |
+
 ## Pitfalls
 
+- **SSH hostname shorthand resolution**: Short hostnames like `70.92` may resolve to wrong IPs (e.g., `70.0.0.92` instead of `10.10.70.92`). **Always use the full IP `10.10.70.XX`** when SSHing to servers. The shorthand depends on DNS/search domain config and is unreliable.
 - **Proxy servers need `source ~/.bashrc`** — non-interactive SSH never loads .bashrc; commands will hang without proxy
 - **70.88 external internet (updated 2026-06-09):** Proxy is now configured in `~/.bashrc` (`10.10.60.140:7890`). PyPI and HuggingFace are reachable via `source ~/.bashrc && <command>`. Use Tsinghua Tuna mirror for pip reliability: `-i https://pypi.tuna.tsinghua.edu.cn/simple --timeout=30`.
 - **NVIDIA repo auto-redirects** in China to `developer.download.nvidia.cn` (mirror)
@@ -936,10 +1017,10 @@ Python heredoc via `ssh remote "python3 - << 'EOF' ..."` frequently mangles quot
 - **70.88 mgmt NIC at 100 Mb/s** — `ens20f0` on 70.88 auto-negotiated to 100 Mb/s (Fast Ethernet), not 1 GbE. This caps rsync/SCP throughput at ~5.3 MB/s. A 149G model transfer takes ~8 hours. Other servers (70.96, 70.98) have 1 GbE management NICs. May be a switch port or auto-negotiation issue — check `ethtool ens20f0` and consider forcing 1 GbE if the switch supports it.
 - **Do not hardcode passwords** in cron jobs or scripts — prefer SSH key auth for automated tasks
 - **`-t` flag required** for PTY-dependent commands (watch, top, interactive sudo)
-- **Fake nvidia-smi wrapper on 70.92**: `/usr/local/bin/nvidia-smi` was a shell script that just did `exit 113` (installed by "xplatform" to block nvidia-smi in favor of `wd-smi`). Since `/usr/local/bin` is earlier in PATH than `/usr/bin`, it shadows the real binary. Fix: `sudo rm /usr/local/bin/nvidia-smi`. The real nvidia-smi is at `/usr/bin/nvidia-smi`. Check other servers for the same issue if `nvidia-smi` returns exit code 113.
+- **Fake nvidia-smi wrapper (xplatform/WarpDrive stub)**: On WarpDrive-appliance servers (70.93 confirmed, 70.92 formerly, 70.94 confirmed), `/usr/local/bin/nvidia-smi` is a shell script that just does `exit 113` (installed by "xplatform" to block nvidia-smi in favor of `wd-smi`). Since `/usr/local/bin` is earlier in PATH than `/usr/bin`, it shadows the real binary. **On 70.92**: removed 2026-06-22, real nvidia-smi at `/usr/bin/nvidia-smi`. **On 70.93**: still present — use `wd-smi` instead (WarpDrive's GPU monitoring tool). **On 70.94**: still present — use `/usr/bin/nvidia-smi` directly. Check other servers for the same issue if `nvidia-smi` returns exit code 113 or hangs silently.
 - **vLLM `--compilation-config` parameter name differs by version**: vLLM 0.6.0.dev0 (70.88/70.92) uses `cudagraph_mode`, while newer builds (70.98's `0.1.dev1+gb709b75b4`) use `wdgraph_mode`. Passing `wdgraph_mode` to vLLM 0.6.0.dev0 causes `pydantic_core.ValidationError: Unexpected keyword argument`. Fix: check which vllm version is installed (`python -c 'import vllm; print(vllm.__version__)'`) and use the matching parameter name. For vLLM 0.6.0.dev0: `--compilation-config '{"cudagraph_mode":"FULL_AND_PIECEWISE", "custom_ops":["all"]}'`
 - **DeepSeek-V4-Flash context length**: model config `max_position_embeddings=1048576` (1M), `original_max_position_embeddings=65536`, YaRN scaling factor 16. The startup script on 70.92 defaults to `MAX_LEN=16384`; 70.98's script uses `MAX_LEN=1048576`. Change based on VRAM budget.
-- **nccl-tests binary cross-compatibility**: nccl-tests compiled against NCCL 2.28 headers will NOT work with NCCL 2.30+ runtime (incompatible Device API). Always rebuild nccl-tests on the target server with `make clean && make MPI=0 CUDA_HOME=/usr/local/cuda-XX.X` after installing NCCL. Copying pre-built binaries from another NCCL version server causes "Incompatible NCCL versions" errors at runtime.
+- **`-g 8` vs `-g 1` in nccl-tests**: When running 8-GPU alltoall/all_reduce on a single node, **always use `-g 1`** (1 GPU per MPI rank, 8 ranks total). `-g 8` means "all 8 GPUs in one process" — with `mpirun -np 8` this requests 64 GPUs total and NCCL fails with "Invalid number of GPUs: 56 requested but only 8 were found." The correct invocation: `mpirun -np 8 --allow-run-as-root ./alltoall_perf -g 1 -b 256M -e 4G -f 2 -w 10 -n 5`
 - **venv copy requires matching Python version**: When copying a Python venv (e.g., `/data/venvs/vllm-ds4/`) from one server to another, the venv's `bin/python3.12` symlink points to `/usr/bin/python3.12` (absolute path). If the target server doesn't have the same Python version installed, the venv won't work. Fix: install the matching Python version on the target (e.g., `sudo add-apt-repository -y ppa:deadsnakes/ppa && sudo apt-get install -y python3.12 python3.12-venv python3.12-dev`). Using `tar` through SSH pipe is more reliable than rsync for large venv copies (rsync to remote IP may trigger security scan blocks).
 - **venv copy requires matching Python version AND source tree**: When copying a venv (e.g., `/data/venvs/vllm-ds4/`) from one server to another: (1) The venv's `bin/python3.12` symlink points to `/usr/bin/python3.12` (absolute path) — the target must have the same Python version installed. (2) If the venv uses an **editable install** (`pip install -e .`), the source tree must also be copied. For vLLM ds4-sm120, the venv has `__editable__.vllm-0.6.0.dev0.pth` pointing to `/data/vllm-ds4-sm120/vllm` — without this 6.2GB source tree, `import vllm` fails with `ModuleNotFoundError`. Copy both the venv and the source tree, then create model symlinks.
 - **rsync to remote IP addresses may be blocked** by security tools. Workaround: use `tar cf - dir | ssh remote "cd /path && tar xf -"` as a pipe through SSH instead.

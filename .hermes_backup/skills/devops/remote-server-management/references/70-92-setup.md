@@ -66,8 +66,20 @@ The venv at `/data/venvs/vllm-ds4/` is an editable install that depends on BOTH 
 
 ## Access
 - **SSH:** `ssh jianliu@10.10.70.92` (key auth works)
+  - **⚠️ Shorthand `70.92` resolves to `70.0.0.92` — WRONG.** Always use full IP `10.10.70.92`.
 - **No proxy** — direct internet access
 - **sudo:** requires password (`!QAZ2wsx`)
+
+## User Accounts (as of 2026-06-24)
+
+| User | UID | Groups | Password | Notes |
+|------|-----|--------|----------|-------|
+| jianliu | 1000 | jianliu, sudo | SSH key + !QAZ2wsx | Primary admin |
+| qs | — | sudo | — | Pre-existing |
+| luojie | — | sudo | — | Pre-existing |
+| xuechenli | 1004 | xuechenli, sudo | !QAZ2wsx | Added 2026-06-24 |
+| yirongpan | 1005 | yirongpan, sudo | !QAZ2wsx | Added 2026-06-24 |
+
 - **`/data/` ownership:** `rapidsdb:rapidsdb` — jianliu cannot write. Use `sudo mkdir` + `sudo chown jianliu:jianliu`.
 
 ## Alltoall Benchmarks (2026-06-22)
