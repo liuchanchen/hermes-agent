@@ -15,13 +15,13 @@ Umbrella skill for managing remote GPU servers in the 10.10.70.x network. Covers
 | Server | Hostname | GPU | GPUs | NIC Speed (mgmt) | Notes |
 |--------|----------|-----|------|-------------------|-------|
 | 10.10.70.66 | oem66 | A100 40GB | 6× | — | Older setup, full CUDA 12.3 installed, no proxy needed |
-| 10.10.70.88 | oem88 | RTX 5090 32GB | 8× | **100 Mb/s** ⚠️ | Proxy via .bashrc, vLLM + SGLang + TRTLLM, Wan2.2-T2V-A14B, CUDA 13.0, Xeon Platinum 8558P (48c/socket, 260MB L3), NCCL 2.28.9. **See also: `remote-server-70-88` skill (detailed).** |
+| 10.10.70.88 | oem88 | RTX 5090 32GB | 8× | **100 Mb/s** ⚠️ | Proxy via .bashrc, vLLM + SGLang + TRTLLM, Wan2.2-T2V-A14B, CUDA 13.0, **Xeon Platinum 8558P** (48c/socket, 260MB L3 — best CPU for alltoall), NCCL 2.28.9, **Kernel 6.8.0-111-generic**. **See also: `remote-server-70-88` skill (detailed).** |
 | 10.10.70.93 | oem93 | **WarpDrive TGU01-Pro** 32GB | 8× | — | openEuler 24.03 LTS-SP3, WD driver 580.159.03, **`nvidia-smi` blocked** (stub exit 113 — use `wd-smi` instead), no host-level CUDA toolkit or NCCL. Docker containers: `deepseek-v4-flash` (nvidia/cuda:13.0.0 + NCCL 2.27.7), `qs_wdtgu01_20000`. Password auth only (`!QAZ2wsx`). **See also: `references/70-93-performance-quirks.md` (detailed).** |
 | 10.10.70.94 | oem94 | RTX 5090 32GB | 8× | 1 GbE | SSH key auth for jianliu. Driver 595.71.05. **`/usr/local/bin/nvidia-smi` is a shell script wrapper that exits 113** — use `/usr/bin/nvidia-smi` instead. All 8 GPUs occupied by vLLM (VLLM::Worker_TP* processes, ~32GB VRAM each). nccl-tests at `~/work/bandwidth_test/nccl-tests/` (copied from 70.88 via scp -r). No proxy. **NCCL 2.30.7+cuda13.3** (apt-installed, no CUDA/NCCL toolchain pre-installed). No OpenMPI pre-installed — install with `apt-get install openmpi-bin libopenmpi-dev`. nccl-tests rebuilt with `make MPI=1 NCCL_HOME=/usr MPI_HOME=/usr/lib/x86_64-linux-gnu/openmpi`. **nvidia-smi wrapper quirk confirmed 2026-06-24**: the stub wrapper is a bash script at `/usr/local/bin/nvidia-smi` that calls `exit 113`. Direct `/usr/bin/nvidia-smi` works normally. |
 | 10.10.70.95 | oem95 | RTX 5090 | 8× | 1 GbE | Has proxy (via .bashrc), LVM storage, currently running MiniMax M2 nvfp4 |
 | 10.10.70.96 | oem96 | RTX PRO 6000 Blackwell SE | 8× | 1 GbE | DeepSeek-V4-Pro PP=2 master, proxy via .bashrc, bond0 RoCE v2 (192.168.66.10/24) |
-| 10.10.70.92 | oem92 | RTX 5090 32GB | 8× | — | SSH key auth. NCCL 2.28.9+cuda13.0 (downgraded from 2.30.4 for A/B test — disproved NCCL regression hypothesis), cuda-toolkit-13-2, nccl-tests at `~/work/bandwidth_test/nccl-tests` (rebuilt vs 2.28.9). Xeon Gold 6530 (32c/socket, 160MB L3). **`/data/` owned by `rapidsdb`** — need `sudo mkdir` + `sudo chown jianliu:jianliu`. No proxy. sudo password: `!QAZ2wsx`. **vLLM venv** at `/data/venvs/vllm-ds4/` (copied from 70.88) — requires Python 3.12 (`add-apt-repository ppa:deadsnakes/ppa`, already installed). **vLLM source tree** at `/data/vllm-ds4-sm120/` (editable install, copied from 70.88, 6.2GB). vLLM 0.6.0.dev0. **DeepSeek-V4-Flash** at `/home/public/models/tgu01/deepseekv4_flash/` (149GB), symlinked at `/data/models/deepseekv4_flash`. Startup script: `~/work/tgu01-pro-model-deployment/deepseekv4_flash/start_dsv4_flash_1node.sh` (uses `cudagraph_mode` not `wdgraph_mode` — parameter differs by vllm version). Model supports 1M context (YaRN factor 16 from 64K base). **Fake nvidia-smi wrapper** at `/usr/local/bin/nvidia-smi` (xplatform wd-smi blocker, exit 113) — removed 2026-06-22. Real nvidia-smi at `/usr/bin/nvidia-smi`. |
-| 10.10.70.98 | oem98 | RTX PRO 6000 Blackwell SE | 8× | 1 GbE | DeepSeek-V4-Pro PP=2 worker, no proxy, bond0 RoCE v2 (192.168.66.20/24), Xeon Gold 6530 (32c/socket), NCCL 2.30.4 |
+| 10.10.70.92 | oem92 | RTX 5090 32GB | 8× | — | SSH key auth. NCCL 2.28.9+cuda13.0 (downgraded from 2.30.4), cuda-toolkit-13-2, nccl-tests at `~/work/bandwidth_test/nccl-tests`. **Xeon Gold 6530** (32c/socket, 160MB L3). **Kernel 6.8.0-124-generic.** CUDA 13.2, Driver 595.71.05 (nvidia-utils-595 reinstalled 2026-06-24 to fix SMI version label). **`/data/` owned by `rapidsdb`**. No proxy. sudo password: `!QAZ2wsx`. vLLM venv at `/data/venvs/vllm-ds4/` (Python 3.12, editable install at `/data/vllm-ds4-sm120/`). vLLM 0.6.0.dev0. DeepSeek-V4-Flash at `/home/public/models/tgu01/deepseekv4_flash/` (149GB). Startup: `~/work/tgu01-pro-model-deployment/deepseekv4_flash/start_dsv4_flash_1node.sh` (uses `cudagraph_mode`). |
+| 10.10.70.98 | oem98 | RTX PRO 6000 Blackwell SE | 8× | 1 GbE | DeepSeek-V4-Pro PP=2 worker, no proxy, bond0 RoCE v2 (192.168.66.20/24), **Xeon Gold 6530** (32c/socket, 160MB L3, 128 threads, 2 NUMA), NCCL 2.30.4, **Kernel 6.8.0-111-generic**. perf 6.8.12 installed. PCM built from source at `/usr/local/bin/pcm*`. |
 
 ### Model Inventory (2026-06-17)
 
@@ -420,7 +420,43 @@ Unable to find address for: ens35f0np0
 Fix: use `bond0` (or `ens20f0` for management network) for `GLOO_SOCKET_IFNAME`.
 
 **ZMQ crash: `Cannot assign requested address`** — This means `VLLM_HOST_IP` or `MASTER_ADDR` points to an IP not configured on this host (e.g., using `10.10.71.96` when only `192.168.66.10` exists). Verify with `ip addr show bond0`.
-### Quick health check
+### Perf & Intel PCM Installation
+
+### perf (Linux kernel profiling)
+
+Install the kernel-specific `perf` tools matching the running kernel:
+
+```bash
+# Find matching tools package
+uname -r                              # e.g., 6.8.0-111-generic
+apt-cache search linux-tools-$(uname -r | sed 's/-generic//')
+
+# Install
+sudo apt-get install -y linux-tools-$(uname -r | sed 's/-generic//')-generic
+
+# Verify
+perf --version
+```
+
+Note: `linux-tools-generic` metapackage may pull an older kernel tools version than the running kernel. Always install the **exact kernel version** package (e.g., `linux-tools-6.8.0-111-generic`).
+
+### Intel PCM (Performance Counter Monitor)
+
+The apt version of PCM (package `pcm`, version 202201-1) does NOT support Emerald Rapids (Xeon Gold 6530, CPU model 207) or newer Intel CPUs. Build from source:
+
+```bash
+# Download (if git clone fails from China, use curl + tar.gz):
+curl -sL "https://github.com/intel/pcm/archive/refs/heads/master.tar.gz" -o /tmp/pcm.tar.gz
+cd /tmp && tar xzf pcm.tar.gz && cd pcm-master && mkdir build && cd build
+cmake .. && make -j$(nproc) && sudo make install
+
+# Verify
+/usr/local/bin/pcm-memory 1
+```
+
+Key binaries: `pcm`, `pcm-memory`, `pcm-core`, `pcm-power`, `pcm-numa`, `pcm-msr` (all at `/usr/local/bin/`). Old apt version at `/usr/sbin/pcm` is shadowed.
+
+## Quick health check
 ```bash
 ssh jianliu@10.10.70.XX "source ~/.bashrc && \
   echo '=== GPU ==='; nvidia-smi --query-gpu=name,driver_version --format=csv,noheader | head -1; \
@@ -755,6 +791,15 @@ See `references/nvidia-driver-cuda-downgrade.md` for the complete procedure to d
 - Removing `nvidia-driver-595-open` + `cuda-toolkit-13-2` and installing `nvidia-driver-580-server-open` + `cuda-toolkit-13-0`
 - Post-reboot verification checklist
 - SMI version vs Driver version mismatch interpretation
+
+## nvidia-smi Version Mismatch (Corrupted Binary)
+
+See `references/nvidia-smi-version-mismatch-diagnosis.md` for diagnosing when `NVIDIA-SMI version` differs from `DRIVER version` and `NVML version`. Covers:
+
+- Using `dpkg --verify nvidia-utils-595` to detect a replaced/corrupted binary (MD5 checksum mismatch)
+- Comparing with a known-correct server via `md5sum` / `strings`
+- **Fix:** `sudo apt-get install --reinstall -y nvidia-utils-595` — no reboot required, no GPU downtime
+- Root causes (CUDA toolkit overwrite, manual copy, version conflict)
 
 ## References
 

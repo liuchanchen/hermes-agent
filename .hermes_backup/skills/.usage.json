@@ -267,6 +267,19 @@
     "use_count": 1,
     "view_count": 1
   },
+  "devops/remote-server-management": {
+    "archived_at": null,
+    "created_at": "2026-06-25T03:49:13.651261+00:00",
+    "created_by": null,
+    "last_patched_at": null,
+    "last_used_at": "2026-06-25T08:56:37.518572+00:00",
+    "last_viewed_at": "2026-06-25T08:56:37.511284+00:00",
+    "patch_count": 0,
+    "pinned": false,
+    "state": "active",
+    "use_count": 5,
+    "view_count": 5
+  },
   "dogfood": {
     "archived_at": null,
     "created_at": "2026-06-24T09:23:28.100719+00:00",
@@ -284,12 +297,12 @@
     "archived_at": null,
     "created_at": "2026-05-02T14:00:52.471325+00:00",
     "last_patched_at": "2026-05-06T01:43:58.591899+00:00",
-    "last_used_at": "2026-06-24T14:00:30.081694+00:00",
+    "last_used_at": "2026-06-25T14:00:38.313644+00:00",
     "last_viewed_at": "2026-06-24T09:29:08.214706+00:00",
     "patch_count": 2,
     "pinned": false,
     "state": "active",
-    "use_count": 21,
+    "use_count": 22,
     "view_count": 9
   },
   "dspy": {
@@ -450,14 +463,14 @@
   "hermes-backup": {
     "archived_at": null,
     "created_at": "2026-05-05T01:00:11.102785+00:00",
-    "last_patched_at": "2026-06-24T02:31:05.540229+00:00",
-    "last_used_at": "2026-06-25T01:00:33.925145+00:00",
-    "last_viewed_at": "2026-06-25T00:02:27.884791+00:00",
-    "patch_count": 15,
+    "last_patched_at": "2026-06-25T01:04:12.609223+00:00",
+    "last_used_at": "2026-06-26T01:00:41.831451+00:00",
+    "last_viewed_at": "2026-06-25T01:04:16.179886+00:00",
+    "patch_count": 18,
     "pinned": false,
     "state": "active",
-    "use_count": 29,
-    "view_count": 21
+    "use_count": 32,
+    "view_count": 23
   },
   "hermes-backup-push": {
     "archived_at": null,
@@ -565,12 +578,12 @@
     "archived_at": null,
     "created_at": "2026-05-02T10:33:41.339332+00:00",
     "last_patched_at": "2026-06-04T02:32:44.094049+00:00",
-    "last_used_at": "2026-06-24T13:00:29.825330+00:00",
+    "last_used_at": "2026-06-25T13:00:38.010662+00:00",
     "last_viewed_at": "2026-06-24T09:29:01.919218+00:00",
     "patch_count": 1,
     "pinned": false,
     "state": "active",
-    "use_count": 63,
+    "use_count": 64,
     "view_count": 21
   },
   "jupyter-live-kernel": {
@@ -936,14 +949,14 @@
   "remote-server-management": {
     "archived_at": null,
     "created_at": "2026-05-13T06:59:28.501361+00:00",
-    "last_patched_at": "2026-06-24T11:55:20.968930+00:00",
-    "last_used_at": "2026-06-24T11:55:13.349642+00:00",
-    "last_viewed_at": "2026-06-24T11:55:13.340530+00:00",
-    "patch_count": 180,
+    "last_patched_at": "2026-06-25T08:57:17.409224+00:00",
+    "last_used_at": "2026-06-25T08:56:10.396789+00:00",
+    "last_viewed_at": "2026-06-25T08:56:10.391266+00:00",
+    "patch_count": 189,
     "pinned": false,
     "state": "active",
-    "use_count": 108,
-    "view_count": 109
+    "use_count": 111,
+    "view_count": 112
   },
   "research-paper-writing": {
     "archived_at": null,
@@ -1115,12 +1128,12 @@
     "archived_at": null,
     "created_at": "2026-05-03T00:00:52.063687+00:00",
     "last_patched_at": null,
-    "last_used_at": "2026-06-25T00:00:33.599603+00:00",
+    "last_used_at": "2026-06-26T00:00:41.488977+00:00",
     "last_viewed_at": "2026-06-24T09:24:01.639932+00:00",
     "patch_count": 0,
     "pinned": false,
     "state": "active",
-    "use_count": 14,
+    "use_count": 15,
     "view_count": 5
   },
   "wan2.2-inference": {

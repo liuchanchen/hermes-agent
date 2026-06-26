@@ -41,6 +41,28 @@ Makefile auto-detects CUDA and sm_120 support.
 |-----------|---------------------|
 | all_reduce | 22-23 GB/s (Algo) / 39-40 GB/s (Bus) |
 
+## Performance Profiling Tools (2026-06-25)
+
+### perf
+
+Already installed via `linux-tools-6.8.0-111-generic`. Matches kernel 6.8.0-111.
+```bash
+perf --version
+# perf version 6.8.12
+```
+
+### Intel PCM
+
+Built from source (apt package `pcm` 202201-1 too old — doesn't support Emerald Rapids Xeon Platinum 8558P).
+
+```bash
+curl -sL "https://github.com/intel/pcm/archive/refs/heads/master.tar.gz" -o /tmp/pcm.tar.gz
+cd /tmp && tar xzf pcm.tar.gz && cd pcm-master && mkdir build && cd build
+cmake .. && make -j$(nproc) && sudo make install
+```
+
+Binaries at `/usr/local/sbin/pcm*`. Requires sudo for MSR access.
+
 ## Docker image available
 
 `vllm/vllm-openai:latest` can be used for quick deployment without source compilation.
