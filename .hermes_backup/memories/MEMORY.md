@@ -1,18 +1,10 @@
 User requires all model calls to use max thinking/reasoning effort globally. Set agent.reasoning_effort: xhigh and delegation.reasoning_effort: xhigh in config.yaml. Note: "xhigh" is the highest available effort level — "max" is not a valid config value.
 §
-70.92: /data/venvs/vllm-ds4/, /data/vllm-ds4-sm120/, DS-V4-Flash at /data/models/deepseekv4_flash, /data/ chown'd jianliu, cudagraph_mode(not wdgraph_mode).
-§
-用户负责 WarpDriveAI 招聘，用 interview 技能管理简历、面试、入职。
-§
 70.93: WarpDrive TGU01-Pro x8(openEuler24.03,WD580.159.03). nvidia-smi blocked(stub exit 113,use wd-smi). No host CUDA/NCCL. Docker deepseek-v4-flash(NCCL 2.27.7+cuda13.0). backstage=198.18.0.206(SSH blocked). All servers pwd:!QAZ2wsx. SSH shorthand(70.92等)→70.0.0.x错误,必须完整IP(10.10.70.92). 70.92+96新增xuechenli/yirongpan(sudo,docker,!QAZ2wsx). vLLM at 192.168.12.12:19258(运行中,需API key)。
 §
 skill_manage action='patch' uses bare skill name from skills_list() (no category prefix like 'devops/').
 §
-用户启用了 interview 技能，该技能用于管理 WarpDriveAI 的面试日程、候选人、简历和入职时间线。
-§
 MiniMax M2.7 TP+EP 启动脚本存在语法错误，导致启动失败（exit code 2），而非 NCCL P2P 问题。
-§
-用户要求将 /data/models/deepseekv4_pro/ 从 10.10.70.88 复制到 10.10.70.98，使用 rsync -aP --partial 通过 SSH 传输，约 806 GiB，传输正在进行中。
 §
 WarpDriveAI 使用 interview 技能管理面试日程、候选人简历、入职时间线和候选人档案。
 §
@@ -26,6 +18,18 @@ WarpDriveAI 使用 interview 技能管理面试日程、候选人简历、入职
 §
 70.95 上的 vLLM 服务运行 MiniMax M2 模型，max_model_len 为 80,920 tokens，配置包括 tensor-parallel-size 8、expert-parallel、gpu-memory-utilization 0.85、kv-cache-dtype fp8，API key 为 ***.95-vllm，端口 8000。
 §
-服务器 10.10.70.98 的临时登录用户为 qs，密码为 !QAZ2wsx；需创建 sudo 用户 jianliu，密码为 !QAZ2wsx，并为其配置 SSH 密钥，后续登录使用 jianliu。
+在 10.10.70.98 上，临时使用 qs 用户登录（密码 !QAZ2wsx），创建 sudo 用户 jianliu（密码 !QAZ2wsx），并为其配置 SSH 密钥，后续登录使用 jianliu。
 §
 vLLM fork 已从 70.88 复制到 70.98 的 /data/vllm-ds4-sm120/，包含完整 .git 历史和 ds4-sm120 分支（commit b709b75），大小为 6.2 GB。
+§
+在10.10.70.98上，vLLM的CMake配置因缺少CUDA_nvrtc_LIBRARY而失败，已安装cuda-nvrtc-13-2和cuda-nvrtc-dev-13-2以修复此问题。
+§
+用户要求验证工作时不修改项目文件，仅通过源读取、shell检查、浏览器/网络证据或提供的工具句柄进行验证，并返回证据支持的检查结果和最终裁决（PASS/FAIL/PARTIAL）。
+§
+技能库更新流程要求：每次会话至少产生一次技能更新，即使很小；更新目标为类级别技能，每个技能有丰富的SKILL.md和引用文件；更新需通过skill_manage工具进行，且SKILL.md必须放在允许路径下。
+§
+在 10.10.70.98 上，vLLM 的 CMake 配置因缺少 CUDA_nvrtc_LIBRARY 而失败，已安装 cuda-nvrtc-13-2 和 cuda-nvrtc-dev-13-2 以修复。
+§
+远程服务器技能中有一个IP地址为10.10.70.98的服务器。
+§
+李馨蔚的入职日为2026年5月20日（后天），入职流程中还有多项待确认事项（Offer发送、背调完成、入职材料准备、工位/设备准备）。

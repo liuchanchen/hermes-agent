@@ -1159,10 +1159,17 @@ ssh jianliu@10.10.70.88 "source /data/venvs/vllm-ds4/bin/activate && \
 Startup script (on 70.88): `/home/jianliu/work/tgu01-pro-model-deployment/deepseekv4_flash/start_dsv4_flash_1node.sh`
 Startup script (on 70.98): `~/work/tgu01-pro-model-deployment/deepseekv4_flash/start_dsv4_flash_1node.sh`
 
-Key flags: TP auto-detected from `CUDA_VISIBLE_DEVICES` (default 8, set `CUDA_VISIBLE_DEVICES=0,1,2,3` for TP=4), EP, FP8 KV cache, `--reasoning-parser deepseek_v4`, `--tokenizer-mode deepseek_v4`, `--tool-call-parser deepseek_v4`, `--compilation-config '{"cudagraph_mode":"FULL_AND_PIECEWISE", "custom_ops":["all"]}'`.
+Key flags: TP auto-detected from `CUDA_VISIBLE_DEVICES` (default 8), EP, FP8 KV cache, `--reasoning-parser deepseek_v4`, `--tokenizer-mode deepseek_v4`, `--tool-call-parser deepseek_v4`, `--compilation-config '{"cudagraph_mode":"FULL_AND_PIECEWISE", "custom_ops":["all"]}'`.
 
-Model path on 70.88: `/home/jianliu/work/models/deepseekv4_flash/` (149G, 46 safetensors)
-Model path on 70.98: `/data/models/deepseekv4_flash/` (149G, 46 safetensors)
+**Critical: MODEL_PATH differs per server.** The script default is `/data/models/deepseekv4_flash` which does NOT exist on 70.88. Model locations:
+- 70.88: `/home/jianliu/work/models/deepseekv4_flash/` (156G, 46 safetensors)
+- 70.98: `/data/models/deepseekv4_flash/` (149G, 46 safetensors)
+
+Fix on 70.88: `sed -i 's|MODEL_PATH="/data/models/deepseekv4_flash"|MODEL_PATH="/home/jianliu/work/models/deepseekv4_flash"|' start_dsv4_flash_1node.sh`
+
+**Critical: On 70.88 (8x RTX 5090 32GB), only TP=8 is viable for V4-Flash.** TP<8 OOMs on weight loading alone (~19.5 GiB/GPU at TP=8, ~39 GiB/GPU at TP=4 which exceeds 32GB cards). The script's auto-detected TP from CUDA_VISIBLE_DEVICES will fail if set to fewer than 8 GPUs on 32GB cards.
+
+**Finding max context length:** The model uses MQA architecture (1 KV head), so KV cache per token is only ~88 KB across all layers (~11 KB/GPU at TP=8). On 32GB cards, available KV cache is ~6.5 GiB after weights and activations, giving an estimated max of ~500K-600K tokens. RoPE limit is 1,048,576. Use binary search (16384 -> 32768 -> 65536 -> 131072 -> ...), restarting the server between steps until OOM.
 
 **70.98 benchmark results — TP=8, 1-node, max-model-len=16384 (16K context):**
 
@@ -1216,6 +1223,18 @@ Config: 2048 input tokens, 500 output tokens, 200 requests, concurrency=64, requ
 | Local (70.92→70.92), 06-23 | 0% | 570.2 | 2,906 | 15,961 | 76.2 |
 | Local (70.92→70.92), 06-23 | 40% | 655.1 | 3,339 | 10,343 | 73.2 |
 | Local (70.92→70.92), 06-23 | 80% | 976.4 | 4,972 | 3,807 | 54.1 |
+
+**70.88 benchmark results — TP=8, 1-node, max-model-len=422656 (RTX 5090 32GB×8, 2026-06-26):**
+
+Config: 2048 input tokens, 500 output tokens, 200 requests, concurrency=64, request-rate=inf, vllm 0.6.0.dev0, gpu-memory-utilization=0.9735
+
+| Scenario | Cache Hit | Output tok/s | Total tok/s | Mean TTFT (ms) | Mean TPOT (ms) |
+|----------|-----------|-------------|-------------|----------------|----------------|
+| Local (70.88→70.88), 06-26 | 0% | 389.5 | 1,984.8 | 22,716 | 108.1 |
+| Local (70.88→70.88), 06-26 | 40% | 471.8 | 2,404.2 | 9,372 | 108.6 |
+| Local (70.88→70.88), 06-26 | 80% | 609.0 | 3,103.6 | 3,563 | 91.0 |
+
+Note: 70.88 has the same RTX 5090 32GB GPUs as 70.92 but runs at max-model-len=422656 (vs 16384 on 70.92). The larger KV cache pre-allocation at 422K context reduces available memory for concurrent batch scheduling, causing throughput to drop ~30-40% vs the 70.92 16K context run. This is the same effect observed on 70.98 Blackwell when comparing 1M vs 16K context.
 
 **70.92 vs 70.98 comparison (16K context, both TP=8):**
 

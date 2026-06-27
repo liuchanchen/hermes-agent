@@ -1,7 +1,7 @@
 ---
 name: model-deployment
 description: ML model deployment workflows — multi-node vLLM server setup, DeepSeek-V4 configuration, tensor parallelism constraints, memory analysis, and distributed inference cluster management.
-version: 1.0.0
+version: 1.1.0
 author: Hermes Agent
 license: MIT
 ---
@@ -333,73 +333,158 @@ This is generic across all reasoning models (GLM, Qwen3, DeepSeek, Granite, etc.
 
 ## DeepSeek-V4-Flash Single-Node Deployment
 
-DeepSeek-V4-Flash is a 292B MoE model (256 routed experts, 6 active, hidden_size=4096, 43 layers, moe_intermediate_size=2048) with FP8 weights, 46 safetensors (~149G total). Fits on a single 8×GPU node with 96GB cards.
+DeepSeek-V4-Flash is a 292B MoE model (256 routed experts, 6 active, hidden_size=4096, 43 layers, moe_intermediate_size=2048) with FP8 weights, 46 safetensors (~156G total). Architecture: MQA (1 KV head, head_dim=512), FP8 KV cache, block-size 256.
+
+### GPU Hardware Profiles
+
+| Server | GPUs | HBM/GPU | Total VRAM | Notes |
+|--------|------|---------|------------|-------|
+| 70.88 | 8× RTX 5090 (Ada) | 32 GiB | 256 GiB | Model at /home/jianliu/work/models/deepseekv4_flash/ |
+| 70.98 | 8× RTX PRO 6000 Blackwell | 96 GiB | 768 GiB | Model at /data/models/deepseekv4_flash/ |
 
 ### Start Script
 
 - **70.88**: `/home/jianliu/work/tgu01-pro-model-deployment/deepseekv4_flash/start_dsv4_flash_1node.sh`
 - **70.98**: `/home/jianliu/work/tgu01-pro-model-deployment/deepseekv4_flash/start_dsv4_flash_1node.sh`
 
-Key parameters (TP=8): EP enabled, `--kv-cache-dtype fp8`, `--block-size 256`, `--reasoning-parser deepseek_v4`, `--tool-call-parser deepseek_v4`, `--tokenizer-mode deepseek_v4`, `--compilation-config '{"cudagraph_mode":"FULL_AND_PIECEWISE", "custom_ops":["all"]}'`
+Key parameters (TP=8): EP enabled, `--kv-cache-dtype fp8`, `--block-size 256`, `--reasoning-parser deepseek_v4`, `--tool-call-parser deepseek_v4`, `--tokenizer-mode deepseek_v4`, `--compilation-config '{"cudagraph_mode":"FULL_AND_PIECEWISE", "custom_ops":["all"]}'`.
 
-**Model path issue on 70.98:** The script hardcodes `MODEL_PATH="/home/jianliu/work/models/deepseekv4_flash"` which does not exist on 70.98. Update to `MODEL_PATH="/data/models/deepseekv4_flash"` after the model copy completes.
+After this session (2026-06-26), the script was tuned to find the maximum context on 70.88: final values are `MAX_LEN=422656`, `--gpu-memory-utilization 0.9735`, TP auto-detected from `CUDA_VISIBLE_DEVICES`. The `--gpu-memory-utilization` of 0.9735 is the ceiling — 0.9735 * 31.36 GiB = 30.53 GiB, matching the free memory on clean GPUs. At 0.974, startup fails with `Free memory < desired GPU memory utilization`. This is the default on 70.88; for other servers with different GPU HBM, adjust accordingly.
 
-**Bug fixed:** `MAX_LEN=1,048,576` contained commas (bash literal string). Fixed to `MAX_LEN=1048576` on 2026-06-17.
+The script parameter `MAX_LEN` and `--gpu-memory-utilization` should be the ONLY changes when adjusting for different hardware. The compilation config, EP flags, and block-size should stay as-is.
 
-### Adaptive TP Script (70.98)
+### Model Path Fix on 70.88
 
-The script at `~/work/tgu01-pro-model-deployment/deepseekv4_flash/start_dsv4_flash_1node.sh` on 70.98 was updated (2026-06-17) to support partial-GPU deployment:
+The script originally has `MODEL_PATH="/data/models/deepseekv4_flash"` — **this does not exist on 70.88**. The model lives at `/home/jianliu/work/models/deepseekv4_flash/` on 70.88. The path was fixed via:
 
-1. **`CUDA_VISIBLE_DEVICES`** — Added with commented presets for 2/4/6/8 GPUs. Defaults to all 8 if unset.
-2. **`TP_SIZE` auto-detection** — `TP_SIZE=$(echo "$CUDA_VISIBLE_DEVICES" | tr ',' '\n' | wc -l)` automatically matches GPU count.
-3. **Echo line** — Updated to print actual TP and GPU list: `echo "=== DeepSeek-V4-Flash SINGLE NODE (TP=${TP_SIZE}, GPUs=${CUDA_VISIBLE_DEVICES}) ==="`
-4. **Usage**: `CUDA_VISIBLE_DEVICES=0,1,2,3 bash start_dsv4_flash_1node.sh` or uncomment a line in the script.
+```bash
+sed -i 's|MODEL_PATH="/data/models/deepseekv4_flash"|MODEL_PATH="/home/jianliu/work/models/deepseekv4_flash"|' /home/jianliu/work/tgu01-pro-model-deployment/deepseekv4_flash/start_dsv4_flash_1node.sh
+```
+
+After the fix, there are TWO lines with the correct path (one originally commented-out, one uncommented). The script is otherwise identical between 70.88 and 70.98 except for this path.
+
+### Finding Maximum Context Length
+
+Reference: `references/dsv4-flash-max-context-on-70.88.md` for the complete session log including the full binary search result matrix, gpu_memory_utilization ceiling detection, and exact values at each MAX_LEN step. The session produced a final verified maximum of **422,656 tokens** on 70.88 (8× RTX 5090 32GB) at `gpu_memory_utilization=0.9735`.
+
+### Benchmark Results at max-model-len=422656
+
+Run with `run_vllm_bench_serve.sh` on 70.88 (TP=8, local `http://127.0.0.1:8000`), 200 requests, concurrency=64, request-rate=inf, 2048 input / 500 output tokens:
+
+```
+  Cache    Req/s    Out tok/s   Total tok/s   Mean TTFT   Mean TPOT   Median ITL
+  rate                                                    (ms)        (ms)
+  ──────────────────────────────────────────────────────────────────────────────
+   0%      0.78      389.48      1,984.77      22,716      108.13       73.81
+  40%      0.94      471.78      2,404.18       9,372      108.58       79.93
+  80%      1.22      609.03      3,103.63       3,563       90.98       78.78
+```
+
+Results saved to: `~/work/tgu01-pro-model-deployment/vllm_bench_standard_test/vllm_bench_results/20260626_143956/`
+
+Key observations:
+- **Prefix caching helps dramatically with TTFT**: 80% cache hit reduces mean TTFT from 22.7s to 3.6s (84% improvement). This is the dominant benefit — TPOT is nearly unchanged because decode performance doesn't depend on KV cache reuse.
+- **Throughput scales with cache hit rate**: +21% at 40%, +56% at 80% cache, driven by faster prefilling (shorter TTFT means requests spend less time blocked in the prefill queue).
+- **Median ITL is stable (~74-79ms)** across all cache rates, confirming the decode path is the bottleneck, not scheduling.
+- Mean TTFT is much higher than median (22.7s vs 10.9s at 0% cache) due to tail latency from batch scheduling — some requests get queued behind large concurrent prefills.
+- **Conc=64 vs conc=1**: At concurrency=1, cache hit rate has NO effect on latency or throughput (requests are processed sequentially), confirming that prefix cache benefit requires concurrent request overlap. Only benchmark with concurrency > 1 for meaningful cache hit comparisons.
+
+#### Architecture-Based Estimation
+
+Before experimentally finding `max_model_len`, estimate the theoretical limit from the model architecture and available GPU memory:
+
+**KV Cache Cost per Token (MQA, FP8):**
+- 1 KV head × head_dim 512 × 2 bytes (FP8) × 2 (key+value) × 43 layers = ~88 KB per token across all layers, single GPU's share at TP=8 is ~11 KB/token
+
+**Available Memory per GPU at TP=8 (32 GiB cards, gpu_memory_utilization 0.92):**
+- Weights: ~156 GB / 8 GPUs ≈ 19.5 GiB/GPU
+- CUDA graphs, activations, workspace: ~3-4 GiB
+- Available for KV cache: ~32 × 0.92 - 19.5 - 3.5 ≈ 6.5 GiB
+- Max tokens: ~6.5 GiB / ~11 KB ≈ ~600K tokens
+
+**On 96 GiB cards (70.98 Blackwell):**
+- Available for KV cache: ~96 × 0.92 - 19.5 - 3.5 ≈ 65 GiB
+- Max tokens ≈ 65 GiB / ~11 KB ≈ ~6M tokens (but model RoPE caps at 1,048,576)
+
+**On 70.88 (8× RTX 5090, 32GB), the practical limit is at or below the RoPE max_position_embeddings (1,048,576), constrained by KV cache memory.**
+
+#### Experimental Procedure (Systematic Max-Len Search with gpu_memory_utilization Tuning)
+
+To empirically find the maximum `max_model_len` for a specific GPU setup:
+
+1. **Start at the current working setting** (e.g., 16384) and verify the server starts + serves a request
+2. **Double the value** (32768 → 65536 → 131072 → 262144 → ...) until the engine reports KV cache insufficiency
+3. **When it fails** with `ValueError: To serve at least one request with the models's max seq len (N), (X GiB KV cache is needed, which is larger than the available KV cache memory (Y GiB)`, increase `gpu_memory_utilization` by 0.01 and retry
+4. **Binary search** between the last working value and the failed value at the new gpu_mem_util
+5. **Repeat**: increase gpu_mem_util and retry the failed value until startup itself fails with `Free memory < desired GPU memory utilization`
+6. **Final step**: the engine's estimated max model length in the last ValueError is accurate — test it directly
+
+**Restart cleanup between tests:**
+```bash
+ps aux | grep '[v]llm' | awk '{print $2}' | xargs -r kill -9
+nvidia-smi --query-compute-apps=pid --format=csv,noheader | sort -u | xargs -r kill -9
+sleep 15  # wait for GPU memory to return to ~14 MiB
+```
+
+**OOM will manifest as:**
+- Server process crashing silently (check with `ps aux | grep vllm`)
+- `torch.cuda.OutOfMemoryError` in the vLLM log at `/tmp/vllm_dsv4_flash_1node.log`
+- CUDA error during KV cache profiling at engine init
+
+#### Script Parameter Override
+
+```bash
+# Change without editing multiple lines:
+sed -i 's/MAX_LEN=<old>/MAX_LEN=<new>/' start_dsv4_flash_1node.sh
+sed -i 's/--gpu-memory-utilization <old>/--gpu-memory-utilization <new>/' start_dsv4_flash_1node.sh
+
+# The script already parameterizes MAX_LEN via ${MAX_LEN} on the vllm serve line
+#
+# **gpu_memory_utilization ceiling**: On 70.88 (RTX 5090 32GB), the max is 0.9735.
+#  0.9735 × 31.36 GiB = 30.51 GiB, matching the free memory of 30.53 GiB.
+#  At 0.974, startup fails with "Free memory < desired GPU memory utilization".
+#  On 96GB Blackwell cards, the ceiling is higher — typically 0.96-0.97.
+#  Use binary search: increase by 0.01 until startup fails, then binary search
+#  between the last working and the failed value.
+```
+
+### Adaptive TP Script
+
+The startup script supports partial-GPU deployment:
+
+1. **`CUDA_VISIBLE_DEVICES`** — Set before launching. Commented presets for 2/4/6/8 GPUs. Defaults to all 8 if unset.
+2. **`TP_SIZE` auto-detection** — `TP_SIZE=$(echo "$CUDA_VISIBLE_DEVICES" | tr ',' '\\n' | wc -l)` automatically matches GPU count.
+3. **Usage**: `CUDA_VISIBLE_DEVICES=0,1,2,3 bash start_dsv4_flash_1node.sh`
+
+**Memory estimates by TP (32GB RTX 5090):**
+
+| TP | Weight/GPU | Available for KV | Estimated Max Len |
+|----|-----------|-------------------|-------------------|
+| 8  | ~19.5 GiB | ~6.5 GiB         | ~500K-600K        |
+| 6  | ~26 GiB   | ~0 GiB           | ❌ likely OOM      |
+| 4  | ~39 GiB   | —                | ❌ OOM on 32GB     |
+
+On 32GB cards, only TP=8 is viable. TP<8 OOMs on weight loading alone.
+
+**Memory estimates by TP (96GB Blackwell):**
+
+| TP | Weight/GPU | Available for KV | Estimated Max Len |
+|----|-----------|-------------------|-------------------|
+| 8  | ~19.5 GiB | ~69 GiB          | 1,048,576 (RoPE)  |
+| 4  | ~39 GiB   | ~49 GiB          | ~524K-1M          |
+| 2  | ~78 GiB   | ~10 GiB          | ~65K-131K (tight) |
+| 1  | ~156 GiB  | —                | ❌ OOM             |
+
+### Log File Destination
+
+The script redirects to `/tmp/vllm_dsv4_flash_1node.log`. If the log is 0 bytes while `ps aux` shows the process running, the `nohup` redirect may have interfered — verify with `curl -s http://localhost:8000/v1/models` and `nvidia-smi` instead.
 
 ### Model Locations
 
 | Server | Path | Status |
 |--------|------|--------|
-| 70.88 | `/home/jianliu/work/models/deepseekv4_flash/` | Source (149G, 46 safetensors) |
-| 70.98 | `/data/models/deepseekv4_flash/` | **Complete** (46/46 shards, 149 GB, rsync finished 2026-06-17) |
-
-### Partial GPU Deployment (Fewer than 8 GPUs)
-
-To run DeepSeek-V4-Flash on a subset of GPUs (e.g., for testing or when memory is constrained), modify three things in the startup script:
-
-1. **`CUDA_VISIBLE_DEVICES`** — Set before `vllm serve` to select which GPUs to use:
-   ```bash
-   export CUDA_VISIBLE_DEVICES=0,1,2,3   # Use 4 GPUs
-   ```
-
-2. **`--tensor-parallel-size`** — Must match the number of GPUs listed:
-   ```bash
-   TP_SIZE=4   # Must equal len($CUDA_VISIBLE_DEVICES)
-   ```
-
-3. **`--max-model-len`** — Reduce proportionally to fit KV cache in fewer GPUs:
-   - TP=8: 1,048,576 (1M tokens)
-   - TP=6: ~524,288 (512K)
-   - TP=4: ~262,144 (256K)
-   - TP=2: ~131,072 (128K)
-
-4. **No other changes needed** — These single-node settings do NOT need modification:
-   - `NCCL_IB_DISABLE=1` — Correct for single-node (NVLink intra-node)
-   - `NCCL_SOCKET_IFNAME=ens20f0` — Harmless on single-node
-   - `--enable-expert-parallel` — EP auto-scales with TP (256 experts / TP GPUs)
-   - `--enable-ep-weight-filter` — Keep as-is
-
-5. **Remove cross-node config** (if copying from a 2-node script): Delete all `MASTER_ADDR`, `VLLM_HOST_IP`, `--nnodes`, `--node-rank`, `--headless`, `NCCL_IB_HCA`, `NCCL_NET`, `DP_` variables, `data-parallel-*` flags. Single-node only needs NVLink (auto-detected).
-
-### Memory Estimates by TP (RTX PRO 6000 96GB)
-
-| TP | Weights/GPU | Available KV Cache | Recommended max-model-len |
-|----|-------------|-------------------|--------------------------|
-| 8  | ~20 GB      | ~74 GB            | 1,048,576                |
-| 6  | ~26 GB      | ~68 GB            | ~524,288                 |
-| 4  | ~39 GB      | ~55 GB            | ~262,144                 |
-| 2  | ~78 GB      | ~15 GB            | ~131,072                 |
-
-These are rough estimates with `--gpu-memory-utilization 0.92`. Actual capacity depends on expert parallelism savings and CUDA graph overhead.
+| 70.88 | `/home/jianliu/work/models/deepseekv4_flash/` | Source (156G, 46 safetensors) |
+| 70.98 | `/data/models/deepseekv4_flash/` | Complete (46/46 shards, 149 GB, rsync finished 2026-06-17) |
 | 70.96 | `/data/models/deepseekv4_flash/` | Empty dir (4.4M only — needs fresh copy) |
 | 70.95 | — | Only has deepseekv4_pro |
 | 70.93 | — | No SSH access (password required) |
@@ -407,31 +492,6 @@ These are rough estimates with `--gpu-memory-utilization 0.92`. Actual capacity 
 ### rsync `-t` Flag Preserves Source mtime
 
 When using `rsync -a` or `rsync -t`, the `-t` flag preserves the source file's modification timestamp on the destination. This means `ls -l` on the destination shows the **source's original mtime**, not the copy time. A file dated "April 28" on the destination was likely copied months later — the date tells you when the source created it, not when the transfer happened. To see actual transfer progress, use shard count (`ls model-*.safetensors | wc -l`) and `du -sh`, not file dates.
-
-### Partial GPU Deployment
-
-To run DeepSeek-V4-Flash on fewer than 8 GPUs, set `CUDA_VISIBLE_DEVICES` and reduce `TP_SIZE` and `MAX_LEN` proportionally:
-
-```bash
-export CUDA_VISIBLE_DEVICES=0,1,2,3   # Use 4 GPUs
-TP_SIZE=4
-MAX_LEN=524288                         # Reduce from 1M proportionally
-```
-
-VRAM budget per GPU (96GB RTX PRO 6000 Blackwell):
-
-| TP | Weight/GPU | Free for KV | Practical Max Len | Viable? |
-|----|-----------|-------------|---------------------|---------|
-| 8 | ~19GB | ~69GB | 1,048,576 (1M) | ✅ original |
-| 4 | ~37GB | ~51GB | 262,144–524,288 | ✅ |
-| 2 | ~74GB | ~14GB | 65,536–131,072 | ⚠️ tight |
-| 1 | ~149GB | OOM | — | ❌ |
-
-When running multiple vLLM instances on the same node (e.g., V4-Flash + GLM-5.1), use non-overlapping `CUDA_VISIBLE_DEVICES` and different `--port` values.
-
-### Network Transfer Bottleneck: 70.88
-
-70.88's management NIC `ens20f0` auto-negotiates at **100 Mb/s** (not 1 GbE), capping all network transfers at ~5-6 MB/s. This is the bottleneck for any file copy to/from 70.88. Other nodes (70.96, 70.98) also have `ens20f0` at 100 Mb/s — this is a cluster-wide pattern. The 100 GbE bond0 NICs (`ens35f0np0`/`ens35f1np1` on 70.88, `bond0` on 70.98) are RDMA-capable but not SSH-routable by default. To bypass the 100 Mb/s bottleneck for file transfers, use the bond0/192.168.66.x network: `rsync -aP --partial source/ jianliu@192.168.66.20:/data/models/dest/`.
 
 ## GLM-5.1-FP8 Multi-Node Deployment
 
@@ -515,12 +575,10 @@ When `is_v32=False`, the model also lacks the `indexer` submodule. Checkpoint we
 - **`--api-server-count 1` must NOT be set on headless worker nodes** — `--headless` nodes cannot have API servers. The error is explicit: `--api-server-count=1 cannot be used with --headless (no API servers are started in headless mode).` Only the master node (node-rank 0) should set `--api-server-count`. If omitted entirely, vLLM defaults `api_server_count` to `data_parallel_size`, which works (2 API servers on master, 0 on headless).
 - **`/health` is shallow** — it returns 200 even if the engine is stuck. Always follow up with a real chat completion to verify end-to-end operation.
 - **PyTorch 2.11+ breaks local-format `.pth` files with persistent ID tuples** — models stored as `torch.save(dict_of_tensors)` use a 5-tuple persistent ID `('storage', cls, key, device, size)`. PyTorch 2.11's `_rebuild_tensor` accesses `storage.dtype` and `storage._untyped_storage.device` on this tuple, both absent. Fix: return a TypedStorage or wrapper object from `persistent_load` with both attributes. See `references/wan22-t2v-local-model.md`.
-- **PyTorch 2.11+ breaks local-format `.pth` files with persistent ID tuples** — models stored as `torch.save(dict_of_tensors)` use a 5-tuple persistent ID `('storage', cls, key, device, size)`. PyTorch 2.11's `_rebuild_tensor` accesses `storage.dtype` and `storage._untyped_storage.device` on this tuple, both absent. Fix: return a TypedStorage or wrapper object from `persistent_load` with both attributes. See `references/wan22-t2v-local-model.md`.
 - **5-minute EngineCore handshake timeout is hard-coded in vLLM** — see the "Known Limitation" section above for details and workarounds.
 - **FP8 + TP + EP alignment (single-node MoE)**: On single-node MoE models with FP8 weight quantization, combining TP + EP can produce `input_size_per_partition = 64` (not divisible by FP8 `block_k = 128`). All workers crash simultaneously with `ValueError: Weight input_size_per_partition = 64 is not divisible by weight quantization block_k = 128`. This happens when TP sharding and EP expert sharding both act on the same weight dimension. Workaround: use DP instead of EP, or remove `--enable-ep-weight-filter` (EP still active without weight filtering). DP=8 avoids the conflict because TP=1 per rank. Multi-node PP+EP does not hit this because EP=8 vs single-node EP=8 with TP=8.
 - **DP coordinator address** — `--data-parallel-address` must be set on the head node to avoid TCPStore connection failures
 - **hostname resolution** — if hostname resolves to 127.0.1.1, explicitly set `NCCL_SOCKET_IFNAME`
 - **1 Gbps TCP is slow** for model weight broadcast during DP — expect longer startup times
-- **`/health` is shallow** — it returns 200 even if the engine is stuck. Always follow up with a real chat completion to verify end-to-end operation.
-- **PyTorch 2.11+ breaks local-format `.pth` files with persistent ID tuples** — models stored as `torch.save(dict_of_tensors)` use a 5-tuple persistent ID `('storage', cls, key, device, size)`. PyTorch 2.11's `_rebuild_tensor` accesses `storage.dtype` and `storage._untyped_storage.device` on this tuple, both absent. Fix: return a TypedStorage or wrapper object from `persistent_load` with both attributes. See `references/wan22-t2v-local-model.md`.
-- **PyTorch 2.11+ breaks local-format `.pth` files with persistent ID tuples** — models stored as `torch.save(dict_of_tensors)` use a 5-tuple persistent ID `('storage', cls, key, device, size)`. PyTorch 2.11's `_rebuild_tensor` accesses `storage.dtype` and `storage._untyped_storage.device` on this tuple, both absent. Fix: return a TypedStorage or wrapper object from `persistent_load` with both attributes. See `references/wan22-t2v-local-model.md`.
+- **DeepSeek-V4-Flash on 70.88: wrong default MODEL_PATH** — The script defaults to `/data/models/deepseekv4_flash` which doesn't exist on 70.88. The model is at `/home/jianliu/work/models/deepseekv4_flash/.` Always verify MODEL_PATH before starting on a new server.
+- **DeepSeek-V4-Flash on 70.88: TP<8 OOMs on 32GB cards** — Only TP=8 fits on 32GB GPUs. Even TP=6 likely OOMs.

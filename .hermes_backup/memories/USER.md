@@ -17,3 +17,5 @@ GPU cluster ops engineer managing multi-node Blackwell (SM 12.0) servers. Deep v
 用户参与 WarpDriveAI 的招聘工作，负责管理面试时间表、候选人简历和入职时间线。
 §
 User manages hiring and interviews for WarpDriveAI.
+§
+用户调用了 interview 技能，希望按照该技能管理面试日程、候选人、简历和入职时间线。
