@@ -296,14 +296,14 @@
   "dongchedi-l90-watch": {
     "archived_at": null,
     "created_at": "2026-05-02T14:00:52.471325+00:00",
-    "last_patched_at": "2026-05-06T01:43:58.591899+00:00",
-    "last_used_at": "2026-06-26T14:00:50.230517+00:00",
-    "last_viewed_at": "2026-06-26T14:00:50.224281+00:00",
-    "patch_count": 2,
+    "last_patched_at": "2026-06-27T14:06:59.130321+00:00",
+    "last_used_at": "2026-06-27T14:07:01.288342+00:00",
+    "last_viewed_at": "2026-06-27T14:07:01.278935+00:00",
+    "patch_count": 4,
     "pinned": false,
     "state": "active",
-    "use_count": 24,
-    "view_count": 10
+    "use_count": 27,
+    "view_count": 12
   },
   "dspy": {
     "archived_at": null,
@@ -464,12 +464,12 @@
     "archived_at": null,
     "created_at": "2026-05-05T01:00:11.102785+00:00",
     "last_patched_at": "2026-06-26T01:03:41.139429+00:00",
-    "last_used_at": "2026-06-27T01:00:51.168182+00:00",
+    "last_used_at": "2026-06-28T01:00:59.816587+00:00",
     "last_viewed_at": "2026-06-26T01:03:42.340261+00:00",
     "patch_count": 20,
     "pinned": false,
     "state": "active",
-    "use_count": 35,
+    "use_count": 36,
     "view_count": 25
   },
   "hermes-backup-push": {
@@ -578,12 +578,12 @@
     "archived_at": null,
     "created_at": "2026-05-02T10:33:41.339332+00:00",
     "last_patched_at": "2026-06-04T02:32:44.094049+00:00",
-    "last_used_at": "2026-06-26T13:00:46.474258+00:00",
+    "last_used_at": "2026-06-27T13:00:55.180834+00:00",
     "last_viewed_at": "2026-06-24T09:29:01.919218+00:00",
     "patch_count": 1,
     "pinned": false,
     "state": "active",
-    "use_count": 65,
+    "use_count": 66,
     "view_count": 21
   },
   "jupyter-live-kernel": {
@@ -1128,13 +1128,13 @@
     "archived_at": null,
     "created_at": "2026-05-03T00:00:52.063687+00:00",
     "last_patched_at": null,
-    "last_used_at": "2026-06-27T00:00:50.598145+00:00",
-    "last_viewed_at": "2026-06-24T09:24:01.639932+00:00",
+    "last_used_at": "2026-06-28T00:01:01.517770+00:00",
+    "last_viewed_at": "2026-06-28T00:01:01.512092+00:00",
     "patch_count": 0,
     "pinned": false,
     "state": "active",
-    "use_count": 16,
-    "view_count": 5
+    "use_count": 18,
+    "view_count": 6
   },
   "wan2.2-inference": {
     "archived_at": null,
