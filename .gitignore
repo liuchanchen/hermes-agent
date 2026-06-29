@@ -91,9 +91,6 @@ website/static/api/skills.json
 website/static/api/skills-meta.json
 models-dev-upstream/
 
-# Hermes backup - large database (compressed version stored as .gz)
-.hermes_backup/databases/state.db
-
 # Hermes backup - skills .hub/ cache (noise)
 .hermes_backup/skills/.hub/
 # Local editor / agent tooling (machine-specific; keep in global config, not the repo)

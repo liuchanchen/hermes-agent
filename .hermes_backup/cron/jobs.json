@@ -20,15 +20,15 @@
       "schedule_display": "0 22 * * *",
       "repeat": {
         "times": 999,
-        "completed": 47
+        "completed": 48
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-21T11:25:30.331382+08:00",
-      "next_run_at": "2026-06-28T22:00:00+08:00",
-      "last_run_at": "2026-06-27T22:06:33.420172+08:00",
+      "next_run_at": "2026-06-29T22:00:00+08:00",
+      "last_run_at": "2026-06-28T22:01:35.240301+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s",
@@ -60,15 +60,15 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": 999,
-        "completed": 37
+        "completed": 38
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-23T23:08:50.970385+08:00",
-      "next_run_at": "2026-06-29T08:00:00+08:00",
-      "last_run_at": "2026-06-28T08:02:28.758678+08:00",
+      "next_run_at": "2026-06-30T08:00:00+08:00",
+      "last_run_at": "2026-06-29T08:01:05.924971+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s",
@@ -100,15 +100,15 @@
       "schedule_display": "0 9 * * *",
       "repeat": {
         "times": 999,
-        "completed": 31
+        "completed": 32
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-26T17:30:29.608686+08:00",
-      "next_run_at": "2026-06-29T09:00:00+08:00",
-      "last_run_at": "2026-06-27T09:02:14.965966+08:00",
+      "next_run_at": "2026-06-30T09:00:00+08:00",
+      "last_run_at": "2026-06-28T09:02:21.221526+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s",
@@ -170,15 +170,15 @@
       "schedule_display": "0 21 * * *",
       "repeat": {
         "times": null,
-        "completed": 32
+        "completed": 33
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-27T19:22:17.374140+08:00",
-      "next_run_at": "2026-06-28T21:00:00+08:00",
-      "last_run_at": "2026-06-27T21:01:29.133843+08:00",
+      "next_run_at": "2026-06-29T21:00:00+08:00",
+      "last_run_at": "2026-06-28T21:00:52.367369+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s",
@@ -204,15 +204,15 @@
       "schedule_display": "0 8,18 * * *",
       "repeat": {
         "times": 999,
-        "completed": 53
+        "completed": 55
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-30T10:00:25.900478+08:00",
-      "next_run_at": "2026-06-28T18:00:00+08:00",
-      "last_run_at": "2026-06-28T08:02:05.134272+08:00",
+      "next_run_at": "2026-06-29T18:00:00+08:00",
+      "last_run_at": "2026-06-29T08:01:26.008264+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s",
@@ -245,15 +245,15 @@
       "schedule_display": "0 3 * * *",
       "repeat": {
         "times": null,
-        "completed": 24
+        "completed": 25
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-01T22:06:04.249578+08:00",
-      "next_run_at": "2026-06-29T03:00:00+08:00",
-      "last_run_at": "2026-06-28T03:01:55.320260+08:00",
+      "next_run_at": "2026-06-30T03:00:00+08:00",
+      "last_run_at": "2026-06-29T03:01:05.038779+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -271,5 +271,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-06-28T09:00:59.771695+08:00"
+  "updated_at": "2026-06-29T09:00:07.985401+08:00"
 }
