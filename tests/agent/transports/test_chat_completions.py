@@ -287,6 +287,21 @@ class TestChatCompletionsBuildKwargs:
         )
         assert kw["extra_body"]["think"] is False
 
+    def test_custom_deepseek_enables_chat_template_thinking(self, transport):
+        from providers import get_provider_profile
+        profile = get_provider_profile("custom")
+        msgs = [{"role": "user", "content": "Hi"}]
+        kw = transport.build_kwargs(
+            model="deepseekv4-flash",
+            messages=msgs,
+            provider_profile=profile,
+            reasoning_config={"enabled": True, "effort": "xhigh"},
+        )
+        assert kw["extra_body"]["chat_template_kwargs"] == {
+            "thinking": True,
+            "reasoning_effort": "max",
+        }
+
     def test_gemini_native_without_explicit_reasoning_config_keeps_existing_behavior(self, transport):
         msgs = [{"role": "user", "content": "Hi"}]
         kw = transport.build_kwargs(

@@ -291,3 +291,16 @@ class TestCustomOllamaParity:
             reasoning_config={"enabled": False, "effort": "none"},
         )
         assert kw["extra_body"]["think"] is False
+
+    def test_deepseek_custom_thinking_uses_chat_template_kwargs(self, transport):
+        kw = transport.build_kwargs(
+            model="deepseekv4-flash",
+            messages=_simple_messages(),
+            tools=None,
+            provider_profile=get_provider_profile("custom"),
+            reasoning_config={"enabled": True, "effort": "xhigh"},
+        )
+        assert kw["extra_body"]["chat_template_kwargs"] == {
+            "thinking": True,
+            "reasoning_effort": "max",
+        }

@@ -4,6 +4,7 @@ Covers any endpoint registered as provider="custom", including local
 Ollama instances. Key quirks:
   - ollama_num_ctx → extra_body.options.num_ctx (local context window)
   - reasoning_config disabled → extra_body.think = False
+  - DeepSeek-named custom models → chat_template_kwargs thinking=True
 """
 
 from typing import Any
@@ -30,12 +31,19 @@ class CustomProfile(ProviderProfile):
             options["num_ctx"] = ollama_num_ctx
             extra_body["options"] = options
 
-        # Disable thinking when reasoning is turned off
+        # Disable thinking when reasoning is turned off.  For DeepSeek custom
+        # endpoints, enable thinking using vLLM's chat-template kwargs; this
+        # mirrors the legacy custom-provider path.
         if reasoning_config and isinstance(reasoning_config, dict):
             _effort = (reasoning_config.get("effort") or "").strip().lower()
             _enabled = reasoning_config.get("enabled", True)
             if _effort == "none" or _enabled is False:
                 extra_body["think"] = False
+            elif "deepseek" in str(ctx.get("model") or "").lower():
+                extra_body["chat_template_kwargs"] = {
+                    "thinking": True,
+                    "reasoning_effort": "max" if _effort == "xhigh" else _effort,
+                }
 
         return extra_body, {}
 
