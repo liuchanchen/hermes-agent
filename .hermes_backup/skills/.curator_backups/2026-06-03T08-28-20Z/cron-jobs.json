@@ -1,0 +1,272 @@
+[
+  {
+    "id": "7c1e45b92026",
+    "name": "懂车帝乐道L90二手车每日监控",
+    "prompt": "每晚10点执行懂车帝乐道L90二手车监控任务。\n\n## 工具调用\n\n**必须用 xvfb-run 包装命令**（WSL 无 X server，必须用虚拟显示）：\n\n```bash\ncd /home/jianliu/work/hermes-agent && source venv/bin/activate && xvfb-run -a python tools/dongchedi_l90_watch.py \\\n  --list-url \"https://www.dongchedi.com/usedcar/20,!1-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-918-25234-310000-1-x-x-x-x-x\" \\\n  --db /tmp/dongchedi_l90_cron.db \\\n  --max-details 30 \\\n  --profile-dir /tmp/dongchedi_profile \\\n  2>&1\n```\n\n工具返回 JSON，提取并展示：\n- `matched_count` — 本次扫描车源数\n- `new_count` / `removed_count` / `changed_count` — 变化数量\n- `items[]` — 每条车源：price_wan、mileage_km、city、seller_type、seller_address、title、first_license_date\n\n## 格式要求\n\n按以下格式整理输出：\n\n| 价格 | 里程 | 上牌 | 城市 | 车型 | 地址 |\n|------|------|------|------|------|------|\n\n标注新增车源（🆕）和下架车源（📉），若无变化说明\"无变化\"。\n\n**价格区间**：最低–最高万\n\n## 当前在售参考（2026-04-24，共9台）\n全部为六座版2025款，电池买断，商家：\n- 合肥 六座版Max 20.80万\n- 上海 六座版Pro 21.28万（2.0万km）\n- 北京 六座版Pro 22.18万\n- 上海 六座版Max 22.18万（1.4万km）\n- 上海 六座版Max 22.59万\n- 太原 六座版Max 21.80万（新增）\n- 上海 六座版Max 23.28万（2.3万km）\n- 佛山 六座版Ultra 24.38万\n- 宁波 六座版Max 24.50万\n\n## 验证码处理\n懂车帝可能弹验证码。正常无需手动验证（cookies已缓存）。若失败，下次重试。",
+    "skills": [
+      "dongchedi-l90-watch"
+    ],
+    "skill": "dongchedi-l90-watch",
+    "model": null,
+    "provider": null,
+    "base_url": null,
+    "script": null,
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 22 * * *",
+      "display": "0 22 * * *"
+    },
+    "schedule_display": "0 22 * * *",
+    "repeat": {
+      "times": 999,
+      "completed": 41
+    },
+    "enabled": true,
+    "state": "scheduled",
+    "paused_at": null,
+    "paused_reason": null,
+    "created_at": "2026-04-21T11:25:30.331382+08:00",
+    "next_run_at": "2026-05-22T22:00:00+08:00",
+    "last_run_at": "2026-05-22T09:06:45.150833+08:00",
+    "last_status": "ok",
+    "last_error": null,
+    "last_delivery_error": null,
+    "deliver": "origin",
+    "origin": {
+      "platform": "weixin",
+      "chat_id": "o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat",
+      "chat_name": null,
+      "thread_id": null
+    }
+  },
+  {
+    "id": "a964294ed664",
+    "name": "每日财经早报",
+    "prompt": "每天早上8点，获取华尔街见闻财经新闻，总结美股昨晚表现及主要财经新闻，以微信消息格式发送。\n\n## 数据获取\n\n使用 wallstreetcn-news 技能，同时调用以下 API：\n\n1. **美股行情** — 搜索 \"美股\"、\"纳指\"、\"标普500\" 等关键词\n2. **最新新闻** — https://api-one-wscn.awtmt.com/apiv1/content/information-flow?channel=global&accept=article&limit=15\n3. **热文** — https://api-one-wscn.awtmt.com/apiv1/content/articles/hot?period=all\n\n## 输出格式\n\n```\n📊 美股昨晚收盘\n\n三大指数涨跌：\n- 标普500：±X%\n- 纳斯达克：±X%\n- 道琼斯：±X%\n\n热门中概股：（如有）\n\n📰 今日财经要闻\n\n1.【标题】摘要...\n2.【标题】摘要...\n...\n\n来源：华尔街见闻\n```\n\n格式要求：\n- 简洁，微信友好\n- 涨跌用绿色↑红色↓\n- 重点新闻放前面\n- 总长度适中，不要太冗长",
+    "skills": [
+      "wallstreetcn-news"
+    ],
+    "skill": "wallstreetcn-news",
+    "model": null,
+    "provider": null,
+    "base_url": null,
+    "script": null,
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 8 * * *",
+      "display": "0 8 * * *"
+    },
+    "schedule_display": "0 8 * * *",
+    "repeat": {
+      "times": 999,
+      "completed": 32
+    },
+    "enabled": true,
+    "state": "scheduled",
+    "paused_at": null,
+    "paused_reason": null,
+    "created_at": "2026-04-23T23:08:50.970385+08:00",
+    "next_run_at": "2026-05-23T08:00:00+08:00",
+    "last_run_at": "2026-05-22T09:08:18.268817+08:00",
+    "last_status": "ok",
+    "last_error": null,
+    "last_delivery_error": null,
+    "deliver": "origin",
+    "origin": {
+      "platform": "weixin",
+      "chat_id": "o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat",
+      "chat_name": null,
+      "thread_id": null
+    }
+  },
+  {
+    "id": "89f4554bce6e",
+    "name": "每日 Herms 配置备份 + GitHub Push",
+    "prompt": "执行本地备份并推送到 GitHub。\n\n## 步骤\n\n1. **本地备份**（memories + skills + cron + databases 到 /home/jianliu/work/hermes-agent/.hermes_backup/）\n2. **git add + commit + push** 到 origin main，commit message 为 \"backup hermes YYYY-MM-DD\"（当天日期）\n3. **验证** push 成功：`git status -sb` 应显示 `## main...origin/main`，无 ahead\n\n## 注意事项\n\n- cron job 无交互环境，所有路径使用绝对路径\n- state.db 使用 `sqlite3 ~/.hermes/state.db \".backup ...\"` 做原子快照\n- whatsapp 数据库不存在时不报错（用 `2>/dev/null` 抑制错误）\n- push 失败时记录错误但不阻塞整体流程\n- deliver 设为 origin，结果会发送回当前对话/主题",
+    "skills": [
+      "hermes-backup"
+    ],
+    "skill": "hermes-backup",
+    "model": null,
+    "provider": null,
+    "base_url": null,
+    "script": null,
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 9 * * *",
+      "display": "0 9 * * *"
+    },
+    "schedule_display": "0 9 * * *",
+    "repeat": {
+      "times": 999,
+      "completed": 26
+    },
+    "enabled": true,
+    "state": "scheduled",
+    "paused_at": null,
+    "paused_reason": null,
+    "created_at": "2026-04-26T17:30:29.608686+08:00",
+    "next_run_at": "2026-05-23T09:00:00+08:00",
+    "last_run_at": "2026-05-22T09:11:20.383411+08:00",
+    "last_status": "ok",
+    "last_error": null,
+    "last_delivery_error": null,
+    "deliver": "origin",
+    "origin": null
+  },
+  {
+    "id": "4f84b0c63dc2",
+    "name": "每周二入职提醒",
+    "prompt": "每周二上午10点，检查入职时间表，发送待入职候选人提醒。\n\n## 步骤\n\n1. 读取入职时间表：\n   `/mnt/c/Users/liuch/My Documents/warpdriveai/制度/招聘/入职时间表.md`\n\n2. 读取所有候选人档案（`/mnt/c/Users/liuch/My Documents/warpdriveai/制度/招聘/候选人档案/*.md`），补充候选人信息\n\n3. 找出所有状态为\"已安排\"且入职日期在今天之后的候选人\n\n4. 整理提醒内容并发送，格式如下：\n\n   ```\n   📋 入职提醒 — 待入职候选人\n\n   候选人：[姓名]\n   入职日期：[YYYY-MM-DD]\n   距入职：[X] 天\n\n   注意事项：\n   - [ ] Offer 已发送？\n   - [ ] 背调已完成？\n   - [ ] 入职材料准备齐全？\n   - [ ] 工位/设备已准备？\n   ```\n\n5. 如果当天没有待入职候选人，发送\"本周无待入职候选人\"提示\n\n6. 通过 send_message 发送到 origin\n\n## 注意事项\n- 只提醒未来7天内入职的候选人（太远的可以忽略）\n- 如果所有待入职候选人都已超过入职日，提示已过期候选人",
+    "skills": [
+      "interview"
+    ],
+    "skill": "interview",
+    "model": null,
+    "provider": null,
+    "base_url": null,
+    "script": null,
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 10 * * 2",
+      "display": "0 10 * * 2"
+    },
+    "schedule_display": "0 10 * * 2",
+    "repeat": {
+      "times": null,
+      "completed": 4
+    },
+    "enabled": true,
+    "state": "scheduled",
+    "paused_at": null,
+    "paused_reason": null,
+    "created_at": "2026-04-27T19:19:45.178002+08:00",
+    "next_run_at": "2026-05-26T10:00:00+08:00",
+    "last_run_at": "2026-05-19T10:01:15.556267+08:00",
+    "last_status": "ok",
+    "last_error": null,
+    "last_delivery_error": null,
+    "deliver": "origin",
+    "origin": null
+  },
+  {
+    "id": "abbcf2686299",
+    "name": "每日面试提醒",
+    "prompt": "每天晚上9点，检查面试时间表，发送未来7天内的面试安排提醒。\n\n## 步骤\n\n1. 先执行 `date \"+%Y-%m-%d\"` 确认今天日期\n\n2. 读取面试时间表：\n   `/mnt/c/Users/liuch/My Documents/warpdriveai/制度/招聘/面试时间表.md`\n\n3. 读取所有候选人档案（`/mnt/c/Users/liuch/My Documents/warpdriveai/制度/招聘/候选人档案/*.md`），补充候选人应聘岗位等信息\n\n4. 识别所有\"状态\"非\"已完成\"的面试安排，且日期在今天之后7天内\n\n5. 按日期分组整理，按日期升序排列\n\n6. 发送提醒，格式：\n\n   ```\n   📅 面试提醒 — 未来7天安排\n\n   ### YYYY-MM-DD (X天后)\n   - **[候选人姓名]** | [轮次] | [时间] | [形式] | 面试官：[面试官]\n     备注：[备注]\n   ```\n\n   如果今天有面试：\n   ```\n   ### 今天\n   - **[候选人姓名]** | [轮次] | [时间] | [形式] | 面试官：[面试官]\n     备注：[备注]\n   ```\n\n7. 如果没有未来7天内的面试安排，发送\"未来7天内无面试安排\"\n\n## 注意事项\n- 必须使用 `date \"+%Y-%m-%d\"` 获取今天的日期，不要假设或硬编码日期\n- 如果面试已过期（日期在今天之前且状态非已完成），标注\"⚠️ 已过期\"\n- 注意表格中的日期格式，只有一行数据时不要重复表头",
+    "skills": [
+      "interview"
+    ],
+    "skill": "interview",
+    "model": null,
+    "provider": null,
+    "base_url": null,
+    "script": null,
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 21 * * *",
+      "display": "0 21 * * *"
+    },
+    "schedule_display": "0 21 * * *",
+    "repeat": {
+      "times": null,
+      "completed": 26
+    },
+    "enabled": true,
+    "state": "scheduled",
+    "paused_at": null,
+    "paused_reason": null,
+    "created_at": "2026-04-27T19:22:17.374140+08:00",
+    "next_run_at": "2026-05-22T21:00:00+08:00",
+    "last_run_at": "2026-05-21T21:02:16.344535+08:00",
+    "last_status": "ok",
+    "last_error": null,
+    "last_delivery_error": null,
+    "deliver": "origin",
+    "origin": null
+  },
+  {
+    "id": "13fbed6a9ac6",
+    "name": "Cron 健康检查 & 自动恢复",
+    "prompt": "你是 Cron 健康检查 & 自动恢复 agent。上面 script 的输出已注入为 context，列出了需要处理的问题。请严格按以下规则执行：\n\n## 规则\n\n### 对于 NEED-RERUN 的任务\n调用 cronjob(action='run', job_id='<id>') 重新执行，完成后记录。\n\n### 对于 NEED-RESEND 的任务\n如果上面 context 中有 WITH_CONTENT，意味着 output 已提供，直接用 send_message(target='weixin', message='<output>') 发送到微信。\n如果上面 context 中 output 被截断了，先 terminal('cat ~/.hermes/cron/output/<jid>/<filename>.md') 获取完整内容再发送。\n如果 NO_CONTENT，跳过（没有内容可发）。\n\n### 对于 HEALTHY 的任务\n不做任何操作。\n\n## 报告格式\n\n输出简短报告作为 final response：\n\n```\n🔍 Cron 健康检查报告\n━━━━━━━━━━━━━━━━━━━━━\n\n✅ 正常：x个\n🔄 已自动恢复：x个（列明）\n❌ 仍失败：x个（列明）\n```\n\n⚠️ 不要用 [SILENT]，必须输出报告。\n",
+    "skills": [],
+    "skill": null,
+    "model": null,
+    "provider": null,
+    "base_url": null,
+    "script": "cron_health_collector.py",
+    "context_from": null,
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 8,18 * * *",
+      "display": "0 8,18 * * *"
+    },
+    "schedule_display": "0 8,18 * * *",
+    "repeat": {
+      "times": 999,
+      "completed": 42
+    },
+    "enabled": true,
+    "state": "scheduled",
+    "paused_at": null,
+    "paused_reason": null,
+    "created_at": "2026-04-30T10:00:25.900478+08:00",
+    "next_run_at": "2026-05-23T08:00:00+08:00",
+    "last_run_at": "2026-05-22T08:16:06.048261+08:00",
+    "last_status": "ok",
+    "last_error": null,
+    "last_delivery_error": null,
+    "deliver": "origin",
+    "origin": {
+      "platform": "weixin",
+      "chat_id": "o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat",
+      "chat_name": null,
+      "thread_id": null
+    },
+    "enabled_toolsets": null,
+    "workdir": null
+  },
+  {
+    "id": "1b38a660ab9a",
+    "name": "每日做梦精炼",
+    "prompt": "执行做梦精炼流水线：运行 ~/.hermes/scripts/dream_cycle.py，扫描新 session，提取重要信息，合并到 MEMORY.md/USER.md，解决矛盾，清理过时条目。静默执行，只输出结果摘要。\n\n脚本绝对路径：/home/jianliu/.hermes/scripts/dream_cycle.py\n运行方式：python3 /home/jianliu/.hermes/scripts/dream_cycle.py\n\n不加载任何 skill。",
+    "skills": [],
+    "skill": null,
+    "model": null,
+    "provider": null,
+    "base_url": null,
+    "script": null,
+    "context_from": null,
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 3 * * *",
+      "display": "0 3 * * *"
+    },
+    "schedule_display": "0 3 * * *",
+    "repeat": {
+      "times": null,
+      "completed": 17
+    },
+    "enabled": true,
+    "state": "scheduled",
+    "paused_at": null,
+    "paused_reason": null,
+    "created_at": "2026-05-01T22:06:04.249578+08:00",
+    "next_run_at": "2026-05-23T03:00:00+08:00",
+    "last_run_at": "2026-05-22T03:03:38.609494+08:00",
+    "last_status": "ok",
+    "last_error": null,
+    "last_delivery_error": null,
+    "deliver": "local",
+    "origin": {
+      "platform": "weixin",
+      "chat_id": "o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat",
+      "chat_name": null,
+      "thread_id": null
+    },
+    "enabled_toolsets": [
+      "terminal",
+      "file"
+    ],
+    "workdir": null
+  }
+]
