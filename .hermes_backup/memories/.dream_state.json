@@ -1,7 +1,7 @@
 {
   "last_processed_session": "20260518_101115_16d465",
-  "last_run": "2026-06-29T19:01:09.366885+00:00",
-  "total_runs": 23,
+  "last_run": "2026-07-04T19:01:30.062445+00:00",
+  "total_runs": 25,
   "phases_executed": [
     "calibrate",
     "collect",
@@ -9,11 +9,11 @@
     "index"
   ],
   "stats_summary": {
-    "added": 5,
-    "replaced": 14,
+    "added": 3,
+    "replaced": 20,
     "removed": 0,
     "contradictions_found": 0,
-    "budget_evictions": 6,
-    "skipped_duplicates": 8
+    "budget_evictions": 4,
+    "skipped_duplicates": 3
   }
 }

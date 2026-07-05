@@ -108,11 +108,16 @@ Since the final response is auto-delivered, include all resend content with clea
 
 ## Processing NEED-RERUN Tasks
 
-For tasks tagged `NEED-RERUN`, the job ran but failed (usually API timeout, network error, or resource unavailable). Execute the job with the appropriate runner tool:
+For tasks tagged `NEED-RERUN`, the job ran but failed (usually API timeout, network error, or resource unavailable). Re-execute using the Hermes CLI:
 
-- For dongchedi-l90-watch: Use `dongchedi_watch` tool or the Python script via xvfb-run
-- For dream pipeline: The cron system typically handles reruns automatically
-- For other jobs: Check the specific skill/script path
+```bash
+hermes cron run --accept-hooks <job_id>
+```
+
+- `--accept-hooks` is required in cron mode (no TTY prompt available)
+- Run all NEED-RERUN jobs in parallel using `terminal(background=true)` for speed, then poll/wait for each to complete
+- After running, verify with `hermes cron list` — all jobs should show `ok` on last run
+- **`execute_code` is blocked in cron mode** (approvals.cron_mode). Use `terminal()` instead for all shell commands.
 
 After triggering, note the status in the final report.
 
@@ -143,6 +148,8 @@ Files are named as `YYYY-MM-DD_HH-MM-SS.md`. Find the latest by sorting with `ls
 
 ## Pitfalls
 
+- **`execute_code` is blocked in cron mode** — cron jobs run with `approvals.cron_mode` enforces stricter approval. Use `terminal()` directly for shell commands, not `execute_code`.
+- **Background processes for parallel reruns need active polling** — when launching multiple `hermes cron run` jobs in parallel via `terminal(background=true)`, use `process(action='wait', session_id=..., timeout=...)` to check each completes. The 懂车帝L90 scraper can take 600-900+ seconds to finish; set generous timeouts. Don't assume a silent background process finished — poll it.
 - **Output files are large (20KB+)** because they embed the full SKILL.md and prompt content. The actual report is in the last 50-150 lines. Don't read the whole file — read from offset -100 or search for `## Response`.
 - **Don't send individual messages** when multiple NEED-RESEND tasks exist — they'll all hit the iLink 30s cooldown. Consolidate into the final response.
 - **Don't use [SILENT]** on health check runs — the report must always be produced (health check is the delivery itself).
@@ -154,6 +161,7 @@ Files are named as `YYYY-MM-DD_HH-MM-SS.md`. Find the latest by sorting with `ls
 - **备份报告 output files** are shorter (~50 lines of prompt before the report).
 - **Cron健康检查 output files** contain the PREVIOUS health check run's output, not the current run — only use the context-provided content for these.
 - **⚠️ Stale content trap when cron health check itself is in NEED-RESEND list:** The context-provided `output (N chars)` for the health check job (`13fbed6a9ac6`) contains the *previous* health check's consolidated report, which may have stale/outdated data for individual jobs. For example, the previous health check's 财经早报 section might show Friday's market data instead of Monday's. **Always read the *individual job's* latest output file** from `~/.hermes/cron/output/<jid>/` rather than relying on the context-provided output for any job whose content might be stale. The context output for non-health-check jobs is fresh (direct from that job's execution); only the health check job's context output is a re-consolidation of older data.
+- **When cron health check is in NEED-RERUN (not NEED-RESEND), the rule changes:** After rerunning the health check job, its output file will contain *fresh* data from this run. You should read the latest output file (just like any other job) to include the new health check results. The stale-content warning only applies to the context-provided output, not to freshly rerun output files.
 
 ## Failure Modes
 
@@ -171,3 +179,4 @@ Files are named as `YYYY-MM-DD_HH-MM-SS.md`. Find the latest by sorting with `ls
 - [ ] Consolidated report includes all resend sections with clear separators
 - [ ] NEED-RERUN tasks have been attempted (if possible) and status noted
 - [ ] Report format matches: status summary first, then individual sections
+- [ ] After RERUNs, verify all jobs show `ok` status via `hermes cron list`

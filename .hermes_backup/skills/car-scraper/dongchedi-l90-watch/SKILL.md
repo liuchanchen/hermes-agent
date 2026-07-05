@@ -113,6 +113,19 @@ xvfb-run -a python tools/dongchedi_l90_watch.py \
   --profile-dir /tmp/dongchedi_profile
 ```
 
+### 反爬状态更新（2026-07-04）
+
+懂车帝 Tengine 反爬系统已升级。以下所有方式均被拦截（返回登录页或空页面）：
+- crawl4ai headless + stealth
+- Hermes browser tool (Browserbase stealth)
+- Playwright headless (even with homepage session cookies)
+- curl (returns content-length: 0)
+
+所有 `/usedcar/` 路径（列表页和详情页）均被 login wall 阻挡。目前无法通过自动化方式获取数据。
+
+### Zombie 模式
+由于无法抓取新数据，cron job 转为 zombie 模式：记录最后一次成功抓取的数据快照并输出，但不执行新的抓取。
+
 ### Cron job 完整流程
 
 由于无持久 profile，每次 cron 执行需要：
@@ -122,3 +135,5 @@ xvfb-run -a python tools/dongchedi_l90_watch.py \
 4. 可保留 profile 供下次使用（会累计 cookies）
 
 当前 WSL 环境 `--headed` 需要 `xvfb-run` 包装。headless 模式下预热同样有效 — 只要 browser context 建立过会话 cookie 即可。
+
+> **注意**: 以上方案自 2026-07 起已失效。需要等懂车帝反爬策略松动或寻找替代数据源（如瓜子二手车、汽车之家二手车）。
