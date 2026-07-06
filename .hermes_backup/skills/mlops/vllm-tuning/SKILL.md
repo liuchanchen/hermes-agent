@@ -1,6 +1,6 @@
 ---
 name: vllm-tuning
-description: Use when tuning vLLM serving parameters for throughput and TTFT optimization on multi-node GPU clusters. Covers DeepSeek V4 Pro, GLM-5.1-FP8, and other MLA models on RTX PRO 6000 Blackwell (96GB/card) with TP/DP/EP/PP configurations, batched-tokens/seqs tuning, prefix caching, compilation strategies, and vllm bench serve methodology.
+description: Use when tuning vLLM serving parameters for throughput and TTFT optimization on multi-node GPU clusters. Covers DeepSeek V4 Pro, GLM-5.1-FP8/GLM-5.2-NVFP4, and other MLA models on RTX PRO 6000 Blackwell (96GB/card) with TP/DP/EP/PP configurations, batched-tokens/seqs tuning, prefix caching, compilation strategies, and vllm bench serve methodology.
 version: 1.2.0
 author: Hermes Agent
 license: MIT
@@ -81,6 +81,7 @@ See linked files for detailed information:
 - `references/glm5-index_topk-override-pitfall.md` — hasattr vs getattr pitfall with --hf-overrides
 - `references/glm5-vllm-debug-session-2026-06-03.md` — Session log: NameError, AttributeError, shared memory OOM discoveries
 - `references/glm5-vllm-workerproc-debug-session-2026-06-03.md` — WorkerProc init failure diagnostic sequence
+- `references/glm5.2-nvfp4.md` — GLM-5.2-NVFP4 on 70.96: server configuration (TP=8, bf16 KV cache), benchmark connectivity fix (model name vs filesystem path), and air-gapped node note
 
 ---
 
@@ -497,9 +498,52 @@ echo PID: $!
 - `--prefix-repetition-num-prefixes` — unique prefixes. Cache hit rate = (num_prompts - num_prefixes) / num_prompts
 - For 60k input: `--prefix-repetition-suffix-len 59488` (60000 - 512)
 
-### MANDATORY: --tokenizer Flag
+### MANDATORY: `--tokenizer` Flag
 
 The bench tool downloads a HuggingFace tokenizer at startup. If the venv has no external network (HuggingFace.co blocked, hf-mirror.com unreachable from venv), the tool hangs forever. **Always use `--tokenizer /data/models/<model>/`** pointing to the local model directory.
+
+### CRITICAL Pitfall: GLM-5.2 Config `layer_types` Blocks Tokenizer Loading
+
+GLM 5.2's `config.json` uses `"layer_types": ["deepseek_sparse_attention", ...]` — a value the installed `transformers`/`huggingface_hub` strict dataclass validation rejects because `deepseek_sparse_attention` is not in the allowed set. This causes `vllm bench serve` to crash at startup:
+
+```
+huggingface_hub.errors.StrictDataclassClassValidationError: Class validation error
+  for validator 'validate_layer_type':
+    ValueError: The `layer_types` entries must be in ('full_attention',
+    'sliding_attention', ...) but got ['deepseek_sparse_attention', ...]
+```
+
+**Important distinction**: The vLLM API server itself runs fine — vLLM uses its own config parser that doesn't validate layer types. The error only affects `vllm bench serve` and any tool that loads config via `transformers.AutoConfig.from_pretrained`.
+
+**Fix**: Create a patched copy of the model config with `layer_types` removed, and point both `--model` and `--tokenizer` to the patched directory:
+
+```bash
+python3 -c "
+import json, shutil
+from pathlib import Path
+src = Path('/data/models/glm_5_2_nvfp4/')
+dst = Path('/tmp/glm5_bench_patch')
+cfg = json.loads((src / 'config.json').read_text())
+cfg.pop('layer_types', None)
+(dst / 'config.json').write_text(json.dumps(cfg, indent=2))
+for pat in ['tokenizer*', '*vocab*', '*merges*', 'added_tokens*',
+            'special_tokens*', 'chat_template*', 'generation_config*']:
+    for f in src.glob(pat):
+        shutil.copy2(f, dst / f.name)
+"
+
+# Then run with patched dir:
+MODEL=/tmp/glm5_bench_patch \
+TOKENIZER=/tmp/glm5_bench_patch \
+TOKENIZER_MODE=deepseek_v4 \
+... \
+bash run_vllm_bench_serve.sh
+
+# Cleanup after:
+rm -rf /tmp/glm5_bench_patch
+```
+
+This is needed for **any model** whose `config.json` contains `layer_types` values that the installed `transformers` version doesn't recognize (not just GLM 5.2). Check by running the bench command once — if it fails with `validate_layer_type`, apply this fix.
 
 ### MANDATORY: --model Flag Must Match Served Name
 

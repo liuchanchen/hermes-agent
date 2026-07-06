@@ -10,15 +10,15 @@ MiniMax M2.7 TP+EP 启动脚本存在语法错误，导致启动失败（exit co
 §
 在主机10.10.70.98上，临时使用用户qs和密码!QAZ2wsx登录，然后创建sudo用户jianliu，密码为!QAZ2wsx，并为jianliu@10.10.70.98配置SSH密钥，后续登录使用jianliu用户。
 §
-70.95 上的 vLLM 服务运行 MiniMax M2 模型，max_model_len 为 80,920 tokens，配置包括 tensor-parallel-size 8、expert-parallel、gpu-memory-utilization 0.85、kv-cache-dtype fp8，API key 为 ***.95-vllm，端口 8000。
+服务器 10.10.70.95:8000 上运行的 vLLM 服务使用 MiniMax M2 模型（非 DeepSeek V4），max_model_len 为 80,920 tokens，配置包括 tensor-parallel-size 8、expert-parallel、gpu-memory-utilization 0.85、kv-cache-dtype fp8，API key 为 ***.95-vllm。
 §
-在 10.10.70.98 上，临时使用 qs 用户登录，密码为 !QAZ2wsx，然后创建 sudo 用户 jianliu，密码为 !QAZ2wsx，并为其设置 SSH 密钥路径，后续登录使用 jianliu。
+在 10.10.70.98 上，临时用户 qs 的密码是 !QAZ2wsx，需创建 sudo 用户 jianliu 并设置密码 !QAZ2wsx，后续登录使用 jianliu。
 §
 在10.10.70.98上，vLLM的CMake配置因缺少CUDA_nvrtc_LIBRARY而失败，已安装cuda-nvrtc-13-2和cuda-nvrtc-dev-13-2，需要重新尝试安装。
 §
 技能库更新流程要求：每次会话至少产生一次技能更新，即使很小；更新目标为类级别技能，每个技能有丰富的SKILL.md和引用文件；更新需通过skill_manage工具进行，且SKILL.md必须放在允许路径下。
 §
-在 10.10.70.98 上安装 vLLM 时，CMake 配置阶段因缺少 CUDA_nvrtc_LIBRARY 而失败，已通过安装 cuda-nvrtc-13-2 和 cuda-nvrtc-dev-13-2 解决。
+vLLM 在 ds4-sm120 节点上的 CMake 配置因缺少 CUDA_nvrtc_LIBRARY 而失败，已安装 cuda-nvrtc-13-2 和 cuda-nvrtc-dev-13-2 但尚未验证修复效果。
 §
 在 ds4-sm120 节点上，vLLM 的 CMake 配置阶段因 CUDA_nvrtc_LIBRARY 链接问题失败，需要解决 nvrtc 依赖才能继续安装。
 §
@@ -26,6 +26,8 @@ MiniMax M2.7 TP+EP 启动脚本存在语法错误，导致启动失败（exit co
 §
 技能库更新流程要求：每次会话至少产生一个技能更新，即使很小；更新需通过 skill_manage 工具操作，且 SKILL.md 必须位于允许路径下（如 skills/ 目录），直接写入根目录 SKILL.md 会被拒绝。
 §
-vLLM fork 已复制到 10.10.70.98 的 /data/vllm-ds4-sm120/ 目录，包含完整 .git 历史和 ds4-sm120 分支，提交 b709b75。
-§
 技能库更新流程中，直接写入SKILL.md会被工具拒绝（不在允许路径下），必须通过skill_manage工具进行patch操作。
+§
+用户要求验证工作时不修改项目文件，仅通过源读取、shell检查、浏览器/网络证据或提供的工具句柄进行验证，并返回证据支持的检查结果和最终裁决（PASS/FAIL/PARTIAL）。
+§
+在 10.10.70.98 上创建了用户 jianliu，密码为 !QAZ2wsx，并配置了 SSH 密钥路径，后续登录使用 jianliu 作为用户名。

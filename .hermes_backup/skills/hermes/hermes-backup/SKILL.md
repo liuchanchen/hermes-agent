@@ -193,8 +193,11 @@ hermes-agent/.hermes_backup/
 4. whatsapp 数据库的备份失败不算错误（如果该目录不存在）
 5. `state.db` 使用 Python `sqlite3.backup()` API 而非直接 cp，保证 WAL 写入完成后的一致快照
 6. 备份完成后 manifest 中的 `backup_timestamp` 可用于确认是否需要重新备份
-7. ⚠️ **state.db.gz 可能超过 GitHub 100MB 限制**（2026-06 实测 174MB）。`.gitignore` 中必须同时排除 `state.db` 和 `state.db.gz`。本地备份仍保留 `.gz` 文件用于恢复，但不提交到 git。
+7. ⚠️ **state.db.gz 可能超过 GitHub 100MB 限制**（持续增长中：2026-06 实测 174MB, 2026-07 实测 186MB）。`.gitignore` 中必须同时排除 `state.db` 和 `state.db.gz`。本地备份仍保留 `.gz` 文件用于恢复，但不提交到 git。查看 `references/state-db-growth.md` 了解增长趋势。
 8. **清理历史遗留文件**：如果 `databases/` 目录存在旧的 `state.gz.part_aa/ab/ac` 等 split 分卷文件（来自早期备份方式），应在备份完成后手动清理，避免占用磁盘空间和 git 误追踪。
+9. **`.gitignore` 去重**：.gitignore 可能在多个位置包含重复的排除规则（如 `state.db` 出现多次）。每次备份前的 pre-flight 检查脚本会自动去重。重复条目不影响 git 行为但会让 `git status` 输出混乱。
+10. **`git add` 顺序**：先 add 小文件组（memories, cron, databases, MANIFEST），最后单独 add skills/（874+ 文件，需要较大的 timeout）。实测 skills/ 的 git add 在 2-5s 内完成，无需过高 timeout。
+11. **`.hermes_backup/` 整体路径**：当前仅排除 `state.db` 和 `state.db.gz`，其他新文件（如 `README.md`）会出现在 `git status` untracked 中。这是有意为之 — `.hermes_backup/` 整体被 `.gitignore` 排除会阻止备份文件被提交。
    ```bash
    # 删除物理文件
    rm -f .hermes_backup/databases/state.gz.part_*
@@ -335,7 +338,7 @@ for f in r.stdout.strip().split(chr(10)) if r.stdout.strip() else []:
 
 ### Pre-flight: `.gitignore` 检查
 
-每次备份前检查 `.gitignore` 是否已正确配置且无重复条目：
+每次备份前检查 `.gitignore` 是否已正确配置且无重复条目，同时检查是否有备份目录下的新文件未被追踪（这些新文件是预期行为，确认即可）：
 
 ```bash
 cd /home/jianliu/work/hermes-agent
@@ -377,6 +380,11 @@ for line in lines:
 with open(g, 'w') as f:
     f.writelines(unique)
 "
+
+# 确认 git 中没有追踪 state.db.gz
+git ls-files -- .hermes_backup/databases/state*
+# 期望输出为空（无输出）
+```
 ```
 
 **注意**：如果 `.gitignore` 里已有排除规则但有重复（多个位置出现 `state.db` 或 `state.db.gz`），上述脚本会自动去重。重复条目不会影响 git 行为，但会让 `git status` 输出变得混乱 — 每次备份时也顺手清理。

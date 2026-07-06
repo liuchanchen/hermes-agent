@@ -80,6 +80,13 @@ grep -n "## Response" ~/.hermes/cron/output/<jid>/<file>.md | tail -1
 ### Step 3: Handle iLink Weixin rate limiting
 The iLink WeChat gateway enforces a 30-second cooldown between messages. When multiple tasks fail delivery simultaneously, independent sends will all fail with the same error. **The solution is consolidation** — embed all resend content into the agent's final response as one cohesive report, rather than attempting independent sends.
 
+### Pitfall: `hermes send` is blocked when auto-delivery targets the same chat
+If a cron job has `deliver: origin` pointing to weixin, and you try to use `hermes send --to weixin` to manually resend a failed delivery, it will be **silently skipped** with:
+```
+Skipped send_message to weixin:... This cron job will already auto-deliver its final response to that same target.
+```
+This means you **cannot** independently send messages to the weixin target from a cron job run. The only delivery mechanism is the agent's final response, which gets auto-delivered. **Always consolidate all NEED-RESEND content into the final response** — never try to use `hermes send` as a separate delivery channel.
+
 ### Step 4: Compose the consolidated output
 Since the final response is auto-delivered, include all resend content with clear section separators and numbered headers.
 
