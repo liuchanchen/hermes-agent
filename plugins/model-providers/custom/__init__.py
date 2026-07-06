@@ -4,6 +4,9 @@ Covers any endpoint registered as provider="custom", including local
 Ollama instances. Key quirks:
   - ollama_num_ctx → extra_body.options.num_ctx (local context window)
   - reasoning_config disabled → extra_body.think = False
+  - DeepSeek V4 reasoning → chat_template_kwargs (including Think Max)
+  - GLM-5.2 enabled reasoning → chat_template_kwargs Think Max
+  - other enabled reasoning → extra_body.think + top-level reasoning_effort
 """
 
 from typing import Any
@@ -23,6 +26,7 @@ class CustomProfile(ProviderProfile):
         **ctx: Any,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         extra_body: dict[str, Any] = {}
+        top_level: dict[str, Any] = {}
 
         # Ollama context window
         if ollama_num_ctx:
@@ -30,14 +34,58 @@ class CustomProfile(ProviderProfile):
             options["num_ctx"] = ollama_num_ctx
             extra_body["options"] = options
 
-        # Disable thinking when reasoning is turned off
+        # Reasoning config — DeepSeek V4 exposes its custom Think Max mode
+        # through the chat template, not the standard OpenAI-compatible
+        # top-level reasoning_effort field.  vLLM validates the latter before
+        # rendering the template and rejects "max" there.
         if reasoning_config and isinstance(reasoning_config, dict):
             _effort = (reasoning_config.get("effort") or "").strip().lower()
             _enabled = reasoning_config.get("enabled", True)
-            if _effort == "none" or _enabled is False:
-                extra_body["think"] = False
+            _model = "".join(
+                char
+                for char in str(ctx.get("model") or "").lower()
+                if char.isalnum()
+            )
 
-        return extra_body, {}
+            # GLM-5.2 defaults to Think Max.  Select it explicitly whenever
+            # Hermes thinking is enabled, and use the chat-template switch
+            # prescribed by vLLM when thinking is disabled.
+            if "glm52" in _model:
+                _thinking = _enabled is not False and _effort != "none"
+                if _thinking:
+                    extra_body["chat_template_kwargs"] = {
+                        "enable_thinking": True,
+                        "reasoning_effort": "max",
+                    }
+                else:
+                    extra_body["chat_template_kwargs"] = {
+                        "enable_thinking": False
+                    }
+                return extra_body, top_level
+
+            if "deepseekv4" in _model:
+                _thinking = _enabled is not False and _effort != "none"
+                template_kwargs: dict[str, Any] = {"thinking": _thinking}
+                if _thinking:
+                    if _effort in {"xhigh", "max"}:
+                        template_kwargs["reasoning_effort"] = "max"
+                    elif _effort in {"low", "medium", "high"}:
+                        template_kwargs["reasoning_effort"] = _effort
+                extra_body["chat_template_kwargs"] = template_kwargs
+                return extra_body, top_level
+
+            if _effort == "none" or _enabled is False:
+                # Disable thinking
+                extra_body["think"] = False
+            else:
+                # Enable thinking
+                extra_body["think"] = True
+                if _effort in {"xhigh", "max"}:
+                    top_level["reasoning_effort"] = "max"
+                elif _effort in {"low", "medium", "high"}:
+                    top_level["reasoning_effort"] = _effort
+
+        return extra_body, top_level
 
     def fetch_models(
         self,
