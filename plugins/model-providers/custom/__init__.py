@@ -10,6 +10,8 @@ Volcengine ARK, vLLM, llama.cpp). Key quirks:
   - reasoning_config enabled + effort → top-level reasoning_effort
     (the native OpenAI-compatible format GLM/ARK expect; unset omits it
     so the endpoint's server default applies)
+  - DeepSeek V4 reasoning → chat_template_kwargs (including Think Max)
+  - GLM-5.2 enabled reasoning → chat_template_kwargs Think Max
 """
 
 from typing import Any
@@ -40,27 +42,48 @@ class CustomProfile(ProviderProfile):
         # Reasoning / thinking control for custom OpenAI-compatible endpoints
         # (GLM-5.2 on Volcengine ARK, vLLM, Ollama, llama.cpp, …).
         #
-        #   - disabled  → extra_body.think = False (Ollama's thinking-off flag)
-        #   - enabled + effort set → TOP-LEVEL reasoning_effort string, the
-        #     format GLM-5.2/ARK and other OpenAI-compatible reasoning APIs
-        #     expect (GLM documents "high" and "max"; "max" is its default).
+        # GLM-5.2 and DeepSeek V4 on custom vLLM endpoints use
+        # chat_template_kwargs. Other endpoints use the generic top-level
+        # reasoning_effort contract, plus think=False when disabled.
+        #
         #   - enabled + no effort  → omit both, so the endpoint applies its own
         #     server-side default (do NOT force a level the user didn't pick).
-        #
-        # We deliberately do NOT emit ``think=True`` on enable: it is an
-        # Ollama-only flag and thinking is already server-default-on for these
-        # backends, so forcing it risks a 400 on GLM/vLLM endpoints that don't
-        # recognize it. Mirrors the DeepSeek/Zai profile precedent.
         if reasoning_config and isinstance(reasoning_config, dict):
             _effort = (reasoning_config.get("effort") or "").strip().lower()
             _enabled = reasoning_config.get("enabled", True)
+            _model = "".join(
+                char for char in str(ctx.get("model") or "").lower() if char.isalnum()
+            )
+
+            # GLM-5.2 defaults to Think Max.  Select it explicitly whenever
+            # Hermes thinking is enabled, and use the chat-template switch
+            # prescribed by vLLM when thinking is disabled.
+            if "glm52" in _model:
+                _thinking = _enabled is not False and _effort != "none"
+                if _thinking:
+                    extra_body["chat_template_kwargs"] = {
+                        "enable_thinking": True,
+                        "reasoning_effort": "max",
+                    }
+                else:
+                    extra_body["chat_template_kwargs"] = {"enable_thinking": False}
+                return extra_body, top_level
+
+            if "deepseekv4" in _model:
+                _thinking = _enabled is not False and _effort != "none"
+                template_kwargs: dict[str, Any] = {"thinking": _thinking}
+                if _thinking:
+                    if _effort in {"xhigh", "max"}:
+                        template_kwargs["reasoning_effort"] = "max"
+                    elif _effort in {"low", "medium", "high"}:
+                        template_kwargs["reasoning_effort"] = _effort
+                extra_body["chat_template_kwargs"] = template_kwargs
+                return extra_body, top_level
+
             if _effort == "none" or _enabled is False:
-                # Ollama's /v1/chat/completions silently ignores
-                # extra_body.think (only /api/chat honours it — ollama#14820)
-                # but respects the top-level reasoning_effort field, so both
-                # are needed to actually stop a thinking-capable model from
-                # reasoning (#25758). Endpoints that recognize neither simply
-                # ignore them.
+                # Ollama's /v1/chat/completions ignores think=False but honors
+                # top-level reasoning_effort. Keep think=False for /api/chat
+                # and compatible proxies.
                 top_level["reasoning_effort"] = "none"
                 extra_body["think"] = False
             elif _effort:
