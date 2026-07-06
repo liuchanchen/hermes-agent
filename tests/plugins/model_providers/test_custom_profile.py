@@ -1,10 +1,9 @@
 """Unit tests for the custom provider profile's reasoning wiring.
 
 ``provider=custom`` covers any OpenAI-compatible endpoint the user points
-Hermes at — local Ollama, vLLM, llama.cpp, and hosted reasoning APIs like
-GLM-5.2 on Volcengine ARK. Before #57601's salvage, ``CustomProfile`` emitted
-nothing when reasoning was *enabled*, so a configured ``reasoning_effort``
-was silently dropped for every custom endpoint.
+Hermes at — local Ollama, vLLM, llama.cpp, and hosted reasoning APIs. Generic
+endpoints use the OpenAI-compatible top-level field, while GLM-5.2 and
+DeepSeek V4 custom vLLM endpoints require chat-template kwargs.
 
 These tests pin the wire-shape contract:
     - disabled on Ollama  → extra_body.think = False + reasoning_effort=none
@@ -14,6 +13,7 @@ These tests pin the wire-shape contract:
                           including ``max``/``xhigh``
     - enabled + no effort → nothing emitted (endpoint's server default applies)
     - ollama_num_ctx      → extra_body.options.num_ctx, orthogonal to reasoning
+    - GLM-5.2/DeepSeek V4 → model-specific chat_template_kwargs
 """
 
 from __future__ import annotations
@@ -88,7 +88,7 @@ class TestCustomReasoningWireShape:
     def test_disabled_omits_think_without_base_url(self, custom_profile):
         """Unknown custom endpoint — do not send the Ollama-only flag."""
         eb, tl = custom_profile.build_api_kwargs_extras(
-            reasoning_config={"enabled": False}, model="glm-5.2"
+            reasoning_config={"enabled": False}, model="qwen3"
         )
         assert "think" not in eb
         assert tl == {"reasoning_effort": "none"}
@@ -149,25 +149,79 @@ class TestCustomReasoningWireShape:
     def test_enabled_effort_goes_top_level(self, custom_profile, effort):
         """enabled + effort → TOP-LEVEL reasoning_effort, passed through verbatim.
 
-        GLM-5.2/ARK and OpenAI-compatible reasoning APIs read reasoning_effort
-        as a top-level string, not nested in extra_body. ``max`` is GLM's
-        native deep-reasoning level and must survive.
+        OpenAI-compatible reasoning APIs read reasoning_effort as a top-level
+        string, not nested in extra_body.
         """
         eb, tl = custom_profile.build_api_kwargs_extras(
-            reasoning_config={"enabled": True, "effort": effort}, model="glm-5.2"
+            reasoning_config={"enabled": True, "effort": effort}, model="qwen3"
         )
         assert tl == {"reasoning_effort": effort}
         assert "reasoning_effort" not in eb
         assert "think" not in eb
 
-
     def test_does_not_force_think_true_on_enable(self, custom_profile):
         """We must never send think=True on enable — it's Ollama-only and
         would 400 on GLM/vLLM endpoints that don't recognize it."""
         eb, _ = custom_profile.build_api_kwargs_extras(
-            reasoning_config={"enabled": True, "effort": "high"}, model="glm-5.2"
+            reasoning_config={"enabled": True, "effort": "high"}, model="qwen3"
         )
         assert eb.get("think") is not True
+
+
+class TestCustomVllmReasoningWireShape:
+    """Model-specific custom vLLM endpoints use chat-template kwargs."""
+
+    def test_glm52_enabled_forces_think_max(self, custom_profile):
+        eb, tl = custom_profile.build_api_kwargs_extras(
+            reasoning_config={"enabled": True, "effort": "high"},
+            model="zai-org/GLM-5.2",
+        )
+        assert eb == {
+            "chat_template_kwargs": {
+                "enable_thinking": True,
+                "reasoning_effort": "max",
+            }
+        }
+        assert tl == {}
+
+    @pytest.mark.parametrize(
+        "reasoning_config",
+        [{"enabled": False}, {"enabled": True, "effort": "none"}],
+    )
+    def test_glm52_disabled_uses_template_switch(
+        self, custom_profile, reasoning_config
+    ):
+        eb, tl = custom_profile.build_api_kwargs_extras(
+            reasoning_config=reasoning_config,
+            model="glm-5.2",
+        )
+        assert eb == {"chat_template_kwargs": {"enable_thinking": False}}
+        assert tl == {}
+
+    @pytest.mark.parametrize(
+        ("effort", "expected"),
+        [("low", "low"), ("medium", "medium"), ("high", "high"), ("xhigh", "max")],
+    )
+    def test_deepseek_v4_maps_template_effort(self, custom_profile, effort, expected):
+        eb, tl = custom_profile.build_api_kwargs_extras(
+            reasoning_config={"enabled": True, "effort": effort},
+            model="deepseek-v4",
+        )
+        assert eb == {
+            "chat_template_kwargs": {
+                "thinking": True,
+                "reasoning_effort": expected,
+            }
+        }
+        assert tl == {}
+
+    def test_deepseek_v4_disabled_uses_template_switch(self, custom_profile):
+        eb, tl = custom_profile.build_api_kwargs_extras(
+            reasoning_config={"enabled": False},
+            model="deepseek-v4",
+        )
+        assert eb == {"chat_template_kwargs": {"thinking": False}}
+        assert tl == {}
 
 
 class TestCustomReasoningWithNumCtx:
@@ -179,4 +233,3 @@ class TestCustomReasoningWithNumCtx:
         )
         assert eb == {"options": {"num_ctx": 8192}}
         assert tl == {}
-
