@@ -1,7 +1,8 @@
 """Custom / Ollama (local) provider profile.
 
 Covers any endpoint registered as provider="custom", including local
-Ollama instances. Key quirks:
+Ollama instances and OpenAI-compatible reasoning endpoints (GLM-5.2 on
+Volcengine ARK, vLLM, llama.cpp). Key quirks:
   - ollama_num_ctx → extra_body.options.num_ctx (local context window)
   - reasoning_config disabled → extra_body.think = False
   - DeepSeek V4 reasoning → chat_template_kwargs (including Think Max)
