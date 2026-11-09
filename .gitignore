@@ -218,5 +218,8 @@ native/fts5_cjk/*.so
 # Re-include the skills tree, then re-assert the two oversized state.db
 # artifacts so they stay out of git (GitHub 100MB limit).
 !.hermes_backup/skills/**
+# ...but build junk is not skill content — keep it out of the backup.
+.hermes_backup/skills/**/__pycache__/
+.hermes_backup/skills/**/*.pyc
 .hermes_backup/databases/state.db
 .hermes_backup/databases/state.db.gz
