@@ -123,16 +123,39 @@ xvfb-run -a python tools/dongchedi_l90_watch.py \
 
 所有 `/usedcar/` 路径（列表页和详情页）均被 login wall 阻挡。目前无法通过自动化方式获取数据。
 
+### 反爬状态更新（2026-11-09 复验）
+
+登录墙仍然生效，且比 7 月更彻底：
+
+| 探测 | 结果 |
+|------|------|
+| `GET /usedcar/20,!1-...` (curl) | `200`，`content-length: 0` |
+| `GET /usedcar/23505188` (详情页) | `302 → /login-required?redirect=...` |
+| Playwright 预热后访问列表页 | `302 → /login-required`，落地页标题「手机验证码登录」 |
+| 旧 profile（`work/.crawl4ai/profiles/dongchedi_profile`）cookies | 只有 `ttwid` / `s_v_web_id` / `tt_webid` 等匿名 cookie，**无 sessionid**，无法过墙 |
+| 猜测的 API 路径 `/motor/usedcar/api/*`、`/motor/pc/usedcar/*` | `200` 空 body |
+
+结论：**必须手机验证码登录**，无人值守的 cron 无法完成。
+
 ### Zombie 模式
-由于无法抓取新数据，cron job 转为 zombie 模式：记录最后一次成功抓取的数据快照并输出，但不执行新的抓取。
+
+由于无法抓取新数据，cron job 转为 zombie 模式：输出最后一次成功快照并明确标注数据日期与「源被阻断」，不做新的抓取。
+
+最后一次成功抓取：**2026-05-04**，24 台，20.80–24.58 万（库：`~/.hermes/dongchedi_l90.db`，`listings` 表；`/tmp` 下的库重启即丢）。
+
+### 替代数据源
+
+二手车之家 (che168) 的乐道 L90 列表页目前可抓，方法与口径限制见 `references/che168-alternative-source.md`。**注意它不区分电池买断/BaaS，不能与懂车帝买断样本直接比价。**
 
 ### Cron job 完整流程
 
-由于无持久 profile，每次 cron 执行需要：
+由于无持久 profile（`/tmp` 在重启后被清空，2026-11-09 实测 `/tmp/dongchedi_profile` 已不存在），每次 cron 执行需要：
 1. 创建临时 profile 目录
 2. 用 Playwright 预热（访问 homepage → 访问列表页）
 3. 运行 dongchedi_l90_watch.py 使用该 profile
 4. 可保留 profile 供下次使用（会累计 cookies）
+
+预热探针：`/tmp/warm_dongchedi.py`（一次性脚本，重启即丢；需要时按本文件上方代码重建）。判断是否过墙看 `page.url` 是否变成 `/login-required`。
 
 当前 WSL 环境 `--headed` 需要 `xvfb-run` 包装。headless 模式下预热同样有效 — 只要 browser context 建立过会话 cookie 即可。
 
