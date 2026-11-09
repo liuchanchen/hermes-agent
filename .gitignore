@@ -49,7 +49,6 @@ run_datagen_kimik2-thinking.sh
 run_datagen_megascience_glm4-6.sh
 run_datagen_sonnet.sh
 source-data/*
-run_datagen_megascience_glm4-6.sh
 data/*
 # No trailing slash: also matches node_modules SYMLINKS (worktrees often
 # symlink node_modules to the main checkout; the dir-only pattern let one
@@ -62,7 +61,6 @@ agent-browser/
 *.pem
 privvy*
 images/
-__pycache__/
 hermes_agent.egg-info/
 wandb/
 testlogs
@@ -213,3 +211,5 @@ native/fts5_cjk/*.so
 # by accident via 3a69e34702, removed in the #72002 salvage).
 .lazy-refresh-incomplete
 .skills_prompt_snapshot.json
+.hermes_backup/databases/state.db
+.hermes_backup/databases/state.db.gz

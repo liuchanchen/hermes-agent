@@ -1,0 +1,13 @@
+diff --git a/src/transport/net_ib.cc b/src/transport/net_ib.cc
+index 191dad0..ec05366 100644
+--- a/src/transport/net_ib.cc
++++ b/src/transport/net_ib.cc
+@@ -1812,6 +1812,9 @@ ib_recv:
+       meta.qpInfo[q].ece_supported = 0;
+     }
+ 
++    // Both peers must program a compatible RoCE path MTU.  The sender path
++    // already caps the remote MTU; apply the same cap on the receiver path.
++    remDevInfo->mtu = std::min(remDevInfo->mtu, ibDev->portAttr.active_mtu);
+     NCCLCHECKGOTO(ncclIbRtrQp(qp->qp, &rCommDev->base.gidInfo, remMeta.qpInfo[q].qpn, remDevInfo, true, remMeta.tc, remMeta.sl), ret, fail);
+     NCCLCHECKGOTO(ncclIbRtsQp(qp->qp), ret, fail);
