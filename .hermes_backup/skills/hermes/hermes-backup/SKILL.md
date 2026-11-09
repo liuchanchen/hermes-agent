@@ -17,8 +17,8 @@ cd /home/jianliu/work/hermes-agent
 # 1. memories（MEMORY.md + USER.md，排除 .lock 文件）
 rsync -a --exclude='*.lock' ~/.hermes/memories/ .hermes_backup/memories/
 
-# 2. skills（排除 .bundled_manifest + .git + .hub 缓存）
-rsync -a --exclude='.bundled_manifest' --exclude='.git' --exclude='.hub/' ~/.hermes/skills/ .hermes_backup/skills/
+# 2. skills（排除 .bundled_manifest + .git + .hub 缓存 + Python 字节码）
+rsync -a --exclude='.bundled_manifest' --exclude='.git' --exclude='.hub/' --exclude='__pycache__/' --exclude='*.pyc' ~/.hermes/skills/ .hermes_backup/skills/
 
 # 3. cron（jobs.json + output 目录）\n# 注意：使用 Python 替代 rm -rf（避免终端递归删除保护，尤其在 cron 环境中）\npython3 -c "import shutil, os; d='.hermes_backup/cron'; shutil.rmtree(d) if os.path.isdir(d) else None"\nmkdir -p .hermes_backup/cron\ncp ~/.hermes/cron/jobs.json .hermes_backup/cron/jobs.json\ncp -r ~/.hermes/cron/output .hermes_backup/cron/output\ncp ~/.hermes/cron/.tick.lock .hermes_backup/cron/.tick.lock 2>/dev/null
 
@@ -218,9 +218,13 @@ hermes-agent/.hermes_backup/
     修复方式：在 `.gitignore` **末尾**追加否定规则（必须位于所有宽泛规则之后才生效），并重新断言两个超大文件仍被排除：
     ```
     !.hermes_backup/skills/**
+    # ...但构建垃圾不算技能内容，仍要排除
+    .hermes_backup/skills/**/__pycache__/
+    .hermes_backup/skills/**/*.pyc
     .hermes_backup/databases/state.db
     .hermes_backup/databases/state.db.gz
     ```
+    ⚠️ 否定规则是"一刀切"的，会把 `__pycache__/*.pyc` 也一并放进来，因此必须紧接两行 pyc 排除（rsync 侧同时加 `--exclude='__pycache__/' --exclude='*.pyc'`）。
     `git status` 干净 **≠** 文件都进 git 了。每次备份后必须做"磁盘 vs git"对账（见验证命令）。
 
 ---
