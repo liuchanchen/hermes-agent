@@ -1,51 +1,6 @@
 {
   "jobs": [
     {
-      "id": "7c1e45b92026",
-      "name": "懂车帝乐道L90二手车每日监控",
-      "prompt": "每晚10点执行懂车帝乐道L90二手车监控任务。\n\n## 工具调用\n\n**必须用 xvfb-run 包装命令**（WSL 无 X server，必须用虚拟显示）：\n\n```bash\ncd /home/jianliu/work/hermes-agent && source venv/bin/activate && xvfb-run -a python tools/dongchedi_l90_watch.py \\\n  --list-url \"https://www.dongchedi.com/usedcar/20,!1-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-918-25234-310000-1-x-x-x-x-x\" \\\n  --db /tmp/dongchedi_l90_cron.db \\\n  --max-details 30 \\\n  --profile-dir /tmp/dongchedi_profile \\\n  2>&1\n```\n\n工具返回 JSON，提取并展示：\n- `matched_count` — 本次扫描车源数\n- `new_count` / `removed_count` / `changed_count` — 变化数量\n- `items[]` — 每条车源：price_wan、mileage_km、city、seller_type、seller_address、title、first_license_date\n\n## 格式要求\n\n按以下格式整理输出：\n\n| 价格 | 里程 | 上牌 | 城市 | 车型 | 地址 |\n|------|------|------|------|------|------|\n\n标注新增车源（🆕）和下架车源（📉），若无变化说明\"无变化\"。\n\n**价格区间**：最低–最高万\n\n## 当前在售参考（2026-04-24，共9台）\n全部为六座版2025款，电池买断，商家：\n- 合肥 六座版Max 20.80万\n- 上海 六座版Pro 21.28万（2.0万km）\n- 北京 六座版Pro 22.18万\n- 上海 六座版Max 22.18万（1.4万km）\n- 上海 六座版Max 22.59万\n- 太原 六座版Max 21.80万（新增）\n- 上海 六座版Max 23.28万（2.3万km）\n- 佛山 六座版Ultra 24.38万\n- 宁波 六座版Max 24.50万\n\n## 验证码处理\n懂车帝可能弹验证码。正常无需手动验证（cookies已缓存）。若失败，下次重试。",
-      "skills": [
-        "dongchedi-l90-watch"
-      ],
-      "skill": "dongchedi-l90-watch",
-      "model": null,
-      "provider": null,
-      "base_url": null,
-      "script": null,
-      "schedule": {
-        "kind": "cron",
-        "expr": "0 22 * * *",
-        "display": "0 22 * * *"
-      },
-      "schedule_display": "0 22 * * *",
-      "repeat": {
-        "times": 999,
-        "completed": 56
-      },
-      "enabled": true,
-      "state": "scheduled",
-      "paused_at": null,
-      "paused_reason": null,
-      "created_at": "2026-04-21T11:25:30.331382+08:00",
-      "next_run_at": "2026-11-09T22:00:00+08:00",
-      "last_run_at": "2026-11-09T12:47:47.746350+08:00",
-      "last_status": "error",
-      "last_error": "RuntimeError: Connection error.",
-      "last_delivery_error": "live adapter send failed: iLink sendmessage rate limited; cooldown active for 30.0s; live adapter delivery to weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat failed: iLink sendmessage rate limited; cooldown active for 30.0s; delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
-      "deliver": "origin",
-      "origin": {
-        "platform": "weixin",
-        "chat_id": "o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat",
-        "chat_name": null,
-        "thread_id": null
-      },
-      "fire_claim": {
-        "at": "2026-11-09T13:27:21.453644+08:00",
-        "by": "jianliu:928765:7fdc7905507d49febc71163476013f21"
-      },
-      "failure_streak": 1
-    },
-    {
       "id": "a964294ed664",
       "name": "每日财经早报",
       "prompt": "每天早上8点，获取华尔街见闻财经新闻，总结美股昨晚表现及主要财经新闻，以微信消息格式发送。\n\n## 数据获取\n\n使用 wallstreetcn-news 技能，同时调用以下 API：\n\n1. **美股行情** — 搜索 \"美股\"、\"纳指\"、\"标普500\" 等关键词\n2. **最新新闻** — https://api-one-wscn.awtmt.com/apiv1/content/information-flow?channel=global&accept=article&limit=15\n3. **热文** — https://api-one-wscn.awtmt.com/apiv1/content/articles/hot?period=all\n\n## 输出格式\n\n```\n📊 美股昨晚收盘\n\n三大指数涨跌：\n- 标普500：±X%\n- 纳斯达克：±X%\n- 道琼斯：±X%\n\n热门中概股：（如有）\n\n📰 今日财经要闻\n\n1.【标题】摘要...\n2.【标题】摘要...\n...\n\n来源：华尔街见闻\n```\n\n格式要求：\n- 简洁，微信友好\n- 涨跌用绿色↑红色↓\n- 重点新闻放前面\n- 总长度适中，不要太冗长",
@@ -65,18 +20,18 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": 999,
-        "completed": 46
+        "completed": 47
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-23T23:08:50.970385+08:00",
-      "next_run_at": "2026-11-10T08:00:00+08:00",
-      "last_run_at": "2026-11-09T13:25:37.950162+08:00",
+      "next_run_at": "2026-11-11T08:00:00+08:00",
+      "last_run_at": "2026-11-10T08:01:24.792046+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
+      "last_delivery_error": "live adapter send failed: iLink sendmessage rate limited; cooldown active for 30.0s; live adapter delivery to weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat failed: iLink sendmessage rate limited; cooldown active for 30.0s; delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
       "deliver": "origin",
       "origin": {
         "platform": "weixin",
@@ -107,25 +62,25 @@
       "schedule_display": "0 9 * * *",
       "repeat": {
         "times": 999,
-        "completed": 40
+        "completed": 41
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-26T17:30:29.608686+08:00",
-      "next_run_at": "2026-11-10T09:00:00+08:00",
-      "last_run_at": "2026-11-09T12:47:50.346669+08:00",
-      "last_status": "error",
-      "last_error": "RuntimeError: Connection error.",
-      "last_delivery_error": "live adapter send failed: iLink sendmessage rate limited; cooldown active for 27.0s; live adapter delivery to weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat failed: iLink sendmessage rate limited; cooldown active for 27.0s; delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
+      "next_run_at": "2026-11-11T09:00:00+08:00",
+      "last_run_at": "2026-11-09T13:33:02.882010+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
       "deliver": "origin",
       "origin": null,
       "fire_claim": {
-        "at": "2026-11-09T13:27:00.198859+08:00",
-        "by": "jianliu:930366:1788af32b18e40268cbfd10a94e3149b"
+        "at": "2026-11-10T09:03:22.224994+08:00",
+        "by": "jianliu:910835:e3a33a329782441fb7c01d73b2ea6fa5"
       },
-      "failure_streak": 1
+      "failure_streak": 0
     },
     {
       "id": "4f84b0c63dc2",
@@ -184,18 +139,18 @@
       "schedule_display": "0 21 * * *",
       "repeat": {
         "times": null,
-        "completed": 42
+        "completed": 43
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-27T19:22:17.374140+08:00",
-      "next_run_at": "2026-11-09T21:00:00+08:00",
-      "last_run_at": "2026-11-09T13:24:43.999095+08:00",
+      "next_run_at": "2026-11-10T21:00:00+08:00",
+      "last_run_at": "2026-11-09T21:00:49.251005+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": "delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
+      "last_delivery_error": "live adapter send failed: iLink sendmessage rate limited; cooldown active for 30.0s; live adapter delivery to weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat failed: iLink sendmessage rate limited; cooldown active for 30.0s; delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
       "deliver": "origin",
       "origin": null,
       "fire_claim": null,
@@ -204,7 +159,7 @@
     {
       "id": "13fbed6a9ac6",
       "name": "Cron 健康检查 & 自动恢复",
-      "prompt": "你是 Cron 健康检查 & 自动恢复 agent。上面 script 的输出已注入为 context，列出了需要处理的问题。请严格按以下规则执行：\n\n## 规则\n\n### 对于 NEED-RERUN 的任务\n调用 cronjob(action='run', job_id='<id>') 重新执行，完成后记录。\n\n### 对于 NEED-RESEND 的任务\n如果上面 context 中有 WITH_CONTENT，意味着 output 已提供，直接用 send_message(target='weixin', message='<output>') 发送到微信。\n如果上面 context 中 output 被截断了，先 terminal('cat ~/.hermes/cron/output/<jid>/<filename>.md') 获取完整内容再发送。\n如果 NO_CONTENT，跳过（没有内容可发）。\n\n### 对于 HEALTHY 的任务\n不做任何操作。\n\n## 报告格式\n\n输出简短报告作为 final response：\n\n```\n🔍 Cron 健康检查报告\n━━━━━━━━━━━━━━━━━━━━━\n\n✅ 正常：x个\n🔄 已自动恢复：x个（列明）\n❌ 仍失败：x个（列明）\n```\n\n⚠️ 不要用 [SILENT]，必须输出报告。\n\n\n### 对于 STALE-SCRIPT 的任务（host crontab 脚本，非 Hermes cron job）\n上面 `---HOST SCRIPTS---` 段列出的是 **host crontab 里的普通脚本**（如 sort_jira.py 邮件整理），\n它们不受 Hermes cron 管理，但会以同样方式静默失效。\n\n- 出现 `[STALE-SCRIPT]` 时，说明该脚本的心跳停更 / 日志连续 skip / 锁被长期持有。\n- 用 `terminal('ps -ef | grep <script_name>')` 确认是否有卡死进程；确认后 kill 它。\n- 然后运行 `terminal('python3 ~/.hermes/scripts/script_watchdog.py --fix')` 让它自动清锁并补跑。\n- 若 `--fix` 报告\"持有者不是目标脚本本身，拒绝自动处理\"，不要强杀，按 hint 人工判断。\n- 在报告里单独列一节 `🩺 Host 脚本`：正常写\"全部正常\"，异常写脚本名 + 问题 + 已采取的动作。\n\n注意：`STALE-SCRIPTS: 0` 表示所有受监视脚本正常，此时该节只写一行\"全部正常\"即可，不要展开。",
+      "prompt": "你是 Cron 健康检查 & 自动恢复 agent。上面 script 的输出已注入为 context，列出了需要处理的问题。请严格按以下规则执行：\n\n## 规则\n\n### 对于 NEED-RERUN 的任务\n调用 cronjob(action='run', job_id='<id>') 重新执行，完成后记录。\n\n### 对于 NEED-RESEND 的任务\n如果上面 context 中有 WITH_CONTENT，意味着 output 已提供，直接用 send_message(target='weixin', message='<output>') 发送到微信。\n如果上面 context 中 output 被截断了，先 terminal('cat ~/.hermes/cron/output/<jid>/<filename>.md') 获取完整内容再发送。\n如果 NO_CONTENT，跳过（没有内容可发）。\n\n### 对于 HEALTHY 的任务\n不做任何操作。\n\n## 报告格式\n\n输出简短报告作为 final response：\n\n```\n🔍 Cron 健康检查报告\n━━━━━━━━━━━━━━━━━━━━━\n\n✅ 正常：x个\n🔄 已自动恢复：x个（列明）\n❌ 仍失败：x个（列明）\n```\n\n⚠️ 不要用 [SILENT]，必须输出报告。\n\n\n### 对于 STALE-SCRIPT 的任务（host crontab 脚本，非 Hermes cron job）\n上面 `---HOST SCRIPTS---` 段列出的是 **host crontab 里的普通脚本**（如 sort_jira.py 邮件整理），\n它们不受 Hermes cron 管理，但会以同样方式静默失效。\n\n- 出现 `[STALE-SCRIPT]` 时，说明该脚本的心跳停更 / 日志连续 skip / 锁被长期持有。\n- 用 `terminal('ps -ef | grep <script_name>')` 确认是否有卡死进程；确认后 kill 它。\n- 然后运行 `terminal('python3 ~/.hermes/scripts/script_watchdog.py --fix')` 让它自动清锁并补跑。\n- 若 `--fix` 报告\"持有者不是目标脚本本身，拒绝自动处理\"，不要强杀，按 hint 人工判断。\n- 在报告里单独列一节 `🩺 Host 脚本`：正常写\"全部正常\"，异常写脚本名 + 问题 + 已采取的动作。\n\n注意：`STALE-SCRIPTS: 0` 表示所有受监视脚本正常，此时该节只写一行\"全部正常\"即可，不要展开。\n\n## 推送失败时的铁律（2026-11-09 教训）\n微信通道可能整体不可用（iLink `errcode=-14 session timeout`，需要重新配对）。\n当 `send_message(target='weixin')` 返回 rate limited / session timeout 时：\n1. **不要重试同一个任务超过一次**——重试会烧光 90 轮预算，导致整个健康检查跑不完、什么都不产出。\n2. 立刻停止逐条发送，把所有 NEED-RESEND 的内容按下面的格式**汇总进最终报告**，由 job 自己的 deliver 统一发出：\n   `## 1️⃣ <任务名>` + 正文，`## 2️⃣ <任务名>` + 正文……\n3. 在报告开头加一行：`⚠️ 微信直推不可用（iLink 会话过期，需重新配对），以下内容改为汇总投递。`\n4. 若所有任务都只是推送失败、没有执行失败，报告控制在 40 行以内。",
       "skills": [],
       "skill": null,
       "model": null,
@@ -220,18 +175,18 @@
       "schedule_display": "0 8,18 * * *",
       "repeat": {
         "times": 999,
-        "completed": 67
+        "completed": 70
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-30T10:00:25.900478+08:00",
-      "next_run_at": "2026-11-09T18:00:00+08:00",
-      "last_run_at": "2026-11-09T12:47:49.136514+08:00",
-      "last_status": "error",
-      "last_error": "RuntimeError: Connection error.",
-      "last_delivery_error": "live adapter send failed: iLink sendmessage rate limited; cooldown active for 28.6s; live adapter delivery to weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat failed: iLink sendmessage rate limited; cooldown active for 28.6s; delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
+      "next_run_at": "2026-11-10T18:00:00+08:00",
+      "last_run_at": "2026-11-10T08:04:12.093160+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": "live adapter send failed: iLink sendmessage rate limited; cooldown active for 30.0s; live adapter delivery to weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat failed: iLink sendmessage rate limited; cooldown active for 30.0s; delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
       "deliver": "origin",
       "origin": {
         "platform": "weixin",
@@ -241,11 +196,8 @@
       },
       "enabled_toolsets": null,
       "workdir": null,
-      "fire_claim": {
-        "at": "2026-11-09T13:27:29.477085+08:00",
-        "by": "jianliu:923838:c3a9e2da0a82427ebfe5719411741e6b"
-      },
-      "failure_streak": 1
+      "fire_claim": null,
+      "failure_streak": 0
     },
     {
       "id": "1b38a660ab9a",
@@ -266,17 +218,17 @@
       "schedule_display": "0 3 * * *",
       "repeat": {
         "times": null,
-        "completed": 33
+        "completed": 35
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-01T22:06:04.249578+08:00",
-      "next_run_at": "2026-11-10T03:00:00+08:00",
-      "last_run_at": "2026-11-09T12:47:49.702748+08:00",
-      "last_status": "error",
-      "last_error": "RuntimeError: Connection error.",
+      "next_run_at": "2026-11-11T03:00:00+08:00",
+      "last_run_at": "2026-11-10T03:00:52.348040+08:00",
+      "last_status": "ok",
+      "last_error": null,
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -290,11 +242,8 @@
         "file"
       ],
       "workdir": null,
-      "fire_claim": {
-        "at": "2026-11-09T13:27:02.477682+08:00",
-        "by": "jianliu:932068:d780ca03a456433a8c2134aee74a4c79"
-      },
-      "failure_streak": 1
+      "fire_claim": null,
+      "failure_streak": 0
     },
     {
       "id": "a3007169683e",
@@ -302,16 +251,19 @@
       "prompt": "The monitor output above is a live probe of 70.96 (via 70.96 jianliu@ key SSH): first line(s) = per-GPU used memory (MiB) for 8 GPUs, then `===USERS===` and the `who` output.\n\nTask: decide whether 70.96 is effectively idle.\n\nRules:\n1. Idle = ALL 8 GPUs show < 1000 MiB used (17 MiB = idle driver overhead) AND no other active GPU compute processes. Ignore user jianliu's own sessions; other users merely being logged in via SSH with no GPU workload does NOT count as \"using\" the node.\n2. If BUSY: reply with exactly \"STILL BUSY\" plus one short line naming the workload(s) (container/process/user if identifiable). Do nothing else.\n3. If IDLE: reply with \"70.96 IS NOW FREE (◕‿◕)✧\" + 3-line GPU summary + reminder that the PD disaggregation scripts are ready at /home/jianliu/pd_disaggregation on 70.106 (baseline arm done, PD smoke passed with RoCE RDMA mlx5_bond_0). The user asked to be notified when nobody is using 70.96.\n4. Be conservative: if output looks ambiguous (e.g. partial loads, loading in progress, memory climbing), treat as BUSY.",
       "skills": [],
       "skill": null,
-      "model": null,
-      "provider": null,
-      "provider_snapshot": "custom",
-      "model_snapshot": "glm_5_3_flash_192_168_12_12",
+      "model": "deepseekv4.1-flash-1017",
+      "provider": "custom",
+      "provider_snapshot": null,
+      "model_snapshot": null,
       "base_url": null,
       "script": null,
       "no_agent": false,
       "monitor_script": "monitor_70_96_idle.sh",
       "monitor_url": null,
-      "monitor_state": null,
+      "monitor_state": {
+        "last_output_hash": "9611c5e8a091c0199cc43062037d48957fafbf3074dc67af943858846d39e86d",
+        "last_changed_at": "2026-11-09T17:25:58.743981+08:00"
+      },
       "context_from": null,
       "schedule": {
         "kind": "interval",
@@ -321,19 +273,19 @@
       "schedule_display": "every 30m",
       "repeat": {
         "times": 999,
-        "completed": 2
+        "completed": 41
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-02T17:10:35.534623+08:00",
-      "next_run_at": "2026-11-09T13:46:53.783557+08:00",
-      "last_run_at": "2026-11-09T13:16:53.783557+08:00",
-      "last_status": "error",
-      "last_error": "Script not found: /home/jianliu/.hermes/scripts/ssh -o StrictHostKeyChecking=no jianliu@10.10.70.96 \"nvidia-smi --query-gpu=index,memory.used --format=csv,noheader\" 2>&1; echo ===USERS===; who 2>&1",
-      "last_delivery_error": "live adapter send failed: iLink sendmessage rate limited; cooldown active for 30.0s; live adapter delivery to weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat failed: iLink sendmessage rate limited; cooldown active for 30.0s; delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
-      "failure_streak": 2,
+      "next_run_at": "2026-11-10T09:12:19.584270+08:00",
+      "last_run_at": "2026-11-10T08:42:19.584270+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "failure_streak": 0,
       "deliver": "origin",
       "origin": null,
       "enabled_toolsets": null,
@@ -341,5 +293,5 @@
       "fire_claim": null
     }
   ],
-  "updated_at": "2026-11-09T13:27:29.477477+08:00"
+  "updated_at": "2026-11-10T09:03:22.225384+08:00"
 }

@@ -10,7 +10,7 @@ Reasoning effort: agent+delegation均xhigh于config.yaml; "max"无效,xhigh即�
 §
 70.99(oem-99): 0825重装→TGU01F, 监控=warpdgpu-smi(无--query-gpu); fantgpu/wd-smi移除. 0904当日×2→×8卡漂移, 重装频繁.
 §
-用户明确要求：除非用户要求，否则不要安装工具/软件包（apt-get/pip/conda等均被拒绝）。需要解析图片/文档内容时，先请用户自行抽取或提供文本，而非自行安装OCR。技能库更新：需通过skill_manage进行，SKILL.md必须位于允许路径，每会话至少一次小更新。
+用户明确要求：除非用户要求，否则不要安装工具/软件包（apt-get/pip/conda等均被拒绝）。需要解析图片/文档内容时，先请用户自行抽取或提供文本，而非自行安装OCR。技能库更新：需通过skill_manage进行(patch可改SKILL.md),SKILL.md必须位于允许路径，每会话至少一次小更新。
 §
 TGU算力: TGU02-F 500T/TGU01-F 250T/TGU02-H2 200T/TGU02-H 100T; B300=2250T, H200≈989T.
 §

@@ -21,11 +21,19 @@ metadata:
 
 ## How to Run
 
-From WSL — plain SSH with key auth, NO password needed (verified 2026-09-04):
+From WSL — `ssh oem96` (Host alias = domain `liujian` + `~/.ssh/id_ed25519_vscode`, BatchMode works, verified 2026-11-09):
 
 ```bash
-ssh -o StrictHostKeyChecking=no jianliu@10.10.68.96 '<command>'
+ssh -o StrictHostKeyChecking=no oem96 '<command>'
 ```
+
+**Two management IPs, only one accepts SSH (2026-11-09):** `10.10.70.96` and
+`10.10.68.96` both answer ping and present the **same host key**, but
+`10.10.70.96` resets every handshake at kex (`kex_exchange_identification: read:
+Connection reset by peer`). Use `10.10.68.96` / `oem96`; a cron probe aimed at
+`10.10.70.96` looks like "node down" while the node is perfectly fine.
+
+**Local `jianliu@` key auth is dead (2026-11-09):** `ssh jianliu@10.10.68.96` returns `Permission denied (publickey,password)`. Use the alias/domain account; `liujian` has no docker group and no sudo (use `jianliu`/`!QAZ2wsx` when root is needed).
 
 **Domain account (2026-09-23, verified):** 96 is domain-joined — login `liujian` / `985202Qs~` (same as 106/107, uid 178201608) also works. **Domain liujian has NO sudo** (`not in the sudoers file`); the old local `jianliu`/`!QAZ2wsx` (uid 1001) still authenticates and retains sudo+docker. `/home/jianliu` (old work tree) is now owned by the domain-liujian uid. From WSL without sshpass/pexpect use the SSH_ASKPASS pattern (see umbrella skill).
 
@@ -51,7 +59,7 @@ sshpass -p '!QAZ2wsx' ssh -o StrictHostKeyChecking=no jianliu@10.10.68.106 '<com
 | NFS | `/userdata` = 10.10.68.71:/data **WRITABLE** (deployment dir + results live here); `/modelzoo` read-only models |
 | mooncake runtimes | `~/mooncake-runtime-0.3.11` (pypi wheel, bundles `.libs`) and `~/mooncake-runtime-0.3.10` (106's tar + hashed libs copied from 0.3.11 with `cp -L`) |
 | Other users | xuechenli, yirongpan (sudo+docker) — never kill foreign workloads |
-| Idle monitor | cron job `a3007169683e` (fires when GPUs free up) |
+| Idle monitor | cron job `a3007169683e` — probe `~/.hermes/scripts/monitor_70_96_idle.sh` (oem96, key auth); agent fires only when probe output changes |
 
 ## Workload History
 

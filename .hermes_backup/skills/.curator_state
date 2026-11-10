@@ -1,9 +1,9 @@
 {
-  "last_report_path": "/home/jianliu/.hermes/logs/curator/20260911-033403",
-  "last_run_at": "2026-09-11T03:34:03.091653+00:00",
-  "last_run_duration_seconds": 2.873823,
-  "last_run_summary": "auto: 5 marked stale, 1 reactivated; llm: skipped (consolidation off)",
+  "last_report_path": "/home/jianliu/.hermes/logs/curator/20261109-060459",
+  "last_run_at": "2026-11-09T06:04:59.780016+00:00",
+  "last_run_duration_seconds": 3.358266,
+  "last_run_summary": "auto: 23 marked stale, 31 archived; llm: skipped (consolidation off)",
   "last_run_summary_shown_at": null,
   "paused": false,
-  "run_count": 17
+  "run_count": 18
 }
