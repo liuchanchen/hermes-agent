@@ -217,6 +217,7 @@ native/fts5_cjk/*.so
 # would otherwise silently drop real skill files from the backup.
 # Re-include the skills tree, then re-assert the two oversized state.db
 # artifacts so they stay out of git (GitHub 100MB limit).
+# NOTE: these negative rules must stay LAST — any later broad pattern wins.
 !.hermes_backup/skills/**
 # ...but build junk is not skill content — keep it out of the backup.
 .hermes_backup/skills/**/__pycache__/
