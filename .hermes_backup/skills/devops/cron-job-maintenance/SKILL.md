@@ -105,6 +105,23 @@ something else — do not force it; read the `hint` line and decide manually.
 
 ## Processing NEED-RESEND Tasks
 
+### Step 0 (08:00 轮次): 先去重，再决定发什么
+
+08:00 这一轮看到的 NEED-RESEND 里，多数内容是**上一轮已经用邮件发过的**。固定流程：
+
+```bash
+# 1) 每个 job 是否有「当天」新输出文件（08:00 采集时财经早报还没跑完）
+for j in a964294ed664 89f4554bce6e 4f84b0c63dc2 abbcf2686299 13fbed6a9ac6; do echo "== $j =="; ls -t ~/.hermes/cron/output/$j/ | head -2; done
+# 2) 看上一封兜底邮件的 ID / 主题 / 大小
+~/.local/bin/himalaya envelope list --account ali -m sent -s 6
+# 3) 读上封正文，确认它已覆盖哪些任务（正文里有「已在 ID xx 发出」小节）
+~/.local/bin/himalaya message read --account ali --mailbox sent 81
+```
+
+只补发「比上一封邮件更新」的内容。2026-11-11 实测：08:00 轮次真正未投递的只有 2 份 —— 当天财经早报（08:01:39 生成）+ 前一晚 21:00 面试提醒；备份/入职提醒/上一轮健康检查已在 11-10 18:00 的 ID 81 里。
+
+注意 `himalaya message read` 的参数：必须用 `--mailbox sent <ID>`；`-m 81` 和 `--preview` 都不被接受（会直接报 unexpected argument）。
+
 ### Step 1: Check if content is in context
 The pre-run script includes `output (N chars):` followed by the actual report. If the output says `WITH_CONTENT`, the report body is in the context (may be truncated at 2016 chars).
 
@@ -209,6 +226,7 @@ Files are named as `YYYY-MM-DD_HH-MM-SS.md`. Find the latest by sorting with `ls
 - **Verify the email fallback landed**: after `himalaya message send`, run `himalaya envelope list --account ali -m sent -s 3` and confirm the subject + size. "Message successfully sent" is only the CLI's self-report.
 - **Background processes for parallel reruns need active polling** — when launching multiple `hermes cron run` jobs in parallel via `terminal(background=true)`, use `process(action='wait', session_id=..., timeout=...)` to check each completes. Scraper-style jobs can take 600-900+ seconds; set generous timeouts. Don't assume a silent background process finished — poll it.
 - **Output files are large (20KB+)** because they embed the full SKILL.md and prompt content. The actual report is in the last 50-150 lines. Don't read the whole file — read from offset -100 or search for `## Response`.
+- **18:00 轮次不要整包重发**: 08:00 那轮通常已把当天的财经早报、前一晚的面试提醒和上一轮健康检查用邮件发出。先查 `himalaya envelope list --account ali -m sent -s 3` 确认上一封的 Sent ID 与大小，18:00 只补发 08:00 之后新产生的报告（一般是 09:00 配置备份、周二 10:00 入职提醒），其余在报告与邮件里注明「已在 08:00 邮件 ID xx 发出」，避免同一内容一天收两封重复邮件。
 - **Don't send individual messages** when multiple NEED-RESEND tasks exist — they'll all hit the iLink 30s cooldown. Consolidate into the final response.
 - **Don't use [SILENT]** on health check runs — the report must always be produced (health check is the delivery itself).
 - **The context `output (N chars)` is truncated at 2016 chars**. Always verify by reading the full output file for reports that seem incomplete.
@@ -219,8 +237,8 @@ Files are named as `YYYY-MM-DD_HH-MM-SS.md`. Find the latest by sorting with `ls
 - **备份报告 output files** are shorter (~50 lines of prompt before the report).
 - **Cron健康检查 output files** contain the PREVIOUS health check run's output, not the current run — only use the context-provided content for these.
 - **⚠️ Stale content trap when cron health check itself is in NEED-RESEND list:** The context-provided `output (N chars)` for the health check job (`13fbed6a9ac6`) contains the *previous* health check's consolidated report, which may have stale/outdated data for individual jobs. For example, the previous health check's 财经早报 section might show Friday's market data instead of Monday's. **Always read the *individual job's* latest output file** from `~/.hermes/cron/output/<jid>/` rather than relying on the context-provided output for any job whose content might be stale. The context output for non-health-check jobs is fresh (direct from that job's execution); only the health check job's context output is a re-consolidation of older data.
-- **08:00 并发陷阱（财经早报）**: 健康检查与财经早报都是 `0 8 * * *`，健康检查在 08:00:11 采集时当天财经任务才刚起跑（日志可见 `cron_a964294ed664_...` 与健康检查同秒启动），所以它拿到的“财经早报 output”其实是**前一天**的文件。不要直接重发旧财经内容：等 1–2 分钟看 `~/.hermes/cron/output/a964294ed664/` 是否出现 `YYYY-MM-DD_08-*.md` 新文件，用当天最新输出代替旧内容；若当天新跑也投递失败，优先投递新内容（旧的已被上一轮邮件覆盖过）。
-- **iLink 长时间 rate limited 是服务端问题，重启无效**: 2026-11-09 12:46 → 11-10 08:01 连续 19 小时每次 send 都真的打到 iLink 并返回 ret=-2，期间 gateway 于 13:05 重启过仍失败。清 circuit / 重启 gateway 都没用，只能重新配对或等服务端解除；别再花轮次诊断。健康检查 agent 的工具集里**没有 `send_message` 工具**，唯一出口是 final response 自动投递 + `himalaya` 邮件兜底。
+- **08:00 并发陷阱（财经早报）**: 健康检查与财经早报都是 `0 8 * * *`，健康检查在 08:00:11 采集时当天财经任务才刚起跑（日志可见 `cron_a964294ed664_...` 与健康检查同秒启动），所以它拿到的“财经早报 output”其实是**前一天**的文件。不要直接重发旧财经内容：等 1–2 分钟看 `~/.hermes/cron/output/a964294ed664/` 是否出现 `YYYY-MM-DD_08-*.md` 新文件，用当天最新输出代替旧内容；若当天新跑也投递失败，优先投递新内容（旧的已被上一轮邮件覆盖过）。**2026-11-11 实测时间线**：采集 08:00:35 → 新文件 `2026-11-11_08-01-39.md` 落盘（约 64s 后）→ 该任务自身投递失败于 08:01:39。所以 `sleep 45` 后再 ls 一次即可拿到当天内容，无需等满 2 分钟。
+- **iLink 长时间 rate limited 是服务端问题，重启无效**: 2026-11-09 12:46 → 11-11 08:01 连续 43 小时每次 send 都真的打到 iLink 并返回 ret=-2，期间 gateway 于 13:05 重启过仍失败（`hermes gateway status` 显示服务 healthy，uptime 1d18h）。清 circuit / 重启 gateway 都没用，只能重新配对或等服务端解除；别再花轮次诊断。健康检查 agent 的工具集里**没有 `send_message` 工具**，唯一出口是 final response 自动投递 + `himalaya` 邮件兜底。CLI 里**没有**微信重新配对的子命令：`hermes pairing` 只管用户准入（list/approve/revoke），重新扫码要走 `hermes gateway setup`，必须人工介入。
 - **When cron health check is in NEED-RERUN (not NEED-RESEND), the rule changes:** After rerunning the health check job, its output file will contain *fresh* data from this run. You should read the latest output file (just like any other job) to include the new health check results. The stale-content warning only applies to the context-provided output, not to freshly rerun output files.
 
 ## Failure Modes
