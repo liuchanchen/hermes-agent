@@ -179,6 +179,10 @@ python3 /tmp/fidelity_check.py
 # （\344\274\232…），中文文件名会误报为缺失，需按 unicode 解码后比对。
 # ✅ 更省事的写法：`git ls-files -z` / `git ls-tree -r -z --name-only` 用 NUL 分隔，
 #    完全不转义，直接 split('\0') 比对，无需处理八进制。
+#
+# ⚠️ 数量对不上先别慌：MANIFEST 的 skills_count 用 os.walk 数的是**普通文件**（2026-11-12 实测 842），
+#    而保真度脚本把符号链接也计入（同次 974 = 842 文件 + 132 个 symlink，如 dsh/*）。
+#    两个数字本就不同，真正的判据只有 MISSING: 0 / GHOST: 0。
 # ⚠️ 别写成 `git ... | python3 -c "..."`：除了 cron 的 -c 拦截，还会触发
 #    "Pipe to interpreter" 安全扫描（HIGH，pending approval）→ 整条命令挂住。
 #    一律先 write_file 落盘再 python3 <路径>。
@@ -324,6 +328,15 @@ git status -sb | head -1
 git log --oneline -1
 # 期望: "backup hermes 2026-06-25" 或对应日期
 
+# ⚠️ 权威同步判据（不要只看 git status -sb）：
+# 本仓库 main 的 tracking 是 upstream/main（NousResearch），所以 push 到 origin 之后
+# `git status -sb` 仍然显示 `## main...upstream/main [ahead N, behind M]` — 这是 fork 的正常状态，
+# 不代表没推成功。真正的判据是下面三条全部成立：
+git rev-list --left-right --count origin/main...main   # 期望 "0\t0"
+git ls-remote origin refs/heads/main                  # 期望 sha 与下一行相同
+git rev-parse HEAD
+git log origin/main..HEAD --oneline                   # 期望无输出
+
 # Remote 已同步（无 ahead）
 git status -sb | head -1
 # 期望: "## main" 或 "## main...origin/main" 均可 — 后者在 tracking 分支设定后出现，
@@ -388,6 +401,19 @@ cp -r ~/.hermes/cron/output .hermes_backup/cron/output
 cp ~/.hermes/cron/.tick.lock .hermes_backup/cron/.tick.lock 2>/dev/null
 ```
 
+**关于 cron/output 的大量 `D` 条目（2026-11-12 实测 49 个）：这是正常的镜像语义，不是数据丢失。**
+`~/.hermes/cron/output` 会按保留策略裁剪旧输出，源里没了备份里就必须一起没。
+每次看到 `D` 先做一次核对，确认“删除项在源里也确实不存在”再提交：
+
+```python
+# 逐条检查 git status 里的 D，映射回 ~/.hermes/<相对路径>，源还在就是 bug，源也没了就是正确镜像
+for p in deleted_paths:
+    src = os.path.join(os.path.expanduser("~/.hermes"), os.path.relpath(p, ".hermes_backup"))
+    assert not os.path.exists(src), f"still in source: {src}"
+```
+
+本次 49/49 删除项在源中均已不存在，同时新增 53 个当日输出，源 286 == 备份 286。
+
 **处理 stale `output/output/` 嵌套结构：**
 ```bash
 python3 -c "
@@ -407,7 +433,13 @@ for f in r.stdout.strip().split(chr(10)) if r.stdout.strip() else []:
 
 ### Pre-flight: `.gitignore` 检查
 
-每次备份前检查 `.gitignore` 是否已正确配置且无重复条目，同时检查是否有备份目录下的新文件未被追踪（这些新文件是预期行为，确认即可）：
+每次备份前检查 `.gitignore` 是否已正确配置且无重复条目，同时检查是否有备份目录下的新文件未被追踪（这些新文件是预期行为，确认即可）。
+
+⚠️ **preflight 脚本必须是"保守追加"，不要重建 header**（2026-11-12 实测）：现有 `.gitignore` 里的块头是
+`# --- .hermes_backup fidelity ---` 外加若干说明注释，与 skill 里写的 `(managed by ...)` 字面不同。
+若脚本按固定 header 字符串"先剥旧头再写新头"，就会认不出已有块而再插一份，直接踩中第 13 条坑。
+正确做法：只检查 5 条规则行是否存在，缺哪条就在**文件末尾**追加哪条；5 条齐全则原样不动、打印 unchanged。
+判断是否齐全用 `set(l.strip() for l in lines)` 精确比对规则行，不要用正则模糊匹配 header。
 
 ```bash
 cd /home/jianliu/work/hermes-agent
