@@ -120,6 +120,8 @@ for j in a964294ed664 89f4554bce6e 4f84b0c63dc2 abbcf2686299 13fbed6a9ac6; do ec
 
 只补发「比上一封邮件更新」的内容。2026-11-11 实测：08:00 轮次真正未投递的只有 2 份 —— 当天财经早报（08:01:39 生成）+ 前一晚 21:00 面试提醒；备份/入职提醒/上一轮健康检查已在 11-10 18:00 的 ID 81 里。
 
+2026-11-12 复现同一模式：采集 08:00:40 → 当天财经文件 08:01:49 落盘（约 69s）；去重后新增仍是 2 份（当天财经早报 + 前一晚 21:00 面试提醒），邮件 ID 86（5.40 KiB）已核对。**结构性规律：18:00 那封邮件永远覆盖不到当晚 21:00 的面试提醒，所以次日 08:00 轮次它必然属于「新内容」；反之 09:00 配置备份、周二 10:00 入职提醒在 08:00 轮次都还不存在，只在 18:00 轮次才是新的。**
+
 注意 `himalaya message read` 的参数：必须用 `--mailbox sent <ID>`；`-m 81` 和 `--preview` 都不被接受（会直接报 unexpected argument）。
 
 ### Step 1: Check if content is in context
@@ -226,7 +228,7 @@ Files are named as `YYYY-MM-DD_HH-MM-SS.md`. Find the latest by sorting with `ls
 - **Verify the email fallback landed**: after `himalaya message send`, run `himalaya envelope list --account ali -m sent -s 3` and confirm the subject + size. "Message successfully sent" is only the CLI's self-report.
 - **Background processes for parallel reruns need active polling** — when launching multiple `hermes cron run` jobs in parallel via `terminal(background=true)`, use `process(action='wait', session_id=..., timeout=...)` to check each completes. Scraper-style jobs can take 600-900+ seconds; set generous timeouts. Don't assume a silent background process finished — poll it.
 - **Output files are large (20KB+)** because they embed the full SKILL.md and prompt content. The actual report is in the last 50-150 lines. Don't read the whole file — read from offset -100 or search for `## Response`.
-- **18:00 轮次不要整包重发**: 08:00 那轮通常已把当天的财经早报、前一晚的面试提醒和上一轮健康检查用邮件发出。先查 `himalaya envelope list --account ali -m sent -s 3` 确认上一封的 Sent ID 与大小，18:00 只补发 08:00 之后新产生的报告（一般是 09:00 配置备份、周二 10:00 入职提醒），其余在报告与邮件里注明「已在 08:00 邮件 ID xx 发出」，避免同一内容一天收两封重复邮件。
+- **18:00 轮次不要整包重发**: 08:00 那轮通常已把当天的财经早报、前一晚的面试提醒和上一轮健康检查用邮件发出。先查 `himalaya envelope list --account ali -m sent -s 3` 确认上一封的 Sent ID 与大小，18:00 只补发 08:00 之后新产生的报告（一般是 09:00 配置备份、周二 10:00 入职提醒），其余在报告与邮件里注明「已在 08:00 邮件 ID xx 发出」，避免同一内容一天收两封重复邮件。**2026-11-11 18:00 实测**：NEED-RESEND 仍是全部 5 个（它们的 last_error 都停留在故障期），但真正新的只有 09:07 配置备份 —— 财经早报/11-10 面试提醒在 ID 84，入职提醒在 ID 81。去重依据是 `ls -t ~/.hermes/cron/output/<jid>/` 的落盘时间 vs 上一封邮件的 Sent ID 正文。邮件正文用 `write_file` 写成带 raw headers 的 /tmp 文件再 `himalaya message send --account ali < file`，随后 `envelope list -m sent -s 3` 核对新 ID 与大小。
 - **Don't send individual messages** when multiple NEED-RESEND tasks exist — they'll all hit the iLink 30s cooldown. Consolidate into the final response.
 - **Don't use [SILENT]** on health check runs — the report must always be produced (health check is the delivery itself).
 - **The context `output (N chars)` is truncated at 2016 chars**. Always verify by reading the full output file for reports that seem incomplete.
