@@ -73,6 +73,10 @@ cp ~/.hermes/dongchedi_l90.db .hermes_backup/databases/dongchedi_l90.db 2>/dev/n
 cp ~/.hermes/whatsapp/state.db .hermes_backup/databases/whatsapp_state.db 2>/dev/null
 # whatsapp dongchedi db（20KB）
 cp ~/.hermes/whatsapp/dongchedi_l90.db .hermes_backup/databases/whatsapp_dongchedi.db 2>/dev/null
+# kanban.db（112KB，看板状态）
+cp ~/.hermes/kanban.db .hermes_backup/databases/kanban.db 2>/dev/null
+# verification_evidence.db（60KB，验证事件/状态；活跃 DB，MD5 常与源不同属正常）
+cp ~/.hermes/verification_evidence.db .hermes_backup/databases/verification_evidence.db 2>/dev/null
 
 # 5. 写 MANIFEST（自动记录备份时间和文件数、数据库大小、完整性元数据）
 python3 - <<'PYEOF'
@@ -204,6 +208,12 @@ cat .hermes_backup/MANIFEST.json
 | dongchedi_l90.db | ~/.hermes/dongchedi_l90.db | 懂车帝二手车监控 |
 | whatsapp_state.db | ~/.hermes/whatsapp/state.db | WhatsApp gateway 状态 |
 | whatsapp_dongchedi.db | ~/.hermes/whatsapp/dongchedi_l90.db | WhatsApp 懂车帝监控 |
+| kanban.db | ~/.hermes/kanban.db | 看板状态（112KB，直接 cp） |
+| verification_evidence.db | ~/.hermes/verification_evidence.db | 验证事件/状态（60KB，直接 cp） |
+
+> **活跃 DB 的 MD5 必然漂移**：`verification_evidence.db`、`kanban.db`、`skills/.usage.json`、`cron/jobs.json`
+> 都是运行期持续写入的。备份后隔几秒再比对 MD5 就会 DIFF，这是**预期行为**不是损坏。
+> 真正的判据是 `pragma integrity_check` 返回 `ok`；只有静态 DB（dongchedi / whatsapp）才要求 MD5 完全一致。
 
 > **文件数、大小等动态数据**: 每次备份后自动写入 `.hermes_backup/MANIFEST.json`，不再硬编码于此。
 
@@ -224,7 +234,9 @@ hermes-agent/.hermes_backup/
     ├── state.db.gz          # gzip 压缩快照（本地保留，不提交 git — 超 100MB 限制）
     ├── dongchedi_l90.db
     ├── whatsapp_state.db
-    └── whatsapp_dongchedi.db
+    ├── whatsapp_dongchedi.db
+    ├── kanban.db
+    └── verification_evidence.db
 ```
 
 ## 注意事项
@@ -235,7 +247,7 @@ hermes-agent/.hermes_backup/
 4. whatsapp 数据库的备份失败不算错误（如果该目录不存在）
 5. `state.db` 使用 Python `sqlite3.backup()` API 而非直接 cp，保证 WAL 写入完成后的一致快照
 6. 备份完成后 manifest 中的 `backup_timestamp` 可用于确认是否需要重新备份
-7. ⚠️ **state.db.gz 可能超过 GitHub 100MB 限制**（持续增长中：2026-11-11 实测 246MB gzip / 632MB raw，压缩率 37.2%；长期日增约 0.5MB gzip）。`.gitignore` 中必须同时排除 `state.db` 和 `state.db.gz`。本地备份仍保留 `.gz` 文件用于恢复，但不提交到 git。查看 `references/state-db-growth.md` 了解详细增长趋势与耗时数据。
+7. ⚠️ **state.db.gz 可能超过 GitHub 100MB 限制**（持续增长中：2026-11-13 实测 249MB gzip / 669MB raw，压缩率 37.3%，snapshot 21.9s + gzip 22.9s；2026-11-11 为 246MB/632MB）。`.gitignore` 中必须同时排除 `state.db` 和 `state.db.gz`。本地备份仍保留 `.gz` 文件用于恢复，但不提交到 git。查看 `references/state-db-growth.md` 了解详细增长趋势与耗时数据。
 8. **清理历史遗留文件**：如果 `databases/` 目录存在旧的 `state.gz.part_aa/ab/ac` 等 split 分卷文件（来自早期备份方式），应在备份完成后手动清理，避免占用磁盘空间和 git 误追踪。
 9. **`.gitignore` 去重**：.gitignore 可能在多个位置包含重复的排除规则（如 `state.db` 出现多次）。每次备份前的 pre-flight 检查脚本会自动去重。重复条目不影响 git 行为但会让 `git status` 输出混乱。
 10. **`git add` 顺序**：先 add 小文件组（memories, cron, databases, MANIFEST），最后单独 add skills/（878+ 文件，需要较大的 timeout）。实测 skills/ 的 git add 在 2-5s 内完成，无需过高 timeout。
