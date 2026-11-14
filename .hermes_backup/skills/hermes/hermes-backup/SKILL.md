@@ -180,6 +180,10 @@ python3 /tmp/fidelity_check.py
 #    而 os.walk 的 files 列表不含它们、也不会 descend。2026-11-11 漏收时报了 132 个假 GHOST。
 #    正确写法：遍历 dirs 时 if os.path.islink(p): 收进集合 + dirs.remove(d)。
 # 期望 "MISSING: 0" 且 "GHOST: 0"（两边数量必须相等）。注意 git ls-tree 对非 ASCII 路径输出八进制转义
+# ⚠️ 例外（2026-11-14 实测）：`databases/state.db.gz` 永远会出现在 MISSING 里 —— 它被 .gitignore
+#    刻意排除（251MB > GitHub 100MB）。保真度脚本必须把它排除，否则每次都是假告警、真问题被淹没。
+#    正确判据：MISSING 集合减去 {databases/state.db.gz} 后为空，且 GHOST 为空。
+#    用 `git check-ignore -v .hermes_backup/databases/state.db.gz` 确认排除规则来自 .gitignore 而非漏 add。
 # （\344\274\232…），中文文件名会误报为缺失，需按 unicode 解码后比对。
 # ✅ 更省事的写法：`git ls-files -z` / `git ls-tree -r -z --name-only` 用 NUL 分隔，
 #    完全不转义，直接 split('\0') 比对，无需处理八进制。
