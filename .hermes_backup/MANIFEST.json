@@ -1,5 +1,5 @@
 {
-  "backup_timestamp": "2026-11-13T09:03:50.087459",
+  "backup_timestamp": "2026-11-14T09:01:44.008853",
   "source_hermes": "/home/jianliu/.hermes",
   "backup_target": "/home/jianliu/work/hermes-agent/.hermes_backup",
   "includes": [
@@ -9,11 +9,12 @@
     "databases"
   ],
   "verification": {
-    "memories_count": 3,
+    "memories_count": 5,
     "skills_count": 842,
+    "skills_symlinks": 132,
     "cron_jobs": 7,
     "cron_enabled": 7,
-    "cron_output_files": 290,
+    "cron_output_files": 293,
     "databases": [
       {
         "name": "dongchedi_l90.db",
@@ -25,7 +26,7 @@
       },
       {
         "name": "state.db.gz",
-        "size_bytes": 249448871
+        "size_bytes": 251261440
       },
       {
         "name": "verification_evidence.db",

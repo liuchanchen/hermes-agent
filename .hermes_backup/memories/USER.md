@@ -2,13 +2,11 @@
 §
 User: step-by-step operation with verification after each stage (NCCL fixes, benchmarks, config changes)
 §
-用户要求主动更新技能库，即使变化很小也不应错过学习机会，且技能库应保持类级别结构，每个技能有丰富的 SKILL.md 和 references/ 目录，而不是扁平的长列表。
+用户要求每次会话结束后审查对话并主动更新技能库（即使变化很小）；技能库须保持CLASS级别结构，每个技能有丰富的SKILL.md和references/目录，而非扁平长列表。
 §
 用户偏好: 偏好更新应写入 SKILL.md（技能文件），而不是 memory。修改技能时优先使用 patch（skill_manage action='patch'）更新已加载的技能，而不是创建新技能。
 §
 不要将远程服务器脚本/报告备份到本地 Windows 路径 — 用户认为没必要。所有测试结果应通过 Notion 管理。
-§
-用户期望在每次会话结束后审查对话并主动更新技能库，将学到的技能和教训组织为CLASS级别条目，每个条目包含丰富的SKILL.md和references/目录。
 §
 WarpDriveAI GPU engineer. Manages vLLM clusters: 70.88(8×RTX5090,DS-V4-Flash), 70.96+98(TGU SM12.0,GLM5.2+DS-V4-Pro). Chinese-speaking, prefers direct execution+step-verify. Use official scripts directly. Active skill updates each session.
 §

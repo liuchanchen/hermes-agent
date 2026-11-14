@@ -21,7 +21,7 @@ metadata:
 
 ## How to Run
 
-From WSL — `ssh oem96` (Host alias = domain `liujian` + `~/.ssh/id_ed25519_vscode`, BatchMode works, verified 2026-11-09):
+From WSL — `ssh oem96` (Host alias = domain `liujian` + `~/.ssh/id_ed25519_vscode`, BatchMode works, re-verified 2026-11-13):
 
 ```bash
 ssh -o StrictHostKeyChecking=no oem96 '<command>'
@@ -81,3 +81,5 @@ ssh -o StrictHostKeyChecking=no jianliu@10.10.68.96 'nvidia-smi --query-gpu=inde
 # Expected: 8 rows, ~14 MiB when idle
 # (hostname string not captured — fill in on first login)
 ```
+
+**Idle判定 (2026-11-13)**: 只看显存不够 — 同时查 `nvidia-smi --query-compute-apps=pid --format=csv,noheader | wc -l` 必须为 0，并 `docker ps` 确认无容器。**注意**: 以 domain `liujian` 登录时 `docker ps` 报 `permission denied ... docker.sock`（不在 docker 组），此时以 compute-apps=0 + 8×14 MiB/0% 为准即可（无 compute 进程即无 GPU 容器负载）；需要容器清单时用 `jianliu`/`!QAZ2wsx` — 本机无 sshpass，用 SSH_ASKPASS 脚本 + `setsid -w ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no jianliu@10.10.68.96 'docker ps ...'`（2026-11-13 验证可用，空输出=无容器）。二次采样间隔 10s 显存不变可排除加载中。**探针快照会早于启动数秒 (2026-11-13)**: cron 探针报 8×17 MiB 的同时, 容器内 vLLM DP3/EP3 worker (root, docker 60dc4a33…, `VLLM::Worker_DP3_EP3`) 已开始加载, 10s 后 8 卡齐涨到 53 GiB —— 绝不能凭单次探针行判空闲, 必须重跑 compute-apps + 10s 二次采样。`who` 里有 xiaqing / wanglei 等登录用户不代表在用卡；qs 常驻一个 CPU-only `python server.py --host 0.0.0.0 --port 8199`（0.2% CPU，无显存），不构成 GPU 占用。
