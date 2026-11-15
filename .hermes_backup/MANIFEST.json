@@ -1,5 +1,5 @@
 {
-  "backup_timestamp": "2026-11-15T09:02:35.618585",
+  "backup_timestamp": "2026-11-15T09:04:20.769605",
   "source_hermes": "/home/jianliu/.hermes",
   "backup_target": "/home/jianliu/work/hermes-agent/.hermes_backup",
   "includes": [
@@ -60,6 +60,5 @@
         "match": true
       }
     }
-  },
-  "git_head_at_manifest": "b7cdf6a201"
+  }
 }
