@@ -1,5 +1,5 @@
 {
-  "backup_timestamp": "2026-11-14T09:01:44.008853",
+  "backup_timestamp": "2026-11-15T09:02:35.618585",
   "source_hermes": "/home/jianliu/.hermes",
   "backup_target": "/home/jianliu/work/hermes-agent/.hermes_backup",
   "includes": [
@@ -11,35 +11,55 @@
   "verification": {
     "memories_count": 5,
     "skills_count": 842,
-    "skills_symlinks": 132,
+    "skills_count_incl_symlinks": 974,
+    "skills_count_source": 853,
+    "skills_count_source_incl_symlinks": 985,
     "cron_jobs": 7,
     "cron_enabled": 7,
-    "cron_output_files": 293,
+    "cron_output_files": 296,
     "databases": [
       {
         "name": "dongchedi_l90.db",
-        "size_bytes": 1253376
+        "size_bytes": 1253376,
+        "integrity": "ok"
       },
       {
         "name": "kanban.db",
-        "size_bytes": 114688
+        "size_bytes": 114688,
+        "integrity": "ok"
       },
       {
         "name": "state.db.gz",
-        "size_bytes": 251261440
+        "size_bytes": 251861193
       },
       {
         "name": "verification_evidence.db",
-        "size_bytes": 61440
+        "size_bytes": 65536,
+        "integrity": "ok"
       },
       {
         "name": "whatsapp_dongchedi.db",
-        "size_bytes": 20480
+        "size_bytes": 20480,
+        "integrity": "ok"
       },
       {
         "name": "whatsapp_state.db",
-        "size_bytes": 131072
+        "size_bytes": 131072,
+        "integrity": "ok"
       }
-    ]
-  }
+    ],
+    "memories_md5": {
+      "MEMORY.md": {
+        "source": "6fd4a679c7924044f519c00298ed47a4",
+        "backup": "6fd4a679c7924044f519c00298ed47a4",
+        "match": true
+      },
+      "USER.md": {
+        "source": "1729676a92a0d3081d893f07a780cc2d",
+        "backup": "1729676a92a0d3081d893f07a780cc2d",
+        "match": true
+      }
+    }
+  },
+  "git_head_at_manifest": "b7cdf6a201"
 }
