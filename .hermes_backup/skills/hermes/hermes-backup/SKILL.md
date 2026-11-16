@@ -191,13 +191,13 @@ python3 /tmp/fidelity_check.py
 # ⚠️ 数量对不上先别慌：MANIFEST 的 skills_count 用 os.walk 数的是**普通文件**（2026-11-12 实测 842），
 #    而保真度脚本把符号链接也计入（同次 974 = 842 文件 + 132 个 symlink，如 dsh/*）。
 #    两个数字本就不同，真正的判据只有 MISSING: 0 / GHOST: 0。
-# ⚠️ 全树口径对账公式（2026-11-15 实测，最容易把人绕进去的一组数）：
-#    `find .hermes_backup -type f | wc -l` = 1153   ← 不含 symlink，但**含**被 gitignore 的 state.db.gz
-#    `git ls-files -- .hermes_backup | wc -l` = 1284 ← 不含 state.db.gz，但**含** 132 个 symlink
-#    恒等式：1153 = 1284 - 132(symlink) + 1(state.db.gz)。两者对不上不是丢文件。
-#    全树保真度脚本应写成：disk(os.walk 收 files+symlink) = 1285，tracked = 1284，
+# ⚠️ 全树口径对账公式（2026-11-16 实测，最容易把人绕进去的一组数）：
+#    `find .hermes_backup -type f | wc -l` = 1156   ← 不含 symlink，但**含**被 gitignore 的 state.db.gz
+#    `git ls-files -- .hermes_backup | wc -l` = 1287 ← 不含 state.db.gz，但**含** 132 个 symlink
+#    恒等式：1156 = 1287 - 132(symlink) + 1(state.db.gz)。两者对不上不是丢文件。
+#    全树保真度脚本应写成：disk(os.walk 收 files+symlink) = 1288，tracked = 1287，
 #    MISSING 集合扣掉 {databases/state.db.gz, databases/state.db} 后必须为空，GHOST 必须为空。
-#    ⚠️ 只查 skills/ 会漏掉 cron/output 和 databases 的漂移，务必做**全树**对账（本次全树 1285 vs 1284 通过）。
+#    ⚠️ 只查 skills/ 会漏掉 cron/output 和 databases 的漂移，务必做**全树**对账（2026-11-16 全树 1288 vs 1287 通过）。
 # ⚠️ 别写成 `git ... | python3 -c "..."`：除了 cron 的 -c 拦截，还会触发
 #    "Pipe to interpreter" 安全扫描（HIGH，pending approval）→ 整条命令挂住。
 #    一律先 write_file 落盘再 python3 <路径>。
@@ -258,7 +258,7 @@ hermes-agent/.hermes_backup/
 4. whatsapp 数据库的备份失败不算错误（如果该目录不存在）
 5. `state.db` 使用 Python `sqlite3.backup()` API 而非直接 cp，保证 WAL 写入完成后的一致快照
 6. 备份完成后 manifest 中的 `backup_timestamp` 可用于确认是否需要重新备份
-7. ⚠️ **state.db.gz 可能超过 GitHub 100MB 限制**（持续增长中：2026-11-13 实测 249MB gzip / 669MB raw，压缩率 37.3%，snapshot 21.9s + gzip 22.9s；2026-11-11 为 246MB/632MB）。`.gitignore` 中必须同时排除 `state.db` 和 `state.db.gz`。本地备份仍保留 `.gz` 文件用于恢复，但不提交到 git。查看 `references/state-db-growth.md` 了解详细增长趋势与耗时数据。
+7. ⚠️ **state.db.gz 可能超过 GitHub 100MB 限制**（持续增长中：2026-11-16 实测 253MB gzip / 678MB raw，压缩率 37.3%；2026-11-13 为 249MB/669MB，压缩率 37.3%；2026-11-11 为 246MB/632MB）。`.gitignore` 中必须同时排除 `state.db` 和 `state.db.gz`。本地备份仍保留 `.gz` 文件用于恢复，但不提交到 git。查看 `references/state-db-growth.md` 了解详细增长趋势与耗时数据。
 8. **清理历史遗留文件**：如果 `databases/` 目录存在旧的 `state.gz.part_aa/ab/ac` 等 split 分卷文件（来自早期备份方式），应在备份完成后手动清理，避免占用磁盘空间和 git 误追踪。
 9. **`.gitignore` 去重**：.gitignore 可能在多个位置包含重复的排除规则（如 `state.db` 出现多次）。每次备份前的 pre-flight 检查脚本会自动去重。重复条目不影响 git 行为但会让 `git status` 输出混乱。
 10. **`git add` 顺序**：先 add 小文件组（memories, cron, databases, MANIFEST），最后单独 add skills/（878+ 文件，需要较大的 timeout）。实测 skills/ 的 git add 在 2-5s 内完成，无需过高 timeout。
@@ -395,7 +395,11 @@ md5sum ~/.hermes/cron/jobs.json .hermes_backup/cron/jobs.json
 
 **推荐的 cron 安全执行形态**（本次跑通）：`write_file` 写 `.hermes_backup_tmp/{sync_mirror.sh, backup_cron.py, backup_db.py, write_manifest.py, fidelity_check.py}` → 逐个 `bash/python3 <绝对路径>` → `_cleanup.py` 里 `shutil.rmtree` 收尾。所有耗时步骤（state.db 快照+gzip 24.5s）都能拿到干净 stdout，且不会误触审批。
 
-**⚠️ `git push` 需要足够超时（≥120s）**：随着仓库增长，`git push origin main` 在 cron 环境中可能超过默认 60s 超时。2026-06 实测 push 耗时约 90s。如果使用 terminal 工具执行，设置 `timeout=120` 或更高。
+**⚠️ `git push` 需要足够超时（≥120s）**：随着仓库增长，`git push origin main` 在 cron 环境中可能超过默认 60s 超时。2026-06 实测 push 耗时约 90s；2026-11-16 实测本次 push 增量 105 文件、秒级完成。如果使用 terminal 工具执行，设置 `timeout=120` 或更高。
+
+**✅ 2026-11-16 完整跑通记录（可作为模板核对）**：preflight 报告 5 条 fidelity 规则齐全、无重复行、`tracked state.db*: none`、`check-ignore` 命中 `.gitignore:226` → rsync memories/skills（842 文件）→ cron 7 jobs / 299 output → state.db 678MB→253MB gzip，5 个小 DB `integrity_check` 全 ok → MANIFEST（memories 5 / skills 842 / cron 7 enabled 7 / output 299 / total 1156）→ commit 105 files changed → push `a8b814526b..cd0301fdff` → `origin/main...main = 0 0`、`ls-remote` sha == `rev-parse HEAD`、全树保真 1288 vs 1287 PASS。
+
+**💡 commit 前刷新 jobs.json 可让 MD5 一致**：`backup_cron.py` + `write_manifest.py` 各再跑一次（约 2s）再 `git add`，本次实测 `~/.hermes/cron/jobs.json` 与备份 MD5 完全相同（`0d4a6555...`）。ticker 在本 job 结束后才会再改写，所以 commit 窗口内是稳定的。
 
 **⚠️ `git push --force` 会被终端审批拦截**：使用 `git push origin +main:main` 语法绕过（refspec 前缀 `+` 等效于 force 但不触发审批关键词）。例如在 filter-repo 后需要强制推送时：
 ```bash
