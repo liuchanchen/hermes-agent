@@ -128,6 +128,8 @@ for j in a964294ed664 89f4554bce6e 4f84b0c63dc2 abbcf2686299 13fbed6a9ac6; do ec
 
 注意 08:00 轮次面试提醒的**日期漂移**：文件在 11-12 21:01 生成，正文写「今天 2026-11-12」，但健康检查在次日 08:00 转发时，文中「2026-11-13（1天后）」的场次已是**今天**。转发时要把这点点明（例如「今日 16:00 张飞翔 一面」），否则用户会按旧日期理解。
 
+2026-11-16 08:00 复现（第 6 轮）：当天财经文件 `2026-11-16_08-01-34.md` 于 08:01:34 落盘（08:00:29 采集 → 第 2 次 30s 轮询即拿到，恢复 ~65s 节奏）。**当日文件与 context 里的旧财经内容极易混淆**：context 给的是 11-15 版（标普 7560.97），当日文件是重写版（7561.67、全周涨幅、CEO 继任细节），数值近似但正文不同——必须用当日文件。去重后新增 2 份：当日财经早报 + 11-15 21:01 面试提醒（ID 94 发信 18:02 早于它）→ 邮件 ID 95（5.43 KiB，正文首尾已核对）。iLink 已连续 ~163h（11-09 12:46 起），gateway uptime 7 天未重启，11-16 当日 2 条 rate limited（08:01:35 财经推送）。7 个任务 last_status 全部 ok，无 NEED-RERUN。
+
 注意 `himalaya message read` 的参数：必须用 `--mailbox sent <ID>`；`-m 81` 和 `--preview` 都不被接受（会直接报 unexpected argument）。
 
 ### Step 1: Check if content is in context
@@ -235,6 +237,8 @@ Files are named as `YYYY-MM-DD_HH-MM-SS.md`. Find the latest by sorting with `ls
 - **Background processes for parallel reruns need active polling** — when launching multiple `hermes cron run` jobs in parallel via `terminal(background=true)`, use `process(action='wait', session_id=..., timeout=...)` to check each completes. Scraper-style jobs can take 600-900+ seconds; set generous timeouts. Don't assume a silent background process finished — poll it.
 - **Output files are large (20KB+)** because they embed the full SKILL.md and prompt content. The actual report is in the last 50-150 lines. Don't read the whole file — read from offset -100 or search for `## Response`.
 - **18:00 轮次不要整包重发**: 08:00 那轮通常已把当天的财经早报、前一晚的面试提醒和上一轮健康检查用邮件发出。先查 `himalaya envelope list --account ali -m sent -s 3` 确认上一封的 Sent ID 与大小，18:00 只补发 08:00 之后新产生的报告（一般是 09:00 配置备份、周二 10:00 入职提醒），其余在报告与邮件里注明「已在 08:00 邮件 ID xx 发出」，避免同一内容一天收两封重复邮件。**2026-11-15 08:00 实测**：5 个 NEED-RESEND 全部仅推送失败；真正新增 2 份（11-15 08:03 财经早报 + 11-14 21:01 面试提醒）→ 邮件 ID 92（8.01 KiB）。当天财经文件迟到 235s，`sleep 95` 不够，需 30s 轮询至出现当日文件（最多 6 次，`hermes cron list` 显示 `Execution: running` 表示仍在跑）。iLink ~139h。
+
+**2026-11-15 18:00 实测**：5 个 NEED-RESEND 全部仅推送失败（无 NEED-RERUN），按落盘时间去重后真正新增仅 1 份 = 09:04 配置备份 → 邮件 ID 94（4.55 KiB，已核对）；财经早报 08:03 + 11-14 面试提醒在 ID 92，入职提醒在 ID 81，上轮健康检查 = ID 92 本身。iLink 已连续 ~149h（11-09 12:46 起），今日 6 条 rate limited，最后一条 09:04:59。另：host 脚本 `sort_jira.py` 于 14:30:47 再次被 watchdog 自动恢复（kill 3251128 + 重跑 exit=0，告警邮件 ID 93），这是继 11-11 之后第二次——该脚本的 flock 卡死是复发问题，18:00 轮次报告里要单列。
 
 **2026-11-14 18:00 实测**：5 个 NEED-RESEND 全部仅推送失败（无 NEED-RERUN）；按落盘时间去重后真正新增只有 09:03 配置备份 → 邮件 ID 91（3.48 KiB，已核对）；财经早报 08:01 + 11-13 面试提醒在 ID 90，入职提醒在 ID 81，上轮健康检查 = ID 90 本身。iLink 此时已连续 ~125h。
 
