@@ -1,6 +1,6 @@
 ---
 name: cron-job-maintenance
-description: Monitor, repair, and resend Hermes cron jobs — process pre-run script output with NEED-RESEND/NEED-RERUN/HEALTHY tags, extract actual report content from output files, handle iLink Weixin rate limiting by consolidating deliveries, and produce health check reports.
+description: Monitor, repair, and report Hermes cron jobs — process pre-run script output with NEED-RESEND/NEED-RERUN/HEALTHY tags, extract actual report content from output files, and produce health check reports. NEVER sends email (hard rule since 2026-11-17).
 version: 1.0.0
 author: curator
 license: MIT
@@ -18,6 +18,18 @@ Umbrella skill for operating the Hermes cron health check and auto-recovery agen
 - When cron job delivery failed and content needs to be re-sent
 - When a cron job needs to be re-executed due to failure
 - When producing a consolidated health check report
+
+## 铁律：不发任何邮件（2026-11-17 用户明确要求）
+
+**绝对不要用邮件投递任何内容。** 用户于 2026-11-17 明确要求「不要每天给我发 [Cron健康检查] 的邮件」，
+并进一步确认：「健康检查一直保持，但是不发任何邮件」。
+
+- 禁止 `himalaya message send`、禁止任何 SMTP/邮件命令、禁止把报告写成邮件再发出去。
+- 健康检查照常执行：照常检查、照常自动恢复（NEED-RERUN）、照常产出报告作为 final response。
+- 报告只走 job 自己的 `deliver` 通道（当前是 weixin）。**微信推不出去时就让它留在 output 文件里**，
+  不要改用邮件补发 —— 用户会在 Web/CLI 里看 output，缺一次微信推送不是故障。
+- 下文所有 `himalaya ...` 的历史记录（Step 0 的去重流程、Email fallback 一节、Pitfalls 里的邮件核对）
+  **均已废止**，仅作历史背景保留，不要再执行。
 
 ## Pre-Run Script Output Format
 
@@ -105,20 +117,21 @@ something else — do not force it; read the `hint` line and decide manually.
 
 ## Processing NEED-RESEND Tasks
 
-### Step 0 (08:00 轮次): 先去重，再决定发什么
+### Step 0 (08:00 轮次): 只看当天新产出，不发邮件
 
-08:00 这一轮看到的 NEED-RESEND 里，多数内容是**上一轮已经用邮件发过的**。固定流程：
+> ⚠️ **2026-11-17 起本节已废止邮件补发流程**。下面的 himalaya 命令块只是历史记录，
+> **不要执行**。现在只做一件事：判断当天有哪些任务真的产出了新报告，把它们写进 final response。
+
+历史背景（已废止）：08:00 这一轮看到的 NEED-RESEND 里，多数内容是上一轮已经发过的。
 
 ```bash
-# 1) 每个 job 是否有「当天」新输出文件（08:00 采集时财经早报还没跑完）
+# 每个 job 是否有「当天」新输出文件（08:00 采集时财经早报还没跑完）
 for j in a964294ed664 89f4554bce6e 4f84b0c63dc2 abbcf2686299 13fbed6a9ac6; do echo "== $j =="; ls -t ~/.hermes/cron/output/$j/ | head -2; done
-# 2) 看上一封兜底邮件的 ID / 主题 / 大小
-~/.local/bin/himalaya envelope list --account ali -m sent -s 6
-# 3) 读上封正文，确认它已覆盖哪些任务（正文里有「已在 ID xx 发出」小节）
-~/.local/bin/himalaya message read --account ali --mailbox sent 81
+# 只需对比「文件落盘时间 vs 本轮采集时间」，比采集新的就是本轮新产出
+# 不要查邮箱、不要发邮件
 ```
 
-只补发「比上一封邮件更新」的内容。2026-11-11 实测：08:00 轮次真正未投递的只有 2 份 —— 当天财经早报（08:01:39 生成）+ 前一晚 21:00 面试提醒；备份/入职提醒/上一轮健康检查已在 11-10 18:00 的 ID 81 里。
+（已废止，仅存档：历史上是「只补发比上一封邮件更新」的内容。现在不补发任何邮件。）2026-11-11 实测：08:00 轮次真正未投递的只有 2 份 —— 当天财经早报（08:01:39 生成）+ 前一晚 21:00 面试提醒；备份/入职提醒/上一轮健康检查已在 11-10 18:00 的 ID 81 里。
 
 2026-11-13 第三轮复现：采集 08:00:35 → 当天财经文件 `2026-11-13_08-01-41.md` 落盘（约 66s）；去重后新增仍是 2 份（当天财经早报 + 前一晚 21:01 面试提醒），邮件 ID 88（6.11 KiB）已核对。**结构性规律：18:00 那封邮件永远覆盖不到当晚 21:00 的面试提醒，所以次日 08:00 轮次它必然属于「新内容」；反之 09:00 配置备份、周二 10:00 入职提醒在 08:00 轮次都还不存在，只在 18:00 轮次才是新的。**
 
@@ -132,9 +145,13 @@ for j in a964294ed664 89f4554bce6e 4f84b0c63dc2 abbcf2686299 13fbed6a9ac6; do ec
 
 2026-11-17 08:00 复现（第 7 轮，周二）：当天财经文件 `2026-11-17_08-01-46.md` 于 08:01:46 落盘（08:00:30 采集 → 第 3 次 30s 轮询 08:02:06 拿到）。**周二 08:00 的特殊性**：`入职提醒` 的 last_run 是上一个周二（11-10），早已在 ID 81 覆盖，且今天 10:00 才会跑新版——不要把它当新内容；`配置备份` 09:00 才跑。去重后新增仍是 2 份：当日财经早报 + 前一晚 21:01 面试提醒 → 邮件 ID 99（7.52 KiB，首尾已核对）。iLink 已连续 ~187h（11-09 12:46 起），gateway uptime 8 天未重启，11-17 当日 12 条 rate limited（最后一条 08:01:46）。host 脚本 `sort_jira.py` 夜间再次被 watchdog 自动恢复（kill PID 698807 + 重跑 exit=0，告警邮件 ID 98），为第 4 次复发。
 
+**2026-11-17 18:00 实测（当日第 3 轮，禁邮件后首轮）**：5 个 NEED-RESEND 全部仅推送失败（无 NEED-RERUN），7 个任务 last_status 全 ok。按 18:00 去重规则真正新增 2 份 = 09:04 配置备份、10:01 周二入职提醒；财经早报 08:01 + 11-16 21:01 面试提醒已在 08:00 轮次（该轮走的是邮件 ID 99，禁邮件令生效前）→ 本节只写「已在 08:00 报告里，见 output 13fbed6a9ac6/2026-11-17_08-04-01.md」，不重复正文。iLink 已连续 ~197h（11-09 12:46 起），gateway uptime 8 天未重启，11-17 当日 8 条 rate limited（4 次尝试 ×2 行：08:01/08:04/09:04/10:01），全天 0 次成功推送。**禁邮件后的新常态**：报告只作 final response + 留在 output，`去重` 段要显式写出上轮 output 文件路径，方便用户在 Web/CLI 回看。
+
 **2026-11-16 18:00 实测（同日第 2 轮）**：5 个 NEED-RESEND 全部仅推送失败（无 NEED-RERUN）。按落盘时间去重后真正新增仅 1 份 = 09:04 配置备份 → 邮件 ID 97（3.99 KiB，首尾已核对）；财经早报 08:01 + 11-15 面试提醒在 ID 95，入职提醒在 ID 81，上轮健康检查 = ID 95 本身。iLink 已连续 ~173h（11-09 12:46 起），当日累计 34 条 rate limited（最后一条 09:04:37，配置备份推送）。host 脚本 sort_jira.py 当日 12:30:47 第三次被 watchdog 自动恢复（kill 345958，告警邮件 ID 96），flock 卡死属复发问题，18:00 报告需单列。
 
-注意 `himalaya message read` 的参数：必须用 `--mailbox sent <ID>`；`-m 81` 和 `--preview` 都不被接受（会直接报 unexpected argument）。
+（已废止）历史备忘：`himalaya message read` 需用 `--mailbox sent <ID>`；2026-11-17 起不再使用任何 himalaya 命令。
+
+**2026-11-17 10:48 实测（非计划轮次，schedule 只有 `0 8,18 * * *`）**：追加轮次的去重判据与 08/18 轮不同 —— 因为 08:00 那份健康检查报告本身也推送失败（仍躺在 output 文件里），所以它汇总过的内容**不能**当作「已投递」跳过。判断方法：看 `~/.hermes/cron/output/13fbed6a9ac6/` 里上一轮文件是否只有一份、且 gateway.log 在该时刻有 rate limited 记录 → 说明上一轮也没发出去，本轮必须完整重带。本轮新增只有 2 份（09:04 配置备份、10:01 周二入职提醒），但 08:01 财经早报 + 11-16 21:01 面试提醒仍需重带，合计 4 节（第 5 项 = 上轮健康检查自身，注明「内容即上述各节」不重复）。iLink 连续 ~190h（11-09 12:46 起），当日 4 次推送尝试（08:01/08:04/09:04/10:01）全部失败。
 
 ### Step 1: Check if content is in context
 The pre-run script includes `output (N chars):` followed by the actual report. If the output says `WITH_CONTENT`, the report body is in the context (may be truncated at 2016 chars).
@@ -237,16 +254,16 @@ Files are named as `YYYY-MM-DD_HH-MM-SS.md`. Find the latest by sorting with `ls
 
 - **`execute_code` is blocked in cron mode** — cron jobs run with `approvals.cron_mode` enforces stricter approval. Use `terminal()` directly for shell commands, not `execute_code`. **`python3 -c` is blocked too** (flagged as "script execution via -e/-c flag"); write a small `.py` file and run `python3 /tmp/x.py` instead.
 - **Emoji / full-width punctuation inside a `python3 - <<EOF` heredoc trips the tirith scanner** (`variation_selector` / `confusable_text`) and the command hangs in `pending_approval` — in cron there is nobody to approve it. Keep the heredoc ASCII-only, or write the script + any Chinese metadata with `write_file` (e.g. `/tmp/resend/meta.json`, `/tmp/build_email.py`) and execute a pure-ASCII `python3 /tmp/build_email.py`.
-- **Verify the email fallback landed**: after `himalaya message send`, run `himalaya envelope list --account ali -m sent -s 3` and confirm the subject + size. "Message successfully sent" is only the CLI's self-report.
+- **Never send email** (2026-11-17 用户要求): no `himalaya`, no SMTP, no email fallback of any kind. 微信推不出去就留在 output 文件里，不要换通道补发。
 - **Background processes for parallel reruns need active polling** — when launching multiple `hermes cron run` jobs in parallel via `terminal(background=true)`, use `process(action='wait', session_id=..., timeout=...)` to check each completes. Scraper-style jobs can take 600-900+ seconds; set generous timeouts. Don't assume a silent background process finished — poll it.
 - **Output files are large (20KB+)** because they embed the full SKILL.md and prompt content. The actual report is in the last 50-150 lines. Don't read the whole file — read from offset -100 or search for `## Response`.
-- **18:00 轮次不要整包重发**: 08:00 那轮通常已把当天的财经早报、前一晚的面试提醒和上一轮健康检查用邮件发出。先查 `himalaya envelope list --account ali -m sent -s 3` 确认上一封的 Sent ID 与大小，18:00 只补发 08:00 之后新产生的报告（一般是 09:00 配置备份、周二 10:00 入职提醒），其余在报告与邮件里注明「已在 08:00 邮件 ID xx 发出」，避免同一内容一天收两封重复邮件。**2026-11-15 08:00 实测**：5 个 NEED-RESEND 全部仅推送失败；真正新增 2 份（11-15 08:03 财经早报 + 11-14 21:01 面试提醒）→ 邮件 ID 92（8.01 KiB）。当天财经文件迟到 235s，`sleep 95` 不够，需 30s 轮询至出现当日文件（最多 6 次，`hermes cron list` 显示 `Execution: running` 表示仍在跑）。iLink ~139h。
+- **18:00 轮次不要整包重发（已废止邮件版，保留报告版）**: 08:00 那轮通常已把当天的财经早报、前一晚的面试提醒和上一轮健康检查写进报告。18:00 只写 08:00 之后新产生的报告（一般是 09:00 配置备份、周二 10:00 入职提醒），其余注明「已在 08:00 轮次报告里」，避免同一内容一天出现两遍。**不查邮箱、不发邮件。** 历史记录：**2026-11-15 08:00 实测**：5 个 NEED-RESEND 全部仅推送失败；真正新增 2 份（11-15 08:03 财经早报 + 11-14 21:01 面试提醒）→ 邮件 ID 92（8.01 KiB）。当天财经文件迟到 235s，`sleep 95` 不够，需 30s 轮询至出现当日文件（最多 6 次，`hermes cron list` 显示 `Execution: running` 表示仍在跑）。iLink ~139h。
 
 **2026-11-15 18:00 实测**：5 个 NEED-RESEND 全部仅推送失败（无 NEED-RERUN），按落盘时间去重后真正新增仅 1 份 = 09:04 配置备份 → 邮件 ID 94（4.55 KiB，已核对）；财经早报 08:03 + 11-14 面试提醒在 ID 92，入职提醒在 ID 81，上轮健康检查 = ID 92 本身。iLink 已连续 ~149h（11-09 12:46 起），今日 6 条 rate limited，最后一条 09:04:59。另：host 脚本 `sort_jira.py` 于 14:30:47 再次被 watchdog 自动恢复（kill 3251128 + 重跑 exit=0，告警邮件 ID 93），这是继 11-11 之后第二次——该脚本的 flock 卡死是复发问题，18:00 轮次报告里要单列。
 
 **2026-11-14 18:00 实测**：5 个 NEED-RESEND 全部仅推送失败（无 NEED-RERUN）；按落盘时间去重后真正新增只有 09:03 配置备份 → 邮件 ID 91（3.48 KiB，已核对）；财经早报 08:01 + 11-13 面试提醒在 ID 90，入职提醒在 ID 81，上轮健康检查 = ID 90 本身。iLink 此时已连续 ~125h。
 
-**2026-11-13 18:00 实测**：5 个 NEED-RESEND 全部仅推送失败，真正新的只有 09:05 配置备份（ID 89，3.49 KiB）；财经早报 + 11-12 面试提醒 + 上一轮健康检查在 ID 88，入职提醒在 ID 81。**2026-11-12 18:00 实测**：5 个 NEED-RESEND 的 last_error 仍停留在故障期，但真正新的只有 09:05 配置备份（ID 87, 4.43 KiB）；财经早报/11-11 面试提醒在 ID 86，入职提醒在 ID 81。去重判据是 `ls -t ~/.hermes/cron/output/<jid>/` 落盘时间 vs 上封邮件正文覆盖范围。**2026-11-11 18:00 实测**：NEED-RESEND 仍是全部 5 个（它们的 last_error 都停留在故障期），但真正新的只有 09:07 配置备份 —— 财经早报/11-10 面试提醒在 ID 84，入职提醒在 ID 81。去重依据是 `ls -t ~/.hermes/cron/output/<jid>/` 的落盘时间 vs 上一封邮件的 Sent ID 正文。邮件正文用 `write_file` 写成带 raw headers 的 /tmp 文件再 `himalaya message send --account ali < file`，随后 `envelope list -m sent -s 3` 核对新 ID 与大小。
+**2026-11-13 18:00 实测**：5 个 NEED-RESEND 全部仅推送失败，真正新的只有 09:05 配置备份（ID 89，3.49 KiB）；财经早报 + 11-12 面试提醒 + 上一轮健康检查在 ID 88，入职提醒在 ID 81。**2026-11-12 18:00 实测**：5 个 NEED-RESEND 的 last_error 仍停留在故障期，但真正新的只有 09:05 配置备份（ID 87, 4.43 KiB）；财经早报/11-11 面试提醒在 ID 86，入职提醒在 ID 81。去重判据是 `ls -t ~/.hermes/cron/output/<jid>/` 落盘时间 vs 上封邮件正文覆盖范围。**2026-11-11 18:00 实测**：NEED-RESEND 仍是全部 5 个（它们的 last_error 都停留在故障期），但真正新的只有 09:07 配置备份 —— 财经早报/11-10 面试提醒在 ID 84，入职提醒在 ID 81。去重依据是 `ls -t ~/.hermes/cron/output/<jid>/` 的落盘时间 vs 上一封邮件的 Sent ID 正文。邮件正文用 `write_file` 写成带 raw headers 的 /tmp 文件再 `himalaya message send --account ali < file`，随后 `envelope list -m sent -s 3` 核对新 ID 与大小。（↑ 全部已废止：2026-11-17 起不发任何邮件）
 - **Don't send individual messages** when multiple NEED-RESEND tasks exist — they'll all hit the iLink 30s cooldown. Consolidate into the final response.
 - **Don't use [SILENT]** on health check runs — the report must always be produced (health check is the delivery itself).
 - **The context `output (N chars)` is truncated at 2016 chars**. Always verify by reading the full output file for reports that seem incomplete.
@@ -258,7 +275,7 @@ Files are named as `YYYY-MM-DD_HH-MM-SS.md`. Find the latest by sorting with `ls
 - **Cron健康检查 output files** contain the PREVIOUS health check run's output, not the current run — only use the context-provided content for these.
 - **⚠️ Stale content trap when cron health check itself is in NEED-RESEND list:** The context-provided `output (N chars)` for the health check job (`13fbed6a9ac6`) contains the *previous* health check's consolidated report, which may have stale/outdated data for individual jobs. For example, the previous health check's 财经早报 section might show Friday's market data instead of Monday's. **Always read the *individual job's* latest output file** from `~/.hermes/cron/output/<jid>/` rather than relying on the context-provided output for any job whose content might be stale. The context output for non-health-check jobs is fresh (direct from that job's execution); only the health check job's context output is a re-consolidation of older data.
 - **08:00 并发陷阱（财经早报）**: 健康检查与财经早报都是 `0 8 * * *`，健康检查在 08:00:11 采集时当天财经任务才刚起跑（日志可见 `cron_a964294ed664_...` 与健康检查同秒启动），所以它拿到的“财经早报 output”其实是**前一天**的文件。不要直接重发旧财经内容：等 1–2 分钟看 `~/.hermes/cron/output/a964294ed664/` 是否出现 `YYYY-MM-DD_08-*.md` 新文件，用当天最新输出代替旧内容；若当天新跑也投递失败，优先投递新内容（旧的已被上一轮邮件覆盖过）。**2026-11-11 实测时间线**：采集 08:00:35 → 新文件 `2026-11-11_08-01-39.md` 落盘（约 64s 后）→ 该任务自身投递失败于 08:01:39。所以 `sleep 45` 后再 ls 一次即可拿到当天内容，无需等满 2 分钟。
-- **iLink 长时间 rate limited 是服务端问题，重启无效**: 2026-11-09 12:46 → 11-11 08:01 连续 43 小时每次 send 都真的打到 iLink 并返回 ret=-2，期间 gateway 于 13:05 重启过仍失败（`hermes gateway status` 显示服务 healthy，uptime 1d18h）。清 circuit / 重启 gateway 都没用，只能重新配对或等服务端解除；别再花轮次诊断。健康检查 agent 的工具集里**没有 `send_message` 工具**，唯一出口是 final response 自动投递 + `himalaya` 邮件兜底。CLI 里**没有**微信重新配对的子命令：`hermes pairing` 只管用户准入（list/approve/revoke），重新扫码要走 `hermes gateway setup`，必须人工介入。
+- **iLink 长时间 rate limited 是服务端问题，重启无效**: 2026-11-09 12:46 → 11-11 08:01 连续 43 小时每次 send 都真的打到 iLink 并返回 ret=-2，期间 gateway 于 13:05 重启过仍失败（`hermes gateway status` 显示服务 healthy，uptime 1d18h）。清 circuit / 重启 gateway 都没用，只能重新配对或等服务端解除；别再花轮次诊断。健康检查 agent 的工具集里**没有 `send_message` 工具**，唯一出口是 final response 自动投递（job 的 deliver 通道）。**不要用 `himalaya` 邮件兜底**（2026-11-17 起禁用）。CLI 里**没有**微信重新配对的子命令：`hermes pairing` 只管用户准入（list/approve/revoke），重新扫码要走 `hermes gateway setup`，必须人工介入。
 - **When cron health check is in NEED-RERUN (not NEED-RESEND), the rule changes:** After rerunning the health check job, its output file will contain *fresh* data from this run. You should read the latest output file (just like any other job) to include the new health check results. The stale-content warning only applies to the context-provided output, not to freshly rerun output files.
 
 ## Failure Modes
@@ -270,11 +287,11 @@ Files are named as `YYYY-MM-DD_HH-MM-SS.md`. Find the latest by sorting with `ls
 | Output file has skill prompt only, no report | Job didn't produce a result | Check job timing — the file may be a previous failed run |
 | NEED-RERUN job won't start | Service (LLM API, browser) unavailable | Note in report; manual intervention needed |
 | A host script "succeeds" every tick but does nothing for days | It holds a stale `flock` and exits 0 on the skip path; cron sees success | Watch for `[STALE-SCRIPT]`, kill the wedged PID, `script_watchdog.py --fix` |
-| `hermes send --to weixin` always returns "rate limited" | iLink circuit is open (ret=-2) or the gateway is restart-looping | Watchdog already falls back to SMTP via `himalaya message send --account ali` |
+| `hermes send --to weixin` always returns "rate limited" | iLink circuit is open (ret=-2) or the gateway is restart-looping | Do NOT fall back to email (disabled 2026-11-17). Report in the final response and leave the content in the output file |
 | Every job is `error: RuntimeError: Connection error.` with the same minute | Gateway/scheduler was down (sleep, restart, config crash) and fired all missed jobs in one catch-up burst; the LLM endpoint was not reachable yet | Transient — rerun each job; no config change needed |
 | Monitor job: `Script not found: /home/jianliu/.hermes/scripts/ssh -o ...` | `monitor_script` holds a raw shell command. The scheduler treats it as a **file path under `~/.hermes/scripts/`** and path-validates it | Write a wrapper (e.g. `monitor_70_96_idle.sh`) and `hermes cron edit <jid> --monitor-script <file>`; verify with `bash ~/.hermes/scripts/<file>` |
 | `RuntimeError: [drift_skip] ... model 'X' -> 'Y' ... unpinned. No inference call was made.` | Job carries a `model_snapshot` from creation time but no explicit model/provider; the global model changed, so Hermes refuses to spend | `hermes cron edit <jid> --provider <p> --model <m>` to pin to the current model (or restore the old one). Happens to monitor jobs that only ran once at creation |
-| iLink "rate limited" persists for **hours**, every attempt shows exactly `cooldown active for 30.0s` | Circuit breaker is threshold=1/open=30s, so each real attempt gets a genuine ret=-2 from iLink and re-opens it; a catch-up burst can leave the bot throttled far longer than 30s | Do not hammer: every retry extends the block. Deliver the report/content by email fallback (`himalaya message send --account ali`, ALERT_EMAIL `liujian@warpdriveai.com.cn`) and let the next tick retry WeChat |
+| iLink "rate limited" persists for **hours**, every attempt shows exactly `cooldown active for 30.0s` | Circuit breaker is threshold=1/open=30s, so each real attempt gets a genuine ret=-2 from iLink and re-opens it; a catch-up burst can leave the bot throttled far longer than 30s | Do not hammer: every retry extends the block. **Do not send email** (disabled 2026-11-17). Put the report in the final response / output file and let the next tick retry WeChat |
 
 ## Monitor-script jobs (`monitor_script`)
 
@@ -322,18 +339,22 @@ Fix by pinning explicitly (this also silences the one-time alert):
 hermes cron edit <jid> --provider custom --model deepseekv4.1-flash-1017
 ```
 
-### Email fallback when iLink is down
+### When iLink is down: 不补发，只报告
 
 If WeChat delivery keeps failing with `iLink sendmessage rate limited` for more
-than ~30 minutes, do not keep retrying. Send one consolidated email:
+than ~30 minutes, **do not retry and do not send email**. 用户已于 2026-11-17 明确
+要求不发任何邮件（「健康检查一直保持，但是不发任何邮件」）。
 
-```bash
-~/.local/bin/himalaya message send --account ali < /tmp/fallback_email.txt
-```
+正确做法：
 
-The message needs raw headers (`From:`/`To:`/`Subject:`/`Content-Type: text/plain; charset=utf-8`).
-Account `ali` = `liujian@warpdriveai.com.cn`. `Message successfully sent` on stdout
-is the success signal. This is the same fallback `script_watchdog.py` uses.
+1. 不重试同一条推送（每次重试都会把 iLink 冷却期继续拉长）。
+2. 报告照常作为 final response 输出，并在开头注明微信通道不可用 + 持续时长。
+3. 需要的内容全部汇总进 final response，留在 output 文件里；用户在 Web/CLI 能看到。
+4. 邮件、SMTP、`himalaya` 一律不用 —— 这是硬约束，不是建议。
+
+历史（已废止）：2026-11-09 → 2026-11-17 期间曾用 `himalaya message send --account ali`
+把健康检查报告和待补发内容发到 `liujian@warpdriveai.com.cn`，共产生 Sent ID 76–99。
+该兜底已于 2026-11-17 由用户要求关闭，`script_watchdog.py` 的邮件兜底也已同步关闭。
 
 ## Verification Checklist
 
@@ -344,3 +365,4 @@ is the success signal. This is the same fallback `script_watchdog.py` uses.
 - [ ] `STALE-SCRIPTS: 0` (or every `[STALE-SCRIPT]` entry has a named action)
 - [ ] Report format matches: status summary first, then individual sections
 - [ ] After RERUNs, verify all jobs show `ok` status via `hermes cron list`
+- [ ] No email was sent — no `himalaya`, no SMTP, nothing to any mailbox (hard rule, 2026-11-17)

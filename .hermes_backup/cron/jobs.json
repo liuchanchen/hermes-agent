@@ -20,15 +20,15 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": 999,
-        "completed": 54
+        "completed": 55
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-23T23:08:50.970385+08:00",
-      "next_run_at": "2026-11-18T08:00:00+08:00",
-      "last_run_at": "2026-11-17T08:01:47.131255+08:00",
+      "next_run_at": "2026-11-19T08:00:00+08:00",
+      "last_run_at": "2026-11-18T08:01:46.850101+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "live adapter send failed: iLink sendmessage rate limited; cooldown active for 30.0s; live adapter delivery to weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat failed: iLink sendmessage rate limited; cooldown active for 30.0s; delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
@@ -62,23 +62,23 @@
       "schedule_display": "0 9 * * *",
       "repeat": {
         "times": 999,
-        "completed": 48
+        "completed": 49
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-26T17:30:29.608686+08:00",
-      "next_run_at": "2026-11-18T09:00:00+08:00",
-      "last_run_at": "2026-11-16T09:04:37.902433+08:00",
+      "next_run_at": "2026-11-19T09:00:00+08:00",
+      "last_run_at": "2026-11-17T09:04:18.428095+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "live adapter send failed: iLink sendmessage rate limited; cooldown active for 30.0s; live adapter delivery to weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat failed: iLink sendmessage rate limited; cooldown active for 30.0s; delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
       "deliver": "origin",
       "origin": null,
       "fire_claim": {
-        "at": "2026-11-17T09:02:24.901277+08:00",
-        "by": "jianliu:910835:71d4ba2163804d8c84058320bb845caa"
+        "at": "2026-11-18T09:02:32.328221+08:00",
+        "by": "jianliu:910835:726c504fc5844839929915843fddae99"
       },
       "failure_streak": 0
     },
@@ -102,15 +102,15 @@
       "schedule_display": "0 10 * * 2",
       "repeat": {
         "times": null,
-        "completed": 9
+        "completed": 10
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-27T19:19:45.178002+08:00",
-      "next_run_at": "2026-11-17T10:00:00+08:00",
-      "last_run_at": "2026-11-10T10:01:14.172883+08:00",
+      "next_run_at": "2026-11-24T10:00:00+08:00",
+      "last_run_at": "2026-11-17T10:01:21.364819+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "live adapter send failed: iLink sendmessage rate limited; cooldown active for 30.0s; live adapter delivery to weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat failed: iLink sendmessage rate limited; cooldown active for 30.0s; delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
@@ -139,15 +139,15 @@
       "schedule_display": "0 21 * * *",
       "repeat": {
         "times": null,
-        "completed": 50
+        "completed": 51
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-27T19:22:17.374140+08:00",
-      "next_run_at": "2026-11-17T21:00:00+08:00",
-      "last_run_at": "2026-11-16T21:01:24.594902+08:00",
+      "next_run_at": "2026-11-18T21:00:00+08:00",
+      "last_run_at": "2026-11-17T21:01:50.368600+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "live adapter send failed: iLink sendmessage rate limited; cooldown active for 30.0s; live adapter delivery to weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat failed: iLink sendmessage rate limited; cooldown active for 30.0s; delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
@@ -159,7 +159,7 @@
     {
       "id": "13fbed6a9ac6",
       "name": "Cron 健康检查 & 自动恢复",
-      "prompt": "你是 Cron 健康检查 & 自动恢复 agent。上面 script 的输出已注入为 context，列出了需要处理的问题。请严格按以下规则执行：\n\n## 规则\n\n### 对于 NEED-RERUN 的任务\n调用 cronjob(action='run', job_id='<id>') 重新执行，完成后记录。\n\n### 对于 NEED-RESEND 的任务\n如果上面 context 中有 WITH_CONTENT，意味着 output 已提供，直接用 send_message(target='weixin', message='<output>') 发送到微信。\n如果上面 context 中 output 被截断了，先 terminal('cat ~/.hermes/cron/output/<jid>/<filename>.md') 获取完整内容再发送。\n如果 NO_CONTENT，跳过（没有内容可发）。\n\n### 对于 HEALTHY 的任务\n不做任何操作。\n\n## 报告格式\n\n输出简短报告作为 final response：\n\n```\n🔍 Cron 健康检查报告\n━━━━━━━━━━━━━━━━━━━━━\n\n✅ 正常：x个\n🔄 已自动恢复：x个（列明）\n❌ 仍失败：x个（列明）\n```\n\n⚠️ 不要用 [SILENT]，必须输出报告。\n\n\n### 对于 STALE-SCRIPT 的任务（host crontab 脚本，非 Hermes cron job）\n上面 `---HOST SCRIPTS---` 段列出的是 **host crontab 里的普通脚本**（如 sort_jira.py 邮件整理），\n它们不受 Hermes cron 管理，但会以同样方式静默失效。\n\n- 出现 `[STALE-SCRIPT]` 时，说明该脚本的心跳停更 / 日志连续 skip / 锁被长期持有。\n- 用 `terminal('ps -ef | grep <script_name>')` 确认是否有卡死进程；确认后 kill 它。\n- 然后运行 `terminal('python3 ~/.hermes/scripts/script_watchdog.py --fix')` 让它自动清锁并补跑。\n- 若 `--fix` 报告\"持有者不是目标脚本本身，拒绝自动处理\"，不要强杀，按 hint 人工判断。\n- 在报告里单独列一节 `🩺 Host 脚本`：正常写\"全部正常\"，异常写脚本名 + 问题 + 已采取的动作。\n\n注意：`STALE-SCRIPTS: 0` 表示所有受监视脚本正常，此时该节只写一行\"全部正常\"即可，不要展开。\n\n## 推送失败时的铁律（2026-11-09 教训）\n微信通道可能整体不可用（iLink `errcode=-14 session timeout`，需要重新配对）。\n当 `send_message(target='weixin')` 返回 rate limited / session timeout 时：\n1. **不要重试同一个任务超过一次**——重试会烧光 90 轮预算，导致整个健康检查跑不完、什么都不产出。\n2. 立刻停止逐条发送，把所有 NEED-RESEND 的内容按下面的格式**汇总进最终报告**，由 job 自己的 deliver 统一发出：\n   `## 1️⃣ <任务名>` + 正文，`## 2️⃣ <任务名>` + 正文……\n3. 在报告开头加一行：`⚠️ 微信直推不可用（iLink 会话过期，需重新配对），以下内容改为汇总投递。`\n4. 若所有任务都只是推送失败、没有执行失败，报告控制在 40 行以内。",
+      "prompt": "你是 Cron 健康检查 & 自动恢复 agent。上面 script 的输出已注入为 context，列出了需要处理的问题。请严格按以下规则执行：\n\n## 🚫 铁律：不发任何邮件（2026-11-17 用户明确要求）\n\n- **绝对不要发邮件**：不调用 `himalaya`、不用 SMTP、不写邮件文件、不做任何\"邮件兜底\"。\n- 用户原话：\"不要每天给我发[Cron健康检查] 的邮件\" + \"健康检查一直保持，但是不发任何邮件\"。\n- 健康检查照常执行：照常检查、照常自动恢复、照常产出报告作为 final response。\n- 报告只走本 job 自己的 deliver 通道。**微信推不出去就留在 output 文件里**，不要换通道补发。\n- 需要补发的内容全部汇总进 final response 的对应小节，用户在 Web/CLI 能看到。\n\n## 规则\n\n### 对于 NEED-RERUN 的任务\n调用 cronjob(action='run', job_id='<id>') 重新执行，完成后记录。\n\n### 对于 NEED-RESEND 的任务\n**不要逐条推送，也不要发邮件。** 直接把内容汇总进最终报告的对应小节即可：\n如果上面 context 中有 WITH_CONTENT，说明 output 已提供，直接摘录进报告。\n如果 output 被截断了，先 terminal('cat ~/.hermes/cron/output/<jid>/<filename>.md') 获取完整内容再摘录。\n如果 NO_CONTENT，跳过（没有内容可发）。\n\n### 对于 HEALTHY 的任务\n不做任何操作。\n\n## 报告格式\n\n输出简短报告作为 final response：\n\n```\n🔍 Cron 健康检查报告\n━━━━━━━━━━━━━━━━━━━━━\n\n✅ 正常：x个\n🔄 已自动恢复：x个（列明）\n❌ 仍失败：x个（列明）\n```\n\n⚠️ 不要用 [SILENT]，必须输出报告。\n\n### 对于 STALE-SCRIPT 的任务（host crontab 脚本，非 Hermes cron job）\n上面 `---HOST SCRIPTS---` 段列出的是 **host crontab 里的普通脚本**（如 sort_jira.py 邮件整理），\n它们不受 Hermes cron 管理，但会以同样方式静默失效。\n\n- 出现 `[STALE-SCRIPT]` 时，说明该脚本的心跳停更 / 日志连续 skip / 锁被长期持有。\n- 用 `terminal('ps -ef | grep <script_name>')` 确认是否有卡死进程；确认后 kill 它。\n- 然后运行 `terminal('python3 ~/.hermes/scripts/script_watchdog.py --fix')` 让它自动清锁并补跑。\n- 若 `--fix` 报告\"持有者不是目标脚本本身，拒绝自动处理\"，不要强杀，按 hint 人工判断。\n- 在报告里单独列一节 `🩺 Host 脚本`：正常写\"全部正常\"，异常写脚本名 + 问题 + 已采取的动作。\n\n注意：`STALE-SCRIPTS: 0` 表示所有受监视脚本正常，此时该节只写一行\"全部正常\"即可，不要展开。\n\n## 推送失败时的铁律（2026-11-09 教训 + 2026-11-17 修订）\n微信通道可能整体不可用（iLink rate limited / session timeout，需要重新配对）。\n当微信推送失败时：\n1. **不要重试**——每次重试都会把 iLink 冷却期继续拉长，还会烧光 90 轮预算。\n2. **不要用邮件兜底**（2026-11-17 起禁用）。邮件、SMTP、himalaya 一律不用。\n3. 把所有 NEED-RESEND 的内容按下面的格式**汇总进最终报告**，由 job 自己的 deliver 统一发出：\n   `## 1️⃣ <任务名>` + 正文，`## 2️⃣ <任务名>` + 正文……\n4. 在报告开头加一行：`⚠️ 微信直推不可用（iLink 限流，需人工重新配对），以下内容改为汇总投递。`\n5. 若所有任务都只是推送失败、没有执行失败，报告控制在 40 行以内。",
       "skills": [],
       "skill": null,
       "model": null,
@@ -175,15 +175,15 @@
       "schedule_display": "0 8,18 * * *",
       "repeat": {
         "times": 999,
-        "completed": 84
+        "completed": 86
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-04-30T10:00:25.900478+08:00",
-      "next_run_at": "2026-11-17T18:00:00+08:00",
-      "last_run_at": "2026-11-17T08:04:02.651398+08:00",
+      "next_run_at": "2026-11-18T18:00:00+08:00",
+      "last_run_at": "2026-11-18T08:03:24.705222+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "live adapter send failed: iLink sendmessage rate limited; cooldown active for 30.0s; live adapter delivery to weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat failed: iLink sendmessage rate limited; cooldown active for 30.0s; delivery error: Weixin send failed: iLink sendmessage rate limited; cooldown active for 30.0s (target weixin:o9cq801iSM_4kP4nkL0j7OXvgC7o@im.wechat)",
@@ -218,15 +218,15 @@
       "schedule_display": "0 3 * * *",
       "repeat": {
         "times": null,
-        "completed": 42
+        "completed": 43
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-01T22:06:04.249578+08:00",
-      "next_run_at": "2026-11-18T03:00:00+08:00",
-      "last_run_at": "2026-11-17T03:00:21.703256+08:00",
+      "next_run_at": "2026-11-19T03:00:00+08:00",
+      "last_run_at": "2026-11-18T03:00:13.255347+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -273,15 +273,15 @@
       "schedule_display": "every 30m",
       "repeat": {
         "times": 999,
-        "completed": 369
+        "completed": 416
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-02T17:10:35.534623+08:00",
-      "next_run_at": "2026-11-17T09:19:26.340889+08:00",
-      "last_run_at": "2026-11-17T08:49:26.340889+08:00",
+      "next_run_at": "2026-11-18T09:27:33.460382+08:00",
+      "last_run_at": "2026-11-18T08:57:33.460382+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -293,5 +293,5 @@
       "fire_claim": null
     }
   ],
-  "updated_at": "2026-11-17T09:02:24.902537+08:00"
+  "updated_at": "2026-11-18T09:02:32.331009+08:00"
 }

@@ -1,5 +1,5 @@
 {
-  "backup_timestamp": "2026-11-17T09:03:45.460232",
+  "backup_timestamp": "2026-11-18T09:02:40.538313",
   "source_hermes": "/home/jianliu/.hermes",
   "backup_target": "/home/jianliu/work/hermes-agent/.hermes_backup",
   "includes": [
@@ -13,7 +13,7 @@
     "skills_count": 842,
     "cron_jobs": 7,
     "cron_enabled": 7,
-    "cron_output_files": 302,
+    "cron_output_files": 305,
     "databases": [
       {
         "name": "dongchedi_l90.db",
@@ -25,11 +25,11 @@
       },
       {
         "name": "state.db.gz",
-        "size_bytes": 254661215
+        "size_bytes": 254589377
       },
       {
         "name": "verification_evidence.db",
-        "size_bytes": 65536
+        "size_bytes": 69632
       },
       {
         "name": "whatsapp_dongchedi.db",
@@ -40,6 +40,6 @@
         "size_bytes": 131072
       }
     ],
-    "total_files": 1159
+    "total_files": 1162
   }
 }
