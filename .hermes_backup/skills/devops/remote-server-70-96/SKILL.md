@@ -78,7 +78,7 @@ sshpass -p '!QAZ2wsx' ssh -o StrictHostKeyChecking=no jianliu@10.10.68.106 '<com
 
 ```bash
 ssh -o StrictHostKeyChecking=no jianliu@10.10.68.96 'nvidia-smi --query-gpu=index,memory.used --format=csv,noheader'
-# Expected: 8 rows, ~14 MiB when idle
+# Expected: 8 rows, ~14 MiB when idle (driver 595.71.05; 17 MiB reported on some builds — both = idle overhead)
 # (hostname string not captured — fill in on first login)
 ```
 
