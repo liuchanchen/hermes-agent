@@ -403,6 +403,12 @@ md5sum ~/.hermes/cron/jobs.json .hermes_backup/cron/jobs.json
 
 **✅ 2026-11-18 跑通记录**：preflight 5 规则齐全、`tracked state.db*: none`、`check-ignore` 命中 `.gitignore:226` → rsync memories(5)/skills(842) → cron 7 jobs enabled 7 / 305 output → state.db 683MB→254.6MB gzip（37.3%，47s），5 个小 DB `integrity_check` 全 ok → MANIFEST total 1162 → 108 files changed（51 D / 54 A / 7 M，51 条删除经脚本核对源中均已不存在）→ push `790ec5e821..f25a0a7502`（8s）→ `origin/main...main = 0 0`、`ls-remote` sha == `rev-parse HEAD`、全树保真 disk 1294 vs tracked 1293（差 1 = state.db.gz）MISSING 0 / GHOST 0。
 
+**✅ 2026-11-19 跑通记录**：preflight 5 规则齐全无重复、`tracked state.db*: none`、`check-ignore` 命中 `.gitignore:226` → rsync memories(5)/skills(842 files + 132 symlink) → cron 7 jobs enabled 7 / 307 output → state.db 683,143,168→254,589,377 gzip（37.3%，**91s**），5 个小 DB `integrity_check` 全 ok → MANIFEST total 1164 → 110 files changed（47 D / 49 A / 10 M / 4 R079，47 条删除经脚本核对源中均已不存在）→ push `5c777d3e0b..56ed498e0f` → `origin/main...main = 0 0`、`ls-remote` sha == `rev-parse HEAD`、全树保真 disk 1296 vs tracked 1295（差 1 = state.db.gz）MISSING 0 / GHOST 0。
+
+**⚠️ `git add` 前后 status 计数会变，别当丢文件**（2026-11-19 实测）：add 前 `git status --porcelain` 报 112 条（D=50 / A=52 / M=10），add 后 `git diff --cached --name-status -M` 报 110 条（47 D / 49 A / 10 M / 4 R079）。差的 4 条是 git 在暂存后才做 rename 检测，把「删旧+增新」合并成 `R079`（本次全是 `cron/output/a3007169683e/` 的日期轮转：删 `2026-11-17_*.md`、增 `2026-11-18_*.md`，内容 79% 相似）。**判据仍只看「每条删除的源路径确实不存在」**，rename 的旧路径同样要核对。
+
+**⚠️ state.db gzip 耗时波动大**（2026-11-19 实测 91s vs 11-18 的 47s、11-17 的 44s，同为 683MB/37.3%）：同一份 raw 大小、同一压缩率，耗时差 2 倍说明受宿主 IO/CPU 争用影响。**cron 里给 `backup_db.py` 的 timeout 不要低于 600s**，否则会误判失败并留下半截 raw 文件。
+
 **⚠️ 删除核对脚本必须同时认 ` D` 和 `D `**（2026-11-18 踩坑）：`git status --porcelain` 中未暂存删除是 ` D`（空格+D，第 2 列），已暂存才是 `D `。若只匹配 `line.startswith("D ")`，在 `git add` 之前跑就会报「staged deletions: 0」，看起来像零删除、实则漏审 51 条。正确写法：取 `xy = line[:2]` 再判 `if "D" in xy`。建议在 `git add` **之后**再跑一次（此时全是 `D `），双重确认。
 
 **💡 commit 前刷新 jobs.json 可让 MD5 一致**：`backup_cron.py` + `write_manifest.py` 各再跑一次（约 2s）再 `git add`，本次实测 `~/.hermes/cron/jobs.json` 与备份 MD5 完全相同（`0d4a6555...`）。ticker 在本 job 结束后才会再改写，所以 commit 窗口内是稳定的。

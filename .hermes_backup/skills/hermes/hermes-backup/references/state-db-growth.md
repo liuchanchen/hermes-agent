@@ -10,6 +10,7 @@ The Hermes state database (`~/.hermes/state.db`) grows over time as conversation
 | 2026-07-05 | 506,892,288 (483 MB) | 186,251,765 (178 MB) | 36.7% | 12 MB gzip growth in ~1 month vs June |
 | 2026-07-06 | 511,078,400 (487 MB) | 187,863,740 (179 MB) | 36.8% | +4.2 MB raw / +1.5 MB gzip in 1 day — daily growth accelerating |
 | 2026-11-11 | 662,577,152 (632 MB) | 246,597,589 (235 MB) | 37.2% | +145 MB raw / +59 MB gzip in ~4 months ⇒ ~1.2 MB raw/day, ~0.5 MB gzip/day (slower than the July spike) |
+| 2026-11-19 | 683,143,168 (652 MB) | 254,589,377 (243 MB) | 37.3% | +20.6 MB raw / +8.0 MB gzip in 8 days ⇒ ~2.6 MB raw/day, ~1.0 MB gzip/day (accelerating vs the Jun–Nov average) |
 
 ## Observations
 
@@ -22,6 +23,7 @@ The Hermes state database (`~/.hermes/state.db`) grows over time as conversation
 ## Timing (measured 2026-11-11, 632 MB raw)
 
 - `sqlite3.backup()` snapshot + gzip + integrity_check: **43 s** total on this host
+- ⚠️ **Timing is highly variable** (measured 2026-11-19): same 683 MB raw / 37.3% ratio took **91 s** vs 44–47 s on 11-17/11-18 — 2x spread from host IO/CPU contention. Budget ≥600 s timeout in cron; a short timeout leaves a half-written raw file behind.
 - gzip level 6 is the default in the skill script; level 1 would be ~2x faster at ~45% ratio (not worth it here)
 - Disk headroom needed: raw copy + gz simultaneously ≈ 900 MB for a 632 MB db
 
