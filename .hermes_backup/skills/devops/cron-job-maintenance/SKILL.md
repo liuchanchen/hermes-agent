@@ -115,6 +115,30 @@ python3 ~/.hermes/scripts/script_watchdog.py --fix
 `--fix` refuses ("持有者不是目标脚本本身，拒绝自动处理") when the lock is held by
 something else — do not force it; read the `hint` line and decide manually.
 
+### ENOSPC 也会伪装成「锁死」（2026-11-19 实测）
+
+`[STALE-SCRIPT]` 的 hint 默认写「flock 被卡死进程长期持有」，但**先看 `last_log_line`**：
+
+```
+2026-11-19 17:00:02 ERROR OSError: [Errno 28] No space left on device (watermark not advanced, will retry)
+```
+
+这是磁盘写满，不是锁。此时 `ps -ef | grep <script>` 里没有卡死进程，`--fix` 也能直接补跑成功
+（只要盘还有余量）。正确顺序：
+
+1. `df -h /` 看余量；`du -xh --max-depth=1 / | sort -rh | head` 找大头（不用 sudo 也能看大部分）。
+2. 2026-11-19 真凶：`/var/log/syslog` 涨到 **90.6 GB**（251G 盘用掉 233G，仅剩 5.3G）。
+   源头是 `wsl-proxy-relay.service`（127.0.0.1:7890 中继）fd 泄漏到 1024 上限，每个 accept 失败
+   都打一段 traceback，**4.6 MB/s ≈ 400 GB/天**，20 分钟就能再写满。
+3. 无需 root 的止血：`systemctl --user restart wsl-proxy-relay.service`（清 fd + 服务恢复 + 停止刷屏）。
+   验证：`stat -c %s /var/log/syslog` 隔 20s 再取一次，增速应从 MB/s 降到 KB 级；
+   `ls /proc/$(systemctl --user show -p MainPID --value wsl-proxy-relay.service)/fd | wc -l` 应回到 ~20。
+4. 释放 90G 需要 root：`sudo truncate -s 0 /var/log/syslog && sudo systemctl restart rsyslog`
+   （rsyslog omfile 保留写偏移，只 truncate 不 restart 会得到稀疏文件）。
+5. 之后再 `python3 ~/.hermes/scripts/script_watchdog.py --fix` 补跑并核对 heartbeat。
+
+`sudo -S`（哪怕密码正确）在 cron 里会进 `pending_approval`，无人可批 —— 不要指望，直接写进报告让用户执行。
+
 ## Processing NEED-RESEND Tasks
 
 ### Step 0 (08:00 轮次): 只看当天新产出，不发邮件
@@ -287,6 +311,7 @@ Files are named as `YYYY-MM-DD_HH-MM-SS.md`. Find the latest by sorting with `ls
 | Output file has skill prompt only, no report | Job didn't produce a result | Check job timing — the file may be a previous failed run |
 | NEED-RERUN job won't start | Service (LLM API, browser) unavailable | Note in report; manual intervention needed |
 | A host script "succeeds" every tick but does nothing for days | It holds a stale `flock` and exits 0 on the skip path; cron sees success | Watch for `[STALE-SCRIPT]`, kill the wedged PID, `script_watchdog.py --fix` |
+| Host script log shows `OSError: [Errno 28] No space left on device` | 磁盘写满（伪装成锁死），不是 flock 问题 | `df -h /` + `du -xh --max-depth=1 /`；2026-11-19 是 `/var/log/syslog` 被 wsl-proxy-relay fd 泄漏刷到 90.6G → 见上文 ENOSPC 小节 |
 | `hermes send --to weixin` always returns "rate limited" | iLink circuit is open (ret=-2) or the gateway is restart-looping | Do NOT fall back to email (disabled 2026-11-17). Report in the final response and leave the content in the output file |
 | Every job is `error: RuntimeError: Connection error.` with the same minute | Gateway/scheduler was down (sleep, restart, config crash) and fired all missed jobs in one catch-up burst; the LLM endpoint was not reachable yet | Transient — rerun each job; no config change needed |
 | Monitor job: `Script not found: /home/jianliu/.hermes/scripts/ssh -o ...` | `monitor_script` holds a raw shell command. The scheduler treats it as a **file path under `~/.hermes/scripts/`** and path-validates it | Write a wrapper (e.g. `monitor_70_96_idle.sh`) and `hermes cron edit <jid> --monitor-script <file>`; verify with `bash ~/.hermes/scripts/<file>` |
