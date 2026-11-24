@@ -82,4 +82,14 @@ ssh -o StrictHostKeyChecking=no jianliu@10.10.68.96 'nvidia-smi --query-gpu=inde
 # (hostname string not captured — fill in on first login)
 ```
 
-**Idle判定 (2026-11-13)**: 只看显存不够 — 同时查 `nvidia-smi --query-compute-apps=pid --format=csv,noheader | wc -l` 必须为 0，并 `docker ps` 确认无容器。**注意**: 以 domain `liujian` 登录时 `docker ps` 报 `permission denied ... docker.sock`（不在 docker 组），此时以 compute-apps=0 + 8×14 MiB/0% 为准即可（无 compute 进程即无 GPU 容器负载）；需要容器清单时用 `jianliu`/`!QAZ2wsx` — 本机无 sshpass，用 SSH_ASKPASS 脚本 + `setsid -w ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no jianliu@10.10.68.96 'docker ps ...'`（2026-11-13 验证可用，空输出=无容器）。二次采样间隔 10s 显存不变可排除加载中。**探针快照会早于启动数秒 (2026-11-13)**: cron 探针报 8×17 MiB 的同时, 容器内 vLLM DP3/EP3 worker (root, docker 60dc4a33…, `VLLM::Worker_DP3_EP3`) 已开始加载, 10s 后 8 卡齐涨到 53 GiB —— 绝不能凭单次探针行判空闲, 必须重跑 compute-apps + 10s 二次采样。`who` 里有 xiaqing / wanglei 等登录用户不代表在用卡；qs 常驻一个 CPU-only `python server.py --host 0.0.0.0 --port 8199`（0.2% CPU，无显存），不构成 GPU 占用。
+**Idle判定 (2026-11-13)**: 只看显存不够 — 同时查 `nvidia-smi --query-compute-apps=pid --format=csv,noheader | wc -l` 必须为 0，并 `docker ps` 确认无容器。
+
+**单次SSH内完成二次采样 (2026-11-23 验证)**: cron 场景下用一条命令同时拿 compute-apps + 间隔10s 两次显存快照，避免多次往返：
+
+```bash
+ssh oem96 'nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv,noheader; echo count=$(nvidia-smi --query-compute-apps=pid --format=csv,noheader | wc -l); nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv,noheader; sleep 10; nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv,noheader'
+```
+
+2026-11-23 实测空闲态：count=0，8 卡均 14 MiB / 0%，10s 后不变 → 判空闲。同日 14:33 lixinwei 从 10.10.59.160 登录 pts/3 再触发一次 change 告警，实测仍为 count=0、8×14 MiB/0%、10s 不变 → 空闲；纯 SSH 登录（含 codex/uvicorn 等 CPU-only 进程）不构成 GPU 占用。注意 `ssh jianliu@10.10.68.96` 仍报 publickey/password 拒绝，必须用 `oem96` 别名。
+
+**注意**: 以 domain `liujian` 登录时 `docker ps` 报 `permission denied ... docker.sock`（不在 docker 组），此时以 compute-apps=0 + 8×14 MiB/0% 为准即可（无 compute 进程即无 GPU 容器负载）；需要容器清单时用 `jianliu`/`!QAZ2wsx` — 本机无 sshpass，用 SSH_ASKPASS 脚本 + `setsid -w ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no jianliu@10.10.68.96 'docker ps ...'`（2026-11-13 验证可用，空输出=无容器）。二次采样间隔 10s 显存不变可排除加载中。**探针快照会早于启动数秒 (2026-11-13)**: cron 探针报 8×17 MiB 的同时, 容器内 vLLM DP3/EP3 worker (root, docker 60dc4a33…, `VLLM::Worker_DP3_EP3`) 已开始加载, 10s 后 8 卡齐涨到 53 GiB —— 绝不能凭单次探针行判空闲, 必须重跑 compute-apps + 10s 二次采样。`who` 里有 xiaqing / wanglei 等登录用户不代表在用卡；qs 常驻一个 CPU-only `python server.py --host 0.0.0.0 --port 8199`（0.2% CPU，无显存），不构成 GPU 占用。
