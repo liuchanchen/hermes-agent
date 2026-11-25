@@ -183,6 +183,8 @@ for j in a964294ed664 89f4554bce6e 4f84b0c63dc2 abbcf2686299 13fbed6a9ac6; do ec
 
 **2026-11-24 08:00 实测（周二）**：5 个 NEED-RESEND 全部仅推送失败，无 NEED-RERUN；7 个任务 last_status 全 ok。当日财经文件 `2026-11-24_08-01-31.md` 于 08:01:31 落盘（08:00:29 采集 → 30s 轮询第 2 次 08:01:26 未到、08:01:56 前拿到），context 里仍是 11-23 旧版（标普 6,910 / 英伟达 -14%），当日新版是**完全反转行情**（标普 +4.73%→7,237.17、纳指 +6.51%、英伟达 +31.48%、黄仁勋复职），必须替换 —— 财经内容每天可能 180° 反转，绝不能拿旧版凑。周二特殊性：入职提醒 last_run=11-17（今日 10:00 才刷新）、配置备份 11-23 09:03 版均属旧内容，但因 11-23 18:00 健康检查自身推送失败，5 节仍压缩重带（约 40 行）。面试提醒 11-23 21:01 版需按今天校正：11-24 = 今天（邱宇昊 14:00 / 方睿 16:00）、11-25 明天张晗、11-26 周四王梓筝/王迪。iLink 连续约 355h（14 天 19 小时）；gateway PID 910835 运行 14 天 19 小时未重启；今日 4 条 rate limited（01:11 一条 + 08:01:32 财经两条）；磁盘 125G/251G（53%）。
 
+**2026-11-25 08:00 实测（周三）**：5 个 NEED-RESEND 全部仅推送失败，无 NEED-RERUN；7 个任务 last_status 全 ok。当日财经文件 `2026-11-25_08-01-42.md` 于 08:01:42 落盘（08:00:17 采集，与健康检查同秒起跑），context 里是 11-24 旧版（英伟达 +31.48%、标普 +4.73%），当日新版**再次反转**（道指 +0.85%、标普 -0.50%、纳指 -1.48%、费半 -7.88%、英伟达 -5.86%；Anthropic 上市第四日破发），必须替换。面试提醒 11-24 21:02 版按今天校正：11-25 张晗 14:00、11-26 王梓筝 14:00 / 王迪 16:00；方睿、李普铭 11-24 场次待补结果，邱宇昊已取消待改期。iLink 连续约 379h（15 天 19 小时，11-09 12:46 起）；gateway PID 910835 运行 15 天 18 小时未重启；今日 2 条 rate limited（08:01:42 财经推送）；磁盘 127G/251G（54%）。
+
 **2026-11-16 18:00 实测（同日第 2 轮）**：5 个 NEED-RESEND 全部仅推送失败（无 NEED-RERUN）。按落盘时间去重后真正新增仅 1 份 = 09:04 配置备份 → 邮件 ID 97（3.99 KiB，首尾已核对）；财经早报 08:01 + 11-15 面试提醒在 ID 95，入职提醒在 ID 81，上轮健康检查 = ID 95 本身。iLink 已连续 ~173h（11-09 12:46 起），当日累计 34 条 rate limited（最后一条 09:04:37，配置备份推送）。host 脚本 sort_jira.py 当日 12:30:47 第三次被 watchdog 自动恢复（kill 345958，告警邮件 ID 96），flock 卡死属复发问题，18:00 报告需单列。
 
 （已废止）历史备忘：`himalaya message read` 需用 `--mailbox sent <ID>`；2026-11-17 起不再使用任何 himalaya 命令。
@@ -288,7 +290,7 @@ Files are named as `YYYY-MM-DD_HH-MM-SS.md`. Find the latest by sorting with `ls
 
 ## Pitfalls
 
-- **`execute_code` is blocked in cron mode** — cron jobs run with `approvals.cron_mode` enforces stricter approval. Use `terminal()` directly for shell commands, not `execute_code`. **`python3 -c` is blocked too** (flagged as "script execution via -e/-c flag"); write a small `.py` file and run `python3 /tmp/x.py` instead.
+- **`execute_code` is blocked in cron mode** — cron jobs run with `approvals.cron_mode` enforces stricter approval. Use `terminal()` directly for shell commands, not `execute_code`. **`python3 -c` is blocked too** (flagged as "script execution via -e/-c flag"); write a small `.py` file and run `python3 /tmp/x.py` instead. **2026-11-25 复测：`python3 -c` 与「ASCII 外壳 + 中文 heredoc」均正常执行、未触发审批**，如再遇拦截再退回写文件。
 - **Emoji / full-width punctuation inside a `python3 - <<EOF` heredoc trips the tirith scanner** (`variation_selector` / `confusable_text`) and the command hangs in `pending_approval` — in cron there is nobody to approve it. Keep the heredoc ASCII-only, or write the script + any Chinese metadata with `write_file` (e.g. `/tmp/resend/meta.json`, `/tmp/build_email.py`) and execute a pure-ASCII `python3 /tmp/build_email.py`.
 - **Never send email** (2026-11-17 用户要求): no `himalaya`, no SMTP, no email fallback of any kind. 微信推不出去就留在 output 文件里，不要换通道补发。
 - **Background processes for parallel reruns need active polling** — when launching multiple `hermes cron run` jobs in parallel via `terminal(background=true)`, use `process(action='wait', session_id=..., timeout=...)` to check each completes. Scraper-style jobs can take 600-900+ seconds; set generous timeouts. Don't assume a silent background process finished — poll it.

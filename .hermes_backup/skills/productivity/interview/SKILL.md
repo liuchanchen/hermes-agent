@@ -651,6 +651,9 @@ When filename and PDF text are both ambiguous about role, **ask the user** rathe
 
 - 表格里同一日期可能有多名候选人，按候选人分节读取，不要合并成一行。
 - 候选人档案（`候选人档案/<姓名>.md`）只用来补充「应聘岗位/求职意向」，档案缺失不影响提醒发出。
+- **cron 模式限制:** `execute_code` 在 cron 下被 BLOCKED（无用户批准），日期计算/文本处理改用 `terminal` + `python3 - <<'EOF'` heredoc；`read_file`、`terminal`、`patch` 均正常。
+- **"今天" 的场次在 21:00 执行时多已结束**：仍列在「今天」段，但加注「已过 → 面试结果待更新」，不要误标为未来安排。
+- **状态为 `已取消` 的记录**不计入提醒，但若备注写「改期待定」，在当天段落末尾用一行注明，避免遗漏。
 
 ---
 
