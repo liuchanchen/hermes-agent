@@ -25,6 +25,8 @@ description: 获取华尔街见闻财经新闻。当用户询问华尔街见闻�
      "https://api-one-wscn.awtmt.com/apiv1/content/information-flow?channel=global&accept=article&limit=20&_=$(date +%s)"
    ```
 2. **cron 环境无 `execute_code`**（被审批策略拦截）：写 `/tmp/wscn.py` 用 `python3` 跑，curl 取 JSON → json.loads → 打印标题/时间/摘要/URI。
+   - 同样被拦的还有 `curl ... | python3 -c`（tirith:pipe_to_interpreter 安全扫描）——必须 `curl -o /tmp/x.json` 落盘后再由脚本读文件，不要管道给解释器。
+3. **美股休市日（感恩节/圣诞/元旦）**：`information-flow` 当天只有「美股休市，欧股…」这类复盘（无三大指数）。此时应改用**前一交易日**的收盘文章（标题含「AI抛售拖累美股盘中重挫…」式三大指数涨跌）取上一交易日收盘价，并在报告首行显式标注「昨夜休市，以下为上一交易日收盘」，绝不可把旧数据当昨夜行情。
 3. **时间戳校验**：`display_time` 是 Unix 秒，务必 `datetime.fromtimestamp()` 打印出来，与 `date` 对账后再写报告，防止把旧闻当新闻。
 4. **指数点位/涨跌幅**去收盘复盘文章取（标题形如「…拖累标普、纳指三连跌…」），早餐 FM-Radio 文章（`华尔街见闻早餐FM-Radio | YYYY年M月D日`）含完整「市场概述」段，是最快的三大指数+美债+汇率+商品一揽子来源。
 5. **取正文必须用 `extract=1`**：`?extend=paragraph` 或 `extend=1` 会返回 `code 60327 extract 不正确, 必须为0 或者 1`。`data.content` 是 HTML，需 `<br>`→换行、`</p>`→换行、去标签后再截取。早餐 FM-Radio 文章（`data.content`）的「市场概述」段是三大指数点位/涨跌幅+美债+汇率+商品的最快一揽子来源，`content_short` 里没有这些数字。

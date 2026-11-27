@@ -14,7 +14,7 @@ Reasoning effort: agent+delegation均xhigh于config.yaml; "max"无效,xhigh即�
 §
 TGU算力: TGU02-F 500T/TGU01-F 250T/TGU02-H2 200T/TGU02-H 100T; B300=2250T, H200≈989T.
 §
-70.88: docker stop杀不掉benchmark管理的vLLM(supervisor自动重启容器),需同kill harness PID;镜像迁移先比Image ID,同ID retag即可;88=GPU监控共享宿主(8787). 0915起NVML错配(rc=18)待重启修复.
+70.88: docker stop杀不掉benchmark管理的vLLM(supervisor自动重启容器),需同kill harness PID;镜像迁移先比Image ID,同ID retag即可;88=GPU监控共享宿主(8787). 0915起宿主NVML错配(rc=18)待重启,94同;88监控实例已修,66/106/12.12恢复;66重装过密码拒key可用(6卡);监控账号改liujian(0915).
 §
 vLLM基准对比须防JIT编译偏置:先后执行顺序致compile cache不对称(先跑冷编译~700s,后跑~90s);timed窗口内TileLang/Triton JIT波(jit_monitor.py:135)造成延迟尖峰,对比易失真.
 §
@@ -25,5 +25,3 @@ vLLM基准对比须防JIT编译偏置:先后执行顺序致compile cache不对�
 GPU监控: /home/jianliu/work/gpu-monitor. WSL实例=systemd user服务gpu-monitor.service(0904起; 用miniconda python,系统python3缺pexpect). 共享实例=70.88:8787(nodes-88.yaml). idle=mem≤64MiB持续15min(持显存不算). 技能devops/gpu-cluster-monitor(0904断数据复盘+前端兜底修复).
 §
 用户纠错(0905,Notion PD页):对比结论没写明baseline就用'GPU减半'——baseline是4卡混部,实际是PD 8卡输给4卡。教训:对比结论必须同句写明比较基准(卡数/实例规格),比例词(减半/翻倍)无参照点=未验证。已入technical-scheme-writing skill。
-§
-70.106: 监控改liujian(0915). 66: 重装过,密码拒,key可用(6卡). 88实例已修,66/106/12.12恢复;88/94待重启修NVML.

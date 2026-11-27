@@ -1,5 +1,5 @@
 {
-  "backup_timestamp": "2026-11-26T09:02:03.264659",
+  "backup_timestamp": "2026-11-27T09:02:30.180752",
   "source_hermes": "/home/jianliu/.hermes",
   "backup_target": "/home/jianliu/work/hermes-agent/.hermes_backup",
   "includes": [
@@ -25,11 +25,11 @@
       },
       {
         "name": "state.db.gz",
-        "size_bytes": 255194214
+        "size_bytes": 254589377
       },
       {
         "name": "verification_evidence.db",
-        "size_bytes": 81920
+        "size_bytes": 86016
       },
       {
         "name": "whatsapp_dongchedi.db",
