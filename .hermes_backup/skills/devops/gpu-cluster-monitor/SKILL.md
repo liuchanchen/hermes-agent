@@ -311,17 +311,45 @@ ThreadingHTTPServer) → vanilla-JS grid UI. No external deps beyond PyYAML+pexp
 
 - nvidia nodes: ALWAYS `/usr/bin/nvidia-smi` (stub wrappers at /usr/local/bin exit 113 on
   88/94-style nodes). 11-field CSV layout, no timestamp field requested.
-- wd-smi (68.93): supports nvidia-style `--query-gpu` CSV + `--query-compute-apps`.
+- wd-smi: supports nvidia-style `--query-gpu` CSV + `--query-compute-apps`.
   UUID prefix differs between queries (`TGU-…` vs `GPU-…`) — parser joins on guid core.
+  **68.93 is NO LONGER a wd-smi node** (re-imaged ~2026-11-23): `wd-smi` is gone,
+  `/usr/bin/nvidia-smi` works, cards are 8× RTX 5090. Collector is now `nvidia`
+  (`collector: nvidia`, group/label updated). The old `/usr/local/bin/nvidia-smi-bak`
+  stub still exits 113 — always call `/usr/bin/nvidia-smi`.
 - warpdgpu-smi (68.99): NO query API — parse the fixed table (GPU-Util `X%(Y%)`,
   Memory-Usage `NMiB / NMiB`, Temp `NC`, Pwr `NW`). No process list available.
 - 12.12: SSH takes minutes when loaded → interval_s=4, timeout_s=280, `stale_after_s: 360`,
   `cm: true` (ControlMaster fast path below makes warm polls ~1s, not minutes).
 
+## cgroup → container/pod id: FOUR layouts (2026-11-27)
+
+`_cid_from_cgroup()` in backend/collectors.py handles all of them; the old inline
+regexes only knew the first two and silently degraded 93/95/108 to `pod-<8hex>`:
+
+- docker: `.../docker-<64hex>.scope`
+- systemd k8s: `.../cri-containerd-<64hex>.scope` (97, 98)
+- systemd k8s: `.../cri-containerd:<64hex>` (93 — COLON separator, no `.scope`)
+- cgroupfs k8s: `.../pod<uuid>/<64hex>` (95, 108 — bare last component)
+
+## WHO2 ordering / empty-password sudo (2026-11-27)
+
+Symptom: cards show `pod-<8hex>` instead of real pod names, node still "live".
+Root cause: WHO2 ran `printf '%s\n' "$PW" | sudo -S -p '' crictl inspect` even when
+PW was EMPTY; on sssd/PAM nodes (93) that costs **~3.8s per id** (measured), so 8
+containers needed >30s — past the 20-25s attribution timeout — and `_who_lookup`
+returned `{}` with no error. Fix (repo + 88): docker inspect → `sudo -n crictl` →
+`/var/log/containers` symlink fallback → password-sudo paths LAST and only when
+`$PW` is non-empty. 93 full collect now 3.1s. Tests: tests/test_attribution.py
+(7 tests incl. `test_who2_never_runs_password_sudo_with_empty_password`).
+
 ## Fleet drift alerts (check when counts look wrong)
 
 - 68.99 re-imaged twice in one day (TGU01F ×2 → ×8 on 2026-09-04). Verify with
   `warpdgpu-smi | grep -c TGU01F` (via pexpect-ssh.py, password auth).
+- 68.93 re-imaged ~2026-11-23: TGU01-Pro ×8 → **RTX 5090 ×8**, `wd-smi` removed.
+  A `ssh rc=127 ... wd-smi: command not found` on 93 means the collector was
+  switched back to `wd` by mistake — it must be `collector: nvidia`.
 - 68.106: password auth WORKS, key auth broken. DSpark workload was removed 0904 (idle).
 - 68.88 is PRODUCTION RKE2 (MiniMax) — read-only monitoring only, 4s interval (0917 cap).
 
